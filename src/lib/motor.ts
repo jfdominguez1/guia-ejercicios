@@ -1,7 +1,17 @@
 // Motor de reglas: genera la rutina semanal a partir del perfil.
 // Funciones puras y determinísticas (PRNG con seed) — sin DOM ni localStorage.
 
-import type { DiaRutina, Ejercicio, EjercicioRutina, Objetivo, Perfil, Rutina } from './tipos';
+import type {
+  DiaRutina,
+  Ejercicio,
+  EjercicioRutina,
+  GrupoEquip,
+  Objetivo,
+  Perfil,
+  Rutina,
+  SerieHecha,
+  Sesion,
+} from './tipos';
 
 const EDAD_MADURA = 40;
 const EDAD_MAYOR = 55;
@@ -273,4 +283,147 @@ export function generarElongacion(
       descansoSeg: 10,
     })),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Salteo, última vez, variantes, regenerar
+
+export interface ResultadoSalteo {
+  tipo: 'normal' | 'pendiente' | 'combinada' | 'reset';
+  diaIndex: number;
+  mensaje: string;
+  /** Solo en 'combinada': hasta 4 compuestos de los días perdidos. */
+  ejercicios?: EjercicioRutina[];
+}
+
+const MS_POR_DIA = 86_400_000;
+const ES_COMPUESTO = /^(empuje|traccion|piernas-empuje|cadera)-/;
+
+function diasEntre(desdeISO: string, hastaISO: string): number {
+  return Math.round((Date.parse(hastaISO) - Date.parse(desdeISO)) / MS_POR_DIA);
+}
+
+/** Regla 6 del design doc: qué toca hoy según lo salteado. */
+export function resolverSalteo(
+  rutina: Rutina,
+  sesiones: Sesion[],
+  hoyISO: string,
+): ResultadoSalteo {
+  const fuerza = sesiones
+    .filter((s) => s.tipo === 'fuerza' && s.diaIndex !== undefined)
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const ultima = fuerza[fuerza.length - 1];
+  const totalDias = rutina.dias.length;
+
+  if (!ultima) {
+    return {
+      tipo: 'normal',
+      diaIndex: 0,
+      mensaje: `Te toca ${rutina.dias[0]?.nombre ?? 'el primer día'}.`,
+    };
+  }
+
+  const transcurridos = diasEntre(ultima.fecha, hoyISO);
+  const siguiente = ((ultima.diaIndex ?? 0) + 1) % totalDias;
+
+  if (transcurridos > 7) {
+    return {
+      tipo: 'reset',
+      diaIndex: 0,
+      mensaje: 'Pasó más de una semana sin entrenar — arrancamos la semana de nuevo.',
+    };
+  }
+
+  const gap = Math.max(1, Math.round(7 / totalDias));
+  const salteados = Math.max(0, Math.floor(transcurridos / gap) - 1);
+
+  if (salteados === 0) {
+    return {
+      tipo: 'normal',
+      diaIndex: siguiente,
+      mensaje: `Te toca ${rutina.dias[siguiente]?.nombre ?? ''}.`,
+    };
+  }
+
+  if (salteados === 1) {
+    return {
+      tipo: 'pendiente',
+      diaIndex: siguiente,
+      mensaje: `Te quedó pendiente ${rutina.dias[siguiente]?.nombre ?? 'una sesión'} — la semana se corre un día.`,
+    };
+  }
+
+  const perdidos = Array.from(
+    { length: Math.min(salteados, totalDias) },
+    (_, i) => (siguiente + i) % totalDias,
+  );
+  const compuestos = perdidos
+    .flatMap((i) => rutina.dias[i]?.ejercicios ?? [])
+    .filter((e) => ES_COMPUESTO.test(e.movimiento))
+    .slice(0, 4);
+  return {
+    tipo: 'combinada',
+    diaIndex: siguiente,
+    mensaje: `Salteaste ${salteados} sesiones — te propongo una combinada corta con lo esencial.`,
+    ejercicios: compuestos,
+  };
+}
+
+export interface RegistroUltimaVez {
+  fecha: string;
+  series: SerieHecha[];
+}
+
+/** Última vez que se hizo ESE ejercicio con ESA variante (regla 8). */
+export function ultimaVez(
+  sesiones: Sesion[],
+  ejercicioId: string,
+  variante: GrupoEquip,
+): RegistroUltimaVez | null {
+  return ultimaVezDeIds(sesiones, new Set([ejercicioId]), variante);
+}
+
+/** Última vez del MOVIMIENTO con esa variante (sirve tras un swap de ejercicio). */
+export function ultimaVezMovimiento(
+  sesiones: Sesion[],
+  movimiento: string,
+  variante: GrupoEquip,
+  catalogo: Ejercicio[],
+): RegistroUltimaVez | null {
+  const ids = new Set(catalogo.filter((e) => e.movimiento === movimiento).map((e) => e.id));
+  return ultimaVezDeIds(sesiones, ids, variante);
+}
+
+function ultimaVezDeIds(
+  sesiones: Sesion[],
+  ids: Set<string>,
+  variante: GrupoEquip,
+): RegistroUltimaVez | null {
+  const ordenadas = [...sesiones].sort((a, b) => b.fecha.localeCompare(a.fecha));
+  for (const sesion of ordenadas) {
+    const item = sesion.items?.find((i) => ids.has(i.ejercicioId) && i.variante === variante);
+    if (item) return { fecha: sesion.fecha, series: item.series };
+  }
+  return null;
+}
+
+const TODOS_LOS_GRUPOS: GrupoEquip[] = ['banda', 'pesas', 'maquina', 'cuerpo', 'pelota', 'rodillo'];
+
+/** Variantes de un movimiento por grupo, para el selector "¿con qué lo hacés?". */
+export function variantesDe(
+  catalogo: Ejercicio[],
+  movimiento: string,
+): Record<GrupoEquip, Ejercicio[]> {
+  const resultado = Object.fromEntries(
+    TODOS_LOS_GRUPOS.map((g) => [g, [] as Ejercicio[]]),
+  ) as Record<GrupoEquip, Ejercicio[]>;
+  for (const e of catalogo) {
+    if (e.movimiento === movimiento) resultado[e.grupo].push(e);
+  }
+  return resultado;
+}
+
+/** Nueva rutina con otro seed, misma estructura (rota equivalentes). */
+export function regenerar(rutina: Rutina, catalogo: Ejercicio[], perfil: Perfil): Rutina {
+  return generarRutina(perfil, catalogo, rutina.seed + 1);
 }
