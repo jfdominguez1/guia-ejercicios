@@ -177,9 +177,9 @@ import Base from '../layouts/Base.astro';
     caja.innerHTML = `<div class="aviso">
       <strong>Plan válido ✓</strong> — ${resultado.rutina!.dias.length} días${
         resultado.nuevos?.length ? ` · ${resultado.nuevos.length} ejercicio(s) nuevo(s) tuyos` : ''
-      }
+      }${resultado.perfil ? ' · incluye tu perfil' : ''}
       <ul>${resultado.resumenCambios.map((c) => `<li>${escapar(c)}</li>`).join('')}</ul>
-      <button class="boton-principal" id="btn-adoptar">Usar esta rutina</button>
+      <button class="boton-principal" id="btn-adoptar">${resultado.perfil ? 'Usar rutina y perfil' : 'Usar esta rutina'}</button>
     </div>`;
     $('#btn-adoptar').addEventListener('click', () => {
       storage.setRutina(resultado.rutina!);
@@ -187,11 +187,12 @@ import Base from '../layouts/Base.astro';
         const existentes = storage.getCustoms().filter((c) => !resultado.nuevos!.some((n) => n.id === c.id));
         storage.setCustoms([...existentes, ...resultado.nuevos!]);
       }
+      if (resultado.perfil) storage.setPerfil(resultado.perfil);
       if (storage.getPerfil()) {
         window.location.href = `${rutaBase}/`;
       } else {
         caja.innerHTML =
-          '<div class="aviso"><strong>Rutina adoptada ✓</strong> — ahora completá tu perfil arriba y guardalo (elegí "No" cuando pregunte si regenero: tu rutina importada queda).</div>';
+          '<div class="aviso"><strong>Rutina adoptada ✓</strong> — ahora completá tu perfil arriba y guardalo (elegí "Cancelar" cuando pregunte si regenero: tu rutina importada queda).</div>';
         window.scrollTo({ top: 0 });
       }
     });

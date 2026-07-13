@@ -90,6 +90,46 @@ describe('generarExport', () => {
   });
 });
 
+describe('validarImport — perfil incluido en la respuesta', () => {
+  function conPerfil(perfilJson: string): string {
+    return respuestaValida().replace(
+      '"nuevos_ejercicios": []',
+      `"nuevos_ejercicios": [], "perfil": ${perfilJson}`,
+    );
+  }
+
+  it('perfil válido → viene en el resultado y no rompe la rutina', () => {
+    const r = validarImport(
+      conPerfil('{"edad": 48, "dias": 3, "nivel": "empiezo", "objetivo": "tono", "equipamiento": ["pesas", "banda"], "fcMaxConocida": 178, "fcReposo": 60}'),
+      CAT,
+      RUTINA,
+    );
+    expect(r.ok).toBe(true);
+    expect(r.perfil).toEqual({
+      edad: 48, dias: 3, nivel: 'empiezo', objetivo: 'tono',
+      equipamiento: ['pesas', 'banda'], fcMaxConocida: 178, fcReposo: 60,
+    });
+  });
+
+  it('sin perfil en la respuesta → resultado sin perfil (retrocompat)', () => {
+    const r = validarImport(respuestaValida(), CAT, RUTINA);
+    expect(r.ok).toBe(true);
+    expect(r.perfil).toBeUndefined();
+  });
+
+  it('perfil inválido (edad fuera de rango, nivel desconocido, equipo malo) → error claro', () => {
+    expect(validarImport(conPerfil('{"edad": 8, "dias": 3, "nivel": "empiezo", "objetivo": "tono", "equipamiento": ["pesas"]}'), CAT).ok).toBe(false);
+    expect(validarImport(conPerfil('{"edad": 48, "dias": 3, "nivel": "pro", "objetivo": "tono", "equipamiento": ["pesas"]}'), CAT).ok).toBe(false);
+    const r = validarImport(conPerfil('{"edad": 48, "dias": 3, "nivel": "empiezo", "objetivo": "tono", "equipamiento": ["gimnasio total"]}'), CAT);
+    expect(r.ok).toBe(false);
+    expect(r.errores.join(' ')).toContain('equipamiento');
+  });
+
+  it('fcObjetivo del perfil fuera de ppm humanas → error', () => {
+    expect(validarImport(conPerfil('{"edad": 48, "dias": 3, "nivel": "empiezo", "objetivo": "tono", "equipamiento": ["pesas"], "fcMaxConocida": 500}'), CAT).ok).toBe(false);
+  });
+});
+
 describe('generarExport — FC y zonas en Quién soy (C1)', () => {
   it('con fcMaxConocida y fcReposo: informa dato medido y las 4 zonas', () => {
     const perfil = { ...PERFIL, fcMaxConocida: 180, fcReposo: 58 };

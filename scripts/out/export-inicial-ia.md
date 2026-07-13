@@ -1326,6 +1326,15 @@ Devolvé UN SOLO bloque ```json al final con esta estructura exacta:
 
 ```
 {
+  "perfil": {
+    "edad": <mi edad>,
+    "dias": <mis días por semana, 1-6>,
+    "nivel": "<empiezo|entrenado>",
+    "objetivo": "<fuerza|musculo|tono>",
+    "equipamiento": ["<mis grupos: banda|pesas|maquina|cuerpo|pelota|rodillo>"],
+    "fcMaxConocida": <ppm, solo si te la di>,
+    "fcReposo": <ppm, solo si te la di>
+  },
   "rutina": {
     "generadaEl": "<fecha ISO YYYY-MM-DD>",
     "seed": 1,
@@ -1363,6 +1372,9 @@ Devolvé UN SOLO bloque ```json al final con esta estructura exacta:
 ```
 
 Reglas del formato:
+- Incluí SIEMPRE el bloque "perfil" con mis datos de arriba pasados a ese
+  schema (así la app importa perfil + rutina en un solo paso). Omití
+  fcMaxConocida/fcReposo si no te los di.
 - Cada "ejercicioId" tiene que existir en el banco (campo id) o estar definido
   en "nuevos_ejercicios" con prefijo CUSTOM-.
 - Días de fuerza: 4-6 ejercicios. Sesión de elongación: incluila como un día

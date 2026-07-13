@@ -167,8 +167,43 @@ export interface ResultadoImport {
   ok: boolean;
   rutina?: Rutina;
   nuevos?: Ejercicio[];
+  /** Perfil incluido en la respuesta de la IA (export inicial), ya validado. */
+  perfil?: Perfil;
   errores: string[];
   resumenCambios: string[];
+}
+
+const NIVELES_VALIDOS = ['empiezo', 'entrenado'];
+const OBJETIVOS_VALIDOS = ['fuerza', 'musculo', 'tono'];
+
+function validarPerfil(crudo: unknown, errores: string[]): Perfil | undefined {
+  if (crudo === undefined || crudo === null) return undefined;
+  const p = crudo as Record<string, unknown>;
+  const previos = errores.length;
+  if (!esNumeroEn(p.edad, 14, 99)) errores.push('Perfil: edad fuera de rango (14-99).');
+  if (!esNumeroEn(p.dias, 1, 6)) errores.push('Perfil: dias tiene que ser 1-6.');
+  if (!NIVELES_VALIDOS.includes(p.nivel as string)) errores.push('Perfil: nivel inválido (empiezo|entrenado).');
+  if (!OBJETIVOS_VALIDOS.includes(p.objetivo as string)) errores.push('Perfil: objetivo inválido (fuerza|musculo|tono).');
+  const equipo = Array.isArray(p.equipamiento) ? (p.equipamiento as string[]) : null;
+  if (!equipo || equipo.length === 0 || equipo.some((g) => !GRUPOS_VALIDOS.includes(g as GrupoEquip))) {
+    errores.push(`Perfil: equipamiento inválido (lista de: ${GRUPOS_VALIDOS.join(', ')}).`);
+  }
+  if (p.fcMaxConocida !== undefined && !esNumeroEn(p.fcMaxConocida, 120, 220)) {
+    errores.push('Perfil: fcMaxConocida fuera de rango (120-220 ppm).');
+  }
+  if (p.fcReposo !== undefined && !esNumeroEn(p.fcReposo, 30, 120)) {
+    errores.push('Perfil: fcReposo fuera de rango (30-120 ppm).');
+  }
+  if (errores.length > previos) return undefined;
+  return {
+    edad: p.edad as number,
+    dias: p.dias as number,
+    nivel: p.nivel as Perfil['nivel'],
+    objetivo: p.objetivo as Perfil['objetivo'],
+    equipamiento: p.equipamiento as GrupoEquip[],
+    ...(p.fcMaxConocida !== undefined ? { fcMaxConocida: p.fcMaxConocida as number } : {}),
+    ...(p.fcReposo !== undefined ? { fcReposo: p.fcReposo as number } : {}),
+  };
 }
 
 function extraerJson(texto: string): unknown {
@@ -382,6 +417,7 @@ export function validarImport(
 
   const rutinaCruda = (crudo.rutina ?? crudo) as Record<string, unknown>;
   const nuevos = validarNuevos(crudo.nuevos_ejercicios, errores);
+  const perfil = validarPerfil(crudo.perfil, errores);
 
   const tipoDe = new Map<string, string>();
   const nombreDe = new Map<string, string>();
@@ -407,6 +443,7 @@ export function validarImport(
     ok: true,
     rutina,
     nuevos,
+    ...(perfil ? { perfil } : {}),
     errores: [],
     resumenCambios: diffRutinas(rutinaActual, dias, nombreDe),
   };
