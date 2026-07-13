@@ -35,6 +35,9 @@ def main() -> None:
         sys.exit(f"ERROR: {nulos} ejercicios quedaron sin nombre_es")
 
     CATALOGO.write_text(json.dumps(actualizado, ensure_ascii=False, indent=1))
+    publica = RAIZ / "public" / "data" / "ejercicios.json"
+    publica.parent.mkdir(parents=True, exist_ok=True)
+    publica.write_text(json.dumps(actualizado, ensure_ascii=False, separators=(",", ":")))
     print(f"{len(actualizado)} nombres aplicados; fallback a nombre_en: "
           f"{len(sin_traduccion)} {sin_traduccion[:10] if sin_traduccion else ''}")
 

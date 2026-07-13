@@ -294,6 +294,10 @@ def main() -> None:
 
     SALIDA_JSON.parent.mkdir(parents=True, exist_ok=True)
     SALIDA_JSON.write_text(json.dumps(catalogo, ensure_ascii=False, indent=1))
+    # copia servible por la app (fetch en runtime, respetando BASE_URL)
+    SALIDA_PUBLICA = RAIZ / "public" / "data" / "ejercicios.json"
+    SALIDA_PUBLICA.parent.mkdir(parents=True, exist_ok=True)
+    SALIDA_PUBLICA.write_text(json.dumps(catalogo, ensure_ascii=False, separators=(",", ":")))
     SALIDA_PENDIENTES.parent.mkdir(parents=True, exist_ok=True)
     pendientes = {e["id"]: e["nombre_en"] for e in catalogo}
     SALIDA_PENDIENTES.write_text(json.dumps(pendientes, ensure_ascii=False, indent=1))

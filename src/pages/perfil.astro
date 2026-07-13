@@ -1,0 +1,206 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base titulo="Perfil — Guía de Ejercicios" activa="perfil">
+  <h1>Perfil</h1>
+
+  <form id="form-perfil" class="carta">
+    <label for="edad">Edad</label>
+    <input type="number" id="edad" min="14" max="99" required inputmode="numeric" />
+
+    <label>Días de entrenamiento por semana</label>
+    <div class="chips" id="chips-dias" role="group" aria-label="Días por semana"></div>
+
+    <label>Nivel</label>
+    <div class="chips" id="chips-nivel" role="group" aria-label="Nivel"></div>
+
+    <label>Objetivo</label>
+    <div class="chips" id="chips-objetivo" role="group" aria-label="Objetivo"></div>
+
+    <label>Equipamiento disponible</label>
+    <p class="ayuda">Tu propio cuerpo cuenta siempre, aunque no marques nada.</p>
+    <div class="chips" id="chips-equipo" role="group" aria-label="Equipamiento"></div>
+
+    <h2>Frecuencia cardíaca <span class="eyebrow">(opcional)</span></h2>
+    <label for="fcmax">FC máxima conocida (ppm)</label>
+    <input type="number" id="fcmax" min="120" max="220" inputmode="numeric" placeholder="Si la medís con banda o reloj" />
+    <p class="ayuda">Sin dato se estima 220 − edad.</p>
+    <label for="fcreposo">FC en reposo (ppm)</label>
+    <input type="number" id="fcreposo" min="30" max="120" inputmode="numeric" />
+
+    <div id="zonas" class="carta" hidden>
+      <span class="eyebrow">Tus zonas (ppm)</span>
+      <div id="zonas-lista"></div>
+    </div>
+
+    <h2>Semana</h2>
+    <label for="objetivo-semanal">Objetivo semanal (sesiones)</label>
+    <input type="number" id="objetivo-semanal" min="1" max="7" value="3" inputmode="numeric" />
+    <label for="umbral-pausa">Días sin entrenar para proponerte retomar</label>
+    <input type="number" id="umbral-pausa" min="3" max="30" value="7" inputmode="numeric" />
+
+    <p class="ayuda" id="disclaimer">
+      Esta guía no reemplaza el consejo de un médico ni de un profesional de
+      educación física. Ante dolor o duda, consultá.
+    </p>
+    <p class="error" id="error-perfil" role="alert"></p>
+    <button type="submit" class="boton-principal" id="btn-generar">Generar mi rutina</button>
+  </form>
+</Base>
+
+<script>
+  import { generarRutina } from '../lib/motor';
+  import { zonasFc } from '../lib/fc';
+  import { storage } from '../lib/storage';
+  import { CONFIG_DEFAULT } from '../lib/registro';
+  import { cargarCatalogo, rutaBase, hoyISO } from '../ui/datos';
+  import type { GrupoEquip, Nivel, Objetivo, Perfil } from '../lib/tipos';
+
+  const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T;
+
+  const OPCIONES = {
+    dias: ['1', '2', '3', '4', '5', '6'],
+    nivel: [
+      { valor: 'empiezo', label: 'Empiezo / vuelvo' },
+      { valor: 'entrenado', label: 'Vengo entrenando' },
+    ],
+    objetivo: [
+      { valor: 'fuerza', label: 'Fuerza' },
+      { valor: 'musculo', label: 'Músculo' },
+      { valor: 'tono', label: 'Tono general' },
+    ],
+    equipo: [
+      { valor: 'pesas', label: 'Pesas' },
+      { valor: 'maquina', label: 'Máquinas' },
+      { valor: 'banda', label: 'Bandas' },
+      { valor: 'cuerpo', label: 'Solo cuerpo' },
+      { valor: 'pelota', label: 'Pelota' },
+      { valor: 'rodillo', label: 'Rodillo' },
+    ],
+  };
+
+  function armarChips(contenedor: HTMLElement, opciones: Array<{ valor: string; label: string }>, multi: boolean) {
+    for (const o of opciones) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip';
+      chip.textContent = o.label;
+      chip.dataset.valor = o.valor;
+      chip.setAttribute('aria-pressed', 'false');
+      chip.addEventListener('click', () => {
+        if (!multi) {
+          for (const otro of contenedor.querySelectorAll('.chip')) otro.setAttribute('aria-pressed', 'false');
+        }
+        chip.setAttribute('aria-pressed', chip.getAttribute('aria-pressed') === 'true' && multi ? 'false' : 'true');
+        refrescarZonas();
+      });
+      contenedor.appendChild(chip);
+    }
+  }
+
+  function elegidos(contenedor: HTMLElement): string[] {
+    return [...contenedor.querySelectorAll('.chip[aria-pressed="true"]')].map(
+      (c) => (c as HTMLElement).dataset.valor!,
+    );
+  }
+
+  function marcar(contenedor: HTMLElement, valores: string[]) {
+    for (const chip of contenedor.querySelectorAll<HTMLElement>('.chip')) {
+      chip.setAttribute('aria-pressed', String(valores.includes(chip.dataset.valor!)));
+    }
+  }
+
+  function leerPerfil(): Perfil | string {
+    const edad = Number(($('#edad') as HTMLInputElement).value);
+    const dias = Number(elegidos($('#chips-dias'))[0] ?? 0);
+    const nivel = elegidos($('#chips-nivel'))[0] as Nivel | undefined;
+    const objetivo = elegidos($('#chips-objetivo'))[0] as Objetivo | undefined;
+    const equipamiento = elegidos($('#chips-equipo')) as GrupoEquip[];
+    if (!edad || edad < 14) return 'Cargá tu edad.';
+    if (!dias) return 'Elegí cuántos días por semana.';
+    if (!nivel) return 'Elegí tu nivel.';
+    if (!objetivo) return 'Elegí tu objetivo.';
+    const fcMax = Number(($('#fcmax') as HTMLInputElement).value) || undefined;
+    const fcReposo = Number(($('#fcreposo') as HTMLInputElement).value) || undefined;
+    return {
+      edad,
+      dias,
+      nivel,
+      objetivo,
+      equipamiento: equipamiento.length ? equipamiento : ['cuerpo'],
+      ...(fcMax ? { fcMaxConocida: fcMax } : {}),
+      ...(fcReposo ? { fcReposo } : {}),
+    };
+  }
+
+  function refrescarZonas() {
+    const perfil = leerPerfil();
+    const caja = $('#zonas');
+    if (typeof perfil === 'string') {
+      caja.hidden = true;
+      return;
+    }
+    caja.hidden = false;
+    $('#zonas-lista').innerHTML = zonasFc(perfil)
+      .map((z) => `<div><strong>${z.nombre}</strong> ${z.min}–${z.max}</div>`)
+      .join('');
+  }
+
+  function precargar() {
+    const perfil = storage.getPerfil();
+    const config = storage.getConfig();
+    ($('#objetivo-semanal') as HTMLInputElement).value = String(config.objetivoSemanal);
+    ($('#umbral-pausa') as HTMLInputElement).value = String(config.umbralPausaDias);
+    if (!perfil) return;
+    ($('#edad') as HTMLInputElement).value = String(perfil.edad);
+    if (perfil.fcMaxConocida) ($('#fcmax') as HTMLInputElement).value = String(perfil.fcMaxConocida);
+    if (perfil.fcReposo) ($('#fcreposo') as HTMLInputElement).value = String(perfil.fcReposo);
+    marcar($('#chips-dias'), [String(perfil.dias)]);
+    marcar($('#chips-nivel'), [perfil.nivel]);
+    marcar($('#chips-objetivo'), [perfil.objetivo]);
+    marcar($('#chips-equipo'), perfil.equipamiento);
+    refrescarZonas();
+    ($('#btn-generar') as HTMLButtonElement).textContent = 'Guardar y regenerar rutina';
+  }
+
+  armarChips($('#chips-dias'), OPCIONES.dias.map((d) => ({ valor: d, label: d })), false);
+  armarChips($('#chips-nivel'), OPCIONES.nivel, false);
+  armarChips($('#chips-objetivo'), OPCIONES.objetivo, false);
+  armarChips($('#chips-equipo'), OPCIONES.equipo, true);
+  ($('#edad') as HTMLInputElement).addEventListener('input', refrescarZonas);
+  ($('#fcmax') as HTMLInputElement).addEventListener('input', refrescarZonas);
+  precargar();
+
+  $('#form-perfil').addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    const resultado = leerPerfil();
+    const cajaError = $('#error-perfil');
+    if (typeof resultado === 'string') {
+      cajaError.textContent = resultado;
+      return;
+    }
+    cajaError.textContent = '';
+    const habia = storage.getRutina();
+    if (habia && !confirm('Ya tenés una rutina. ¿La regenero con este perfil?')) return;
+
+    storage.setPerfil(resultado);
+    storage.setConfig({
+      objetivoSemanal: Number(($('#objetivo-semanal') as HTMLInputElement).value) || CONFIG_DEFAULT.objetivoSemanal,
+      umbralPausaDias: Number(($('#umbral-pausa') as HTMLInputElement).value) || CONFIG_DEFAULT.umbralPausaDias,
+    });
+    const boton = $('#btn-generar') as HTMLButtonElement;
+    boton.disabled = true;
+    boton.textContent = 'Generando…';
+    try {
+      const catalogo = await cargarCatalogo();
+      const seed = (habia?.seed ?? 0) + 1;
+      storage.setRutina(generarRutina(resultado, catalogo, seed, hoyISO()));
+      window.location.href = `${rutaBase}/`;
+    } catch (e) {
+      boton.disabled = false;
+      boton.textContent = 'Generar mi rutina';
+      cajaError.textContent = 'No pude cargar el catálogo. Probá de nuevo con conexión.';
+    }
+  });
+</script>

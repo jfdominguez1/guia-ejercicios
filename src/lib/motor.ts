@@ -372,6 +372,8 @@ export function resolverSalteo(
 export interface RegistroUltimaVez {
   fecha: string;
   series: SerieHecha[];
+  /** RPE de esa sesión, si se registró (A6: va en la línea "última vez"). */
+  rpe?: number;
 }
 
 /** Última vez que se hizo ESE ejercicio con ESA variante (regla 8). */
@@ -402,7 +404,13 @@ function ultimaVezDeIds(
   const ordenadas = [...sesiones].sort((a, b) => b.fecha.localeCompare(a.fecha));
   for (const sesion of ordenadas) {
     const item = sesion.items?.find((i) => ids.has(i.ejercicioId) && i.variante === variante);
-    if (item) return { fecha: sesion.fecha, series: item.series };
+    if (item) {
+      return {
+        fecha: sesion.fecha,
+        series: item.series,
+        ...(sesion.rpe !== undefined ? { rpe: sesion.rpe } : {}),
+      };
+    }
   }
   return null;
 }

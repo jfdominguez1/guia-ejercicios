@@ -146,6 +146,14 @@ describe('ultimaVez', () => {
     expect(r?.series[0]?.pesoKg).toBe(22);
   });
 
+  it('incluye el RPE de esa sesión si se registró (A6)', () => {
+    const conRpe: Sesion[] = [
+      { ...sesiones[1]!, rpe: 7 },
+    ];
+    expect(ultimaVez(conRpe, 'P1', 'pesas')?.rpe).toBe(7);
+    expect(ultimaVez(sesiones, 'P1', 'pesas')?.rpe).toBeUndefined();
+  });
+
   it('variante pesas no devuelve registro de maquina', () => {
     expect(ultimaVez(sesiones, 'P1', 'maquina')).toBeNull();
     expect(ultimaVez(sesiones, 'ZZZ', 'pesas')).toBeNull();
