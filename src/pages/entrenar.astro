@@ -156,7 +156,7 @@ import Base from '../layouts/Base.astro';
       </div>
       <h1>${escapar(info?.nombre_es ?? estado.ejercicioId)}</h1>
       <p class="ayuda">Objetivo: ${planificado.series}× ${formatearObjetivo(planificado, info?.tipo ?? 'fuerza')}${fc ? ` · ${fc}` : ''}</p>
-      ${info && !info.custom ? `<img class="gif" src="${urlGif(info.id)}" alt="" onerror="this.onerror=null;this.src='${urlImg(info.id)}'" />` : ''}
+      ${info && !info.custom ? `<img class="gif" src="${info.media === 'img' ? urlImg(info.id) : urlGif(info.id)}" alt="" onerror="this.onerror=null;this.src='${urlImg(info.id)}'" />` : ''}
       <div class="carta">
         <span class="eyebrow">¿Con qué lo hacés hoy?</span>
         <div class="chips" style="margin-top:6px">

@@ -63,7 +63,9 @@ import Base from '../layouts/Base.astro';
 
     const media = e.custom
       ? `<div class="carta" style="text-align:center">🏋️ Ejercicio tuyo (sin GIF)</div>`
-      : `<img class="gif" src="${urlGif(e.id)}" alt="Demostración de ${escapar(e.nombre_es)}"
+      : e.media === 'img'
+        ? `<img class="gif" src="${urlImg(e.id)}" alt="Postura ${escapar(e.nombre_es)}" />`
+        : `<img class="gif" src="${urlGif(e.id)}" alt="Demostración de ${escapar(e.nombre_es)}"
            onerror="this.onerror=null;this.src='${urlImg(e.id)}'" />`;
 
     caja.innerHTML = `

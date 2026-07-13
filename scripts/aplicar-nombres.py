@@ -26,8 +26,10 @@ def main() -> None:
     for e in catalogo:
         nombre = nombres.get(e["id"], "").strip()
         if not nombre:
-            sin_traduccion.append(e["id"])
-            nombre = e["nombre_en"]
+            # los extras ya vienen con nombre_es propio — no pisarlo
+            nombre = e.get("nombre_es") or e["nombre_en"]
+            if not e.get("nombre_es"):
+                sin_traduccion.append(e["id"])
         actualizado.append({**e, "nombre_es": nombre})
 
     nulos = sum(1 for e in actualizado if not e["nombre_es"])

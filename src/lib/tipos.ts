@@ -21,6 +21,8 @@ export interface Ejercicio {
   basico: boolean;
   /** Solo cardio: saltos/burpees/jacks. No se propone a nivel empiezo con 50+. */
   impacto?: boolean;
+  /** 'img' = solo imagen estática (posturas de yoga); default GIF con fallback. */
+  media?: 'img';
   custom?: boolean;
 }
 

@@ -292,6 +292,16 @@ def main() -> None:
     for e in catalogo:
         del e["_gif"], e["_img"]
 
+    # Fuentes extra (yoga-api + free-exercise-db), ya en formato final y en
+    # español — scripts/extras/extras.json. Su media vive en public/media.
+    ruta_extras = RAIZ / "scripts" / "extras" / "extras.json"
+    if ruta_extras.exists():
+        extras = json.loads(ruta_extras.read_text())
+        repetidos = {e["id"] for e in extras} & {e["id"] for e in catalogo}
+        if repetidos:
+            sys.exit(f"ERROR: ids de extras chocan con el catálogo: {sorted(repetidos)}")
+        catalogo.extend(extras)
+
     SALIDA_JSON.parent.mkdir(parents=True, exist_ok=True)
     SALIDA_JSON.write_text(json.dumps(catalogo, ensure_ascii=False, indent=1))
     # copia servible por la app (fetch en runtime, respetando BASE_URL)
