@@ -45,10 +45,14 @@ Armame **la rutina semanal inicial** con estos datos:
    Series y reps según mi objetivo (fuerza 4×5-6 · músculo 3-4×8-12 · tono 3×12-15),
    ajustadas a mi edad (40-55: reps mínimas 8, sin cargas axiales máximas ·
    55+: preferí máquina/banda, 12-15 reps, un ejercicio menos por día).
-2. **Elongación**: una sesión corta (8-10 min) para las mañanas o los días que
+2. **Cardio**: si mi frecuencia semanal lo permite, 1-2 días de cardio
+   (caminata en zona 2 y/o intervalos en cinta) usando ejercicios con
+   "t": "cardio" del banco, con "unidad": "min" y "fcObjetivo" según mis
+   zonas. Es prioritario para mí (salud metabólica) — no lo omitas.
+3. **Elongación**: una sesión corta (8-10 min) para las mañanas o los días que
    no hago fuerza, usando los ejercicios con "t": "elongacion" del banco.
    En elongación, repsMin/repsMax son SEGUNDOS de mantenimiento (series 1-2).
-3. Explicá brevemente el porqué de la estructura ANTES del JSON.
+4. Explicá brevemente el porqué de la estructura ANTES del JSON.
 
 ## Banco de ejercicios disponible (elegí de acá por "id")
 
