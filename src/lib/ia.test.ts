@@ -216,6 +216,20 @@ describe('validarImport', () => {
     expect(r.errores.length).toBeGreaterThan(0);
   });
 
+  it('elige el bloque con "rutina" aunque antes haya otros bloques json (ej: el banco)', () => {
+    const conBanco = `## Banco\n\`\`\`json\n[{"id":"0001","n":"x"}]\n\`\`\`\n\nRespuesta:\n${respuestaValida()}`;
+    const r = validarImport(conBanco, CAT, RUTINA);
+    expect(r.ok).toBe(true);
+    expect(r.rutina?.dias).toHaveLength(1);
+  });
+
+  it('pegar el PEDIDO (export sin respuesta) → error que explica que falta la respuesta de la IA', () => {
+    const pedido = `# Pedido\n## Banco\n\`\`\`json\n[{"id":"0001","n":"x"}]\n\`\`\`\n## Formato de respuesta REQUERIDO\nDevolvé UN SOLO bloque...`;
+    const r = validarImport(pedido, CAT, RUTINA);
+    expect(r.ok).toBe(false);
+    expect(r.errores.join(' ')).toContain('respuesta de tu IA');
+  });
+
   it('series/reps/días fuera de rango → errores', () => {
     const malo = respuestaValida().replace('"series": 4', '"series": 9');
     expect(validarImport(malo, CAT, RUTINA).ok).toBe(false);

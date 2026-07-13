@@ -207,9 +207,32 @@ function validarPerfil(crudo: unknown, errores: string[]): Perfil | undefined {
 }
 
 function extraerJson(texto: string): unknown {
-  const bloque = /```json\s*([\s\S]*?)```/.exec(texto);
-  const crudo = bloque?.[1] ?? texto;
-  return JSON.parse(crudo);
+  // Puede venir la conversación entera (banco incluido): probamos TODOS los
+  // bloques json y nos quedamos con el que trae la rutina.
+  const bloques = [...texto.matchAll(/```json\s*([\s\S]*?)```/g)].map((m) => m[1]!);
+  const candidatos = bloques.length > 0 ? bloques : [texto];
+  let ultimoValido: unknown;
+  let hayValido = false;
+  for (const crudo of candidatos) {
+    let parseado: unknown;
+    try {
+      parseado = JSON.parse(crudo);
+    } catch {
+      continue;
+    }
+    ultimoValido = parseado;
+    hayValido = true;
+    if (typeof parseado === 'object' && parseado !== null && !Array.isArray(parseado)) {
+      const objeto = parseado as Record<string, unknown>;
+      if (objeto.rutina !== undefined || objeto.dias !== undefined) return parseado;
+    }
+  }
+  if (!hayValido) throw new Error('sin JSON válido');
+  return ultimoValido;
+}
+
+function pareceElPedido(texto: string): boolean {
+  return texto.includes('Formato de respuesta REQUERIDO');
 }
 
 function esNumeroEn(valor: unknown, min: number, max: number): boolean {
@@ -405,12 +428,27 @@ export function validarImport(
   let crudo: Record<string, unknown>;
   try {
     const parseado = extraerJson(texto);
-    if (typeof parseado !== 'object' || parseado === null) throw new Error('no es un objeto');
+    if (typeof parseado !== 'object' || parseado === null || Array.isArray(parseado)) {
+      throw new Error('no es un objeto');
+    }
     crudo = parseado as Record<string, unknown>;
   } catch {
     return {
       ok: false,
-      errores: ['No pude leer el JSON de la respuesta. Pegá la respuesta completa, incluido el bloque ```json.'],
+      errores: [
+        pareceElPedido(texto)
+          ? 'Esto parece el PEDIDO para tu IA, no su respuesta. Pegale este texto a tu IA y acá importá la respuesta de tu IA (el bloque ```json con "rutina").'
+          : 'No pude leer el JSON de la respuesta. Pegá la respuesta completa de tu IA, incluido el bloque ```json.',
+      ],
+      resumenCambios: [],
+    };
+  }
+  if (crudo.rutina === undefined && crudo.dias === undefined && pareceElPedido(texto)) {
+    return {
+      ok: false,
+      errores: [
+        'Esto parece el PEDIDO para tu IA, no su respuesta. Pegale este texto a tu IA y acá importá la respuesta de tu IA (el bloque ```json con "rutina").',
+      ],
       resumenCambios: [],
     };
   }
