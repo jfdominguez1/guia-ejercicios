@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+"""Genera el export inicial ("primera vez") para la IA del usuario.
+
+Es la versión bootstrap del ciclo IA del design doc: como todavía no hay
+app ni historial, incluye banco completo + schema + la pregunta pidiendo
+la RUTINA INICIAL. El usuario completa su perfil en los corchetes, pega
+todo en su IA y la respuesta se importará en la app cuando esté la UI.
+
+Uso: python3 scripts/generar-export-inicial.py
+Output: scripts/out/export-inicial-ia.md
+"""
+
+import json
+from pathlib import Path
+
+RAIZ = Path(__file__).resolve().parent.parent
+CATALOGO = RAIZ / "src" / "data" / "ejercicios.json"
+SALIDA = RAIZ / "scripts" / "out" / "export-inicial-ia.md"
+
+PLANTILLA = """\
+# Pedido: armame mi rutina de entrenamiento
+
+## Quién soy
+
+- Edad: [COMPLETÁ: edad]
+- Días que puedo entrenar por semana: [COMPLETÁ: 1 a 6]
+- Nivel: [COMPLETÁ: "empiezo" (vuelvo a arrancar / poca experiencia) o "entrenado"]
+- Objetivo: [COMPLETÁ: "fuerza", "musculo" o "tono"]
+- Equipamiento disponible: [COMPLETÁ: lista entre "banda", "pesas", "maquina", "cuerpo", "pelota", "rodillo"]
+- Notas de salud/lesiones: [OPCIONAL]
+
+## Qué te pido
+
+Armame **la rutina semanal inicial** con estos datos:
+
+1. **Fuerza**: repartí los días según mi frecuencia (1-2 días full body · 3 días
+   full body con énfasis rotado · 4 días superior/inferior · 5-6 push-pull-legs).
+   4-6 ejercicios por día, compuestos primero, solo con mi equipamiento.
+   Series y reps según mi objetivo (fuerza 4×5-6 · músculo 3-4×8-12 · tono 3×12-15),
+   ajustadas a mi edad (40-55: reps mínimas 8, sin cargas axiales máximas ·
+   55+: preferí máquina/banda, 12-15 reps, un ejercicio menos por día).
+2. **Elongación**: una sesión corta (8-10 min) para las mañanas o los días que
+   no hago fuerza, usando los ejercicios con "t": "elongacion" del banco.
+   En elongación, repsMin/repsMax son SEGUNDOS de mantenimiento (series 1-2).
+3. Explicá brevemente el porqué de la estructura ANTES del JSON.
+
+## Banco de ejercicios disponible (elegí de acá por "id")
+
+Formato compacto: id · n (nombre) · m (movimiento) · mu (músculo) · g (equipamiento) · t (fuerza/elongacion).
+Si te falta algún ejercicio importante que no está en el banco, podés crearlo
+(ver "ejercicios nuevos" abajo).
+
+```json
+{banco}
+```
+
+## Rutina actual
+
+Todavía no tengo — esta es la primera.
+
+## Historial
+
+Todavía no hay sesiones registradas.
+
+## Formato de respuesta REQUERIDO
+
+Devolvé UN SOLO bloque ```json al final con esta estructura exacta:
+
+```
+{{
+  "rutina": {{
+    "generadaEl": "<fecha ISO YYYY-MM-DD>",
+    "seed": 1,
+    "origen": "ia",
+    "dias": [
+      {{
+        "nombre": "<ej: Día 1 — Empuje>",
+        "enfoque": "<ej: pecho, hombros y tríceps>",
+        "ejercicios": [
+          {{
+            "movimiento": "<campo m del banco>",
+            "ejercicioId": "<campo id del banco, o CUSTOM-...>",
+            "series": <1-6>,
+            "repsMin": <número>,
+            "repsMax": <número>,
+            "descansoSeg": <segundos de descanso entre series>
+          }}
+        ]
+      }}
+    ]
+  }},
+  "nuevos_ejercicios": [
+    {{
+      "id": "CUSTOM-<slug-corto>",
+      "nombre_es": "<nombre en español>",
+      "musculo": "<músculo principal>",
+      "grupo": "<banda|pesas|maquina|cuerpo|pelota|rodillo>",
+      "tipo": "<fuerza|elongacion>",
+      "pasos": ["<paso 1>", "<paso 2>"]
+    }}
+  ]
+}}
+```
+
+Reglas del formato:
+- Cada "ejercicioId" tiene que existir en el banco (campo id) o estar definido
+  en "nuevos_ejercicios" con prefijo CUSTOM-.
+- Días de fuerza: 4-6 ejercicios. Sesión de elongación: incluila como un día
+  más con "nombre": "Elongación (mañanas / días libres)".
+- En ejercicios de elongación repsMin/repsMax = segundos de mantenimiento.
+- "nuevos_ejercicios" puede ir vacío: [].
+- No agregues texto después del bloque JSON.
+"""
+
+
+def main() -> None:
+    catalogo = json.loads(CATALOGO.read_text())
+    banco = [
+        {"id": e["id"], "n": e["nombre_es"], "m": e["movimiento"],
+         "mu": e["musculo"], "g": e["grupo"], "t": e["tipo"]}
+        for e in catalogo
+    ]
+    banco_json = "[\n" + ",\n".join(
+        json.dumps(item, ensure_ascii=False, separators=(",", ":")) for item in banco
+    ) + "\n]"
+    SALIDA.parent.mkdir(parents=True, exist_ok=True)
+    SALIDA.write_text(PLANTILLA.format(banco=banco_json))
+    kb = SALIDA.stat().st_size / 1024
+    print(f"{SALIDA.relative_to(RAIZ)} generado: {len(banco)} ejercicios, {kb:.0f} KB")
+
+
+if __name__ == "__main__":
+    main()
