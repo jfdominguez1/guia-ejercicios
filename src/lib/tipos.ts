@@ -97,6 +97,8 @@ export interface Sesion {
   notas?: string;
   /** Duración aproximada del registro rápido "hice otra cosa". */
   duracionMin?: number;
+  /** FC promedio de la sesión en ppm (C2, opcional — típico de banda/reloj). */
+  fcPromedio?: number;
   /** Detalle fino (pesos/reps por serie) — opcional, nunca obligatorio. */
   items?: ItemSesion[];
   cardio?: { tipo: TipoCardio; minutos: number; km?: number; sensacion?: string };
