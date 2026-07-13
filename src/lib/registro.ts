@@ -1,7 +1,7 @@
 // Registro de sesión de un tap: si registrar es caro, el usuario deja de
 // hacerlo y la app muere. Nada acá es obligatorio salvo la fecha.
 
-import type { Config, DiaRutina, Ejercicio, Rutina, Sesion, TipoSesion } from './tipos';
+import type { Config, DiaRutina, Ejercicio, GrupoGuardado, Rutina, Sesion, TipoSesion } from './tipos';
 
 export const CONFIG_DEFAULT: Config = { objetivoSemanal: 3, umbralPausaDias: 7 };
 
@@ -34,6 +34,22 @@ export function registrarHecha(
     estado: 'hecha',
     diaIndex,
     ...(dia ? { diaRutina: dia.nombre } : {}),
+    ...(rpe !== undefined ? { rpe } : {}),
+  };
+}
+
+/** Ejecutar un bloque guardado: cuenta como sesión, no corre el ciclo de la rutina. */
+export function registrarGrupo(
+  grupo: GrupoGuardado,
+  catalogo: Ejercicio[],
+  fechaISO: string,
+  rpe?: number,
+): Sesion {
+  return {
+    fecha: fechaISO,
+    tipo: tipoDelDia({ nombre: grupo.nombre, enfoque: '', ejercicios: grupo.ejercicios }, catalogo),
+    estado: 'hecha',
+    diaRutina: grupo.nombre,
     ...(rpe !== undefined ? { rpe } : {}),
   };
 }

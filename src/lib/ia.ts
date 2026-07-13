@@ -7,7 +7,9 @@ import { detectarPausas } from './retomar';
 import type {
   DiaRutina,
   Ejercicio,
+  EjercicioRutina,
   GrupoEquip,
+  GrupoGuardado,
   Perfil,
   Rutina,
   Sesion,
@@ -63,10 +65,20 @@ Devolvé UN SOLO bloque \`\`\`json al final con esta estructura exacta:
       "tipo": "<fuerza|elongacion|cardio>",
       "pasos": ["<paso 1>", "<paso 2>"]
     }
+  ],
+  "grupos": [
+    {
+      "nombre": "<ej: Movilidad de cadera>",
+      "descripcion": "<cuándo usarlo>",
+      "ejercicios": [ <mismo formato que los de la rutina> ]
+    }
   ]
 }
 \`\`\`
 
+"grupos" es opcional: son bloques sueltos REUTILIZABLES que quedan
+guardados aparte de la rutina (calentamientos, movilidad, mini-sesiones
+de viaje). Podés mandar solo grupos, sin rutina, si eso es lo pedido.
 Reglas: cada "ejercicioId" existe en el banco o en "nuevos_ejercicios"
 (prefijo CUSTOM-). "unidad" define qué son repsMin/repsMax: en ejercicios
 cardio usá unidad "min" y opcionalmente "fcObjetivo" (zona de frecuencia
@@ -95,6 +107,7 @@ export function generarExport(
   customs: Ejercicio[],
   pregunta?: string,
   hoyISO?: string,
+  grupos: GrupoGuardado[] = [],
 ): string {
   const hoy = hoyISO ?? new Date().toISOString().slice(0, 10);
   const recientes = sesionesRecientes(sesiones, hoy);
@@ -140,6 +153,11 @@ ${bancoCompacto(catalogo, customs)}
 \`\`\`json
 ${JSON.stringify(rutina, null, 1)}
 \`\`\`
+${
+  grupos.length
+    ? `\n## Mis bloques guardados (reutilizables, aparte de la rutina)\n\n\`\`\`json\n${JSON.stringify(grupos, null, 1)}\n\`\`\`\n`
+    : ''
+}
 
 ## Registro (últimas ${SEMANAS_REGISTRO} semanas)
 
@@ -167,6 +185,8 @@ export interface ResultadoImport {
   ok: boolean;
   rutina?: Rutina;
   nuevos?: Ejercicio[];
+  /** Bloques reutilizables que la IA armó — quedan guardados aparte de la rutina. */
+  grupos?: GrupoGuardado[];
   /** Perfil incluido en la respuesta de la IA (export inicial), ya validado. */
   perfil?: Perfil;
   errores: string[];
@@ -323,6 +343,76 @@ function validarNuevos(crudos: unknown, errores: string[]): Ejercicio[] {
   return nuevos;
 }
 
+function validarEjercicios(
+  crudos: unknown,
+  etiqueta: string,
+  tipoDe: Map<string, string>,
+  errores: string[],
+): EjercicioRutina[] {
+  if (!Array.isArray(crudos) || crudos.length === 0) {
+    errores.push(`${etiqueta}: sin ejercicios.`);
+    return [];
+  }
+  const ejercicios: EjercicioRutina[] = [];
+  for (const e of crudos as Record<string, unknown>[]) {
+    const id = String(e.ejercicioId ?? '');
+    const tipo = tipoDe.get(id);
+    if (!tipo) {
+      errores.push(`${etiqueta}: el ejercicio "${id}" no existe en el banco ni en nuevos_ejercicios.`);
+      continue;
+    }
+    const unidad = validarUnidad(e.unidad, etiqueta, id, errores);
+    const fcObjetivo = validarFc(e.fcObjetivo, etiqueta, id, errores);
+    // sin unidad explícita, elongación se interpreta en segundos (retrocompat)
+    const efectiva = unidad ?? (tipo === 'elongacion' ? 'seg' : 'reps');
+    const maxValor = efectiva === 'reps' ? 30 : 120;
+    if (!esNumeroEn(e.series, 1, 6)) {
+      errores.push(`${etiqueta}, "${id}": series fuera de rango (1-6).`);
+    }
+    if (!esNumeroEn(e.repsMin, 1, maxValor) || !esNumeroEn(e.repsMax, 1, maxValor)) {
+      errores.push(`${etiqueta}, "${id}": ${efectiva} fuera de rango (1-${maxValor}).`);
+    }
+    ejercicios.push({
+      movimiento: String(e.movimiento ?? ''),
+      ejercicioId: id,
+      series: Number(e.series),
+      repsMin: Number(e.repsMin),
+      repsMax: Number(e.repsMax),
+      ...(unidad ? { unidad } : {}),
+      ...(fcObjetivo ? { fcObjetivo } : {}),
+      descansoSeg: Number(e.descansoSeg ?? 60),
+    });
+  }
+  return ejercicios;
+}
+
+function validarGrupos(
+  crudos: unknown,
+  tipoDe: Map<string, string>,
+  errores: string[],
+): GrupoGuardado[] {
+  if (crudos === undefined || crudos === null) return [];
+  if (!Array.isArray(crudos)) {
+    errores.push('"grupos" tiene que ser una lista.');
+    return [];
+  }
+  const grupos: GrupoGuardado[] = [];
+  for (const g of crudos as Record<string, unknown>[]) {
+    const nombre = String(g.nombre ?? '').trim();
+    if (!nombre) {
+      errores.push('Hay un grupo sin "nombre" — cada bloque necesita uno.');
+      continue;
+    }
+    const ejercicios = validarEjercicios(g.ejercicios, `Grupo "${nombre}"`, tipoDe, errores);
+    grupos.push({
+      nombre,
+      ...(g.descripcion ? { descripcion: String(g.descripcion) } : {}),
+      ejercicios,
+    });
+  }
+  return grupos;
+}
+
 function validarDias(
   crudos: unknown,
   tipoDe: Map<string, string>,
@@ -335,41 +425,8 @@ function validarDias(
   const dias: DiaRutina[] = [];
   for (const [i, diaCrudo] of (crudos as Record<string, unknown>[]).entries()) {
     const etiqueta = `Día ${i + 1}`;
-    const ejerciciosCrudos = diaCrudo.ejercicios;
-    if (!Array.isArray(ejerciciosCrudos) || ejerciciosCrudos.length === 0) {
-      errores.push(`${etiqueta}: sin ejercicios.`);
-      continue;
-    }
-    const ejercicios = [];
-    for (const e of ejerciciosCrudos as Record<string, unknown>[]) {
-      const id = String(e.ejercicioId ?? '');
-      const tipo = tipoDe.get(id);
-      if (!tipo) {
-        errores.push(`${etiqueta}: el ejercicio "${id}" no existe en el banco ni en nuevos_ejercicios.`);
-        continue;
-      }
-      const unidad = validarUnidad(e.unidad, etiqueta, id, errores);
-      const fcObjetivo = validarFc(e.fcObjetivo, etiqueta, id, errores);
-      // sin unidad explícita, elongación se interpreta en segundos (retrocompat)
-      const efectiva = unidad ?? (tipo === 'elongacion' ? 'seg' : 'reps');
-      const maxValor = efectiva === 'reps' ? 30 : 120;
-      if (!esNumeroEn(e.series, 1, 6)) {
-        errores.push(`${etiqueta}, "${id}": series fuera de rango (1-6).`);
-      }
-      if (!esNumeroEn(e.repsMin, 1, maxValor) || !esNumeroEn(e.repsMax, 1, maxValor)) {
-        errores.push(`${etiqueta}, "${id}": ${efectiva} fuera de rango (1-${maxValor}).`);
-      }
-      ejercicios.push({
-        movimiento: String(e.movimiento ?? ''),
-        ejercicioId: id,
-        series: Number(e.series),
-        repsMin: Number(e.repsMin),
-        repsMax: Number(e.repsMax),
-        ...(unidad ? { unidad } : {}),
-        ...(fcObjetivo ? { fcObjetivo } : {}),
-        descansoSeg: Number(e.descansoSeg ?? 60),
-      });
-    }
+    const ejercicios = validarEjercicios(diaCrudo.ejercicios, etiqueta, tipoDe, errores);
+    if (ejercicios.length === 0 && !Array.isArray(diaCrudo.ejercicios)) continue;
     dias.push({
       nombre: String(diaCrudo.nombre ?? etiqueta),
       enfoque: String(diaCrudo.enfoque ?? ''),
@@ -464,25 +521,38 @@ export function validarImport(
     nombreDe.set(e.id, e.nombre_es);
   }
 
-  const dias = validarDias(rutinaCruda.dias, tipoDe, errores);
+  const grupos = validarGrupos(crudo.grupos, tipoDe, errores);
+  const hayRutina = rutinaCruda.dias !== undefined;
+  if (!hayRutina && grupos.length === 0 && errores.length === 0) {
+    errores.push('La respuesta no trae ni "rutina" ni "grupos" — no hay nada que importar.');
+  }
+  const dias = hayRutina ? validarDias(rutinaCruda.dias, tipoDe, errores) : [];
 
   if (errores.length > 0) {
     return { ok: false, errores, resumenCambios: [] };
   }
 
-  const rutina: Rutina = {
-    generadaEl: String(rutinaCruda.generadaEl ?? new Date().toISOString().slice(0, 10)),
-    seed: Number(rutinaCruda.seed ?? 0),
-    origen: 'ia',
-    dias,
-  };
+  const rutina: Rutina | undefined = hayRutina
+    ? {
+        generadaEl: String(rutinaCruda.generadaEl ?? new Date().toISOString().slice(0, 10)),
+        seed: Number(rutinaCruda.seed ?? 0),
+        origen: 'ia',
+        dias,
+      }
+    : undefined;
+
+  const resumenCambios = hayRutina ? diffRutinas(rutinaActual, dias, nombreDe) : [];
+  for (const g of grupos) {
+    resumenCambios.push(`+ Bloque guardado: ${g.nombre} (${g.ejercicios.length} ejercicios).`);
+  }
 
   return {
     ok: true,
-    rutina,
+    ...(rutina ? { rutina } : {}),
     nuevos,
+    ...(grupos.length ? { grupos } : {}),
     ...(perfil ? { perfil } : {}),
     errores: [],
-    resumenCambios: diffRutinas(rutinaActual, dias, nombreDe),
+    resumenCambios,
   };
 }

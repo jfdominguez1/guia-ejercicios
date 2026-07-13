@@ -44,7 +44,7 @@ import Base from '../layouts/Base.astro';
 <script>
   import { resolverSalteo, generarElongacion, regenerar, ultimaVezMovimiento } from '../lib/motor';
   import { estadoHome, type ResultadoRetomar } from '../lib/retomar';
-  import { registrarHecha, registrarOtra, fechaValidaRetro, resumenSemanal, type TipoRapido } from '../lib/registro';
+  import { registrarHecha, registrarOtra, registrarGrupo, fechaValidaRetro, resumenSemanal, type TipoRapido } from '../lib/registro';
   import { convertirDiaSinGym } from '../lib/singym';
   import { formatearObjetivo, formatearFc, etiquetaDescanso } from '../lib/formato';
   import { storage } from '../lib/storage';
@@ -276,6 +276,41 @@ import Base from '../layouts/Base.astro';
     caja.prepend(carta);
   }
 
+  function htmlBloques(): string {
+    const grupos = storage.getGrupos();
+    if (!grupos.length) return '';
+    return `<h2>Mis bloques</h2>${grupos
+      .map(
+        (g, i) => `<details class="carta">
+        <summary style="font-weight:700;cursor:pointer">${escapar(g.nombre)} <span class="eyebrow">(${g.ejercicios.length})</span></summary>
+        ${g.descripcion ? `<p class="ayuda">${escapar(g.descripcion)}</p>` : ''}
+        ${g.ejercicios.map((e) => htmlEjercicio(e)).join('')}
+        <button class="boton-principal" data-bloque="${i}" style="margin-top:8px">Hecho ✓</button>
+        <button class="boton-silencioso" data-quitar-bloque="${i}">Quitar bloque</button>
+      </details>`,
+      )
+      .join('')}`;
+  }
+
+  function conectarBloques() {
+    caja.querySelectorAll('[data-bloque]').forEach((boton) =>
+      boton.addEventListener('click', () => {
+        const grupo = storage.getGrupos()[Number((boton as HTMLElement).dataset.bloque)];
+        if (grupo) guardarYPedirRpe(registrarGrupo(grupo, catalogo, hoyISO()));
+      }),
+    );
+    caja.querySelectorAll('[data-quitar-bloque]').forEach((boton) =>
+      boton.addEventListener('click', () => {
+        const i = Number((boton as HTMLElement).dataset.quitarBloque);
+        const grupo = storage.getGrupos()[i];
+        if (grupo && confirm(`¿Quito el bloque "${grupo.nombre}"?`)) {
+          storage.setGrupos(storage.getGrupos().filter((_, j) => j !== i));
+          pintar();
+        }
+      }),
+    );
+  }
+
   function htmlRetomar(retomar: ResultadoRetomar): string {
     return `<div class="carta retomar">
       <h2>Retomar hoy</h2>
@@ -338,7 +373,8 @@ import Base from '../layouts/Base.astro';
         <button id="btn-retro">Otro día</button>
         <a class="boton" style="text-align:center;text-decoration:none" href="${rutaBase}/historial/#cardio">+ Cardio</a>
         <button id="btn-regenerar">Regenerar ↻</button>
-      </div>`;
+      </div>
+      ${htmlBloques()}`;
 
     $('#btn-hecha').addEventListener('click', () => {
       const sesion = registrarHecha(rutina, diaIndex, catalogo, hoyISO());
@@ -349,6 +385,7 @@ import Base from '../layouts/Base.astro';
     caja.querySelectorAll('.editar').forEach((boton) =>
       boton.addEventListener('click', () => panelEditar(diaIndex, Number((boton as HTMLElement).dataset.idx))),
     );
+    conectarBloques();
     $('#btn-retro').addEventListener('click', panelRetro);
     $('#btn-singym').addEventListener('click', () => {
       modoSinGym = !modoSinGym;

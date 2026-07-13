@@ -72,6 +72,13 @@ export interface Rutina {
   dias: DiaRutina[];
 }
 
+/** Bloque reutilizable armado por la IA o a mano — no rota con la semana. */
+export interface GrupoGuardado {
+  nombre: string;
+  descripcion?: string;
+  ejercicios: EjercicioRutina[];
+}
+
 export interface SerieHecha {
   reps: number;
   pesoKg?: number;

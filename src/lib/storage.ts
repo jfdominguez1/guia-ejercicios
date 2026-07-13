@@ -2,10 +2,10 @@
 // devuelve el default (browser en privado, quota llena, JSON corrupto).
 
 import { CONFIG_DEFAULT } from './registro';
-import type { Config, Ejercicio, Perfil, Rutina, Sesion } from './tipos';
+import type { Config, Ejercicio, GrupoGuardado, Perfil, Rutina, Sesion } from './tipos';
 
 const PREFIJO = 'ge:';
-const CLAVES = ['perfil', 'rutina', 'sesiones', 'customs', 'config'] as const;
+const CLAVES = ['perfil', 'rutina', 'sesiones', 'customs', 'config', 'grupos'] as const;
 
 function leer<T>(clave: string, porDefecto: T): T {
   try {
@@ -39,6 +39,14 @@ export const storage = {
 
   getCustoms: (): Ejercicio[] => leer<Ejercicio[]>('customs', []),
   setCustoms: (customs: Ejercicio[]): void => guardar('customs', customs),
+
+  getGrupos: (): GrupoGuardado[] => leer<GrupoGuardado[]>('grupos', []),
+  setGrupos: (grupos: GrupoGuardado[]): void => guardar('grupos', grupos),
+  /** Agrega o reemplaza por nombre (reimportar un bloque lo actualiza). */
+  guardarGrupo(grupo: GrupoGuardado): void {
+    const otros = this.getGrupos().filter((g) => g.nombre !== grupo.nombre);
+    this.setGrupos([...otros, grupo]);
+  },
 
   /** Config con defaults: campos nuevos futuros no rompen lo guardado. */
   getConfig: (): Config => ({ ...CONFIG_DEFAULT, ...leer<Partial<Config>>('config', {}) }),

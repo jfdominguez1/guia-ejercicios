@@ -168,6 +168,7 @@ import Base from '../layouts/Base.astro';
       storage.getCustoms(),
       ($('#export-pregunta') as HTMLTextAreaElement).value.trim() || undefined,
       hoyISO(),
+      storage.getGrupos(),
     );
     const salida = $('#export-texto') as HTMLTextAreaElement;
     salida.hidden = false;
@@ -205,15 +206,20 @@ import Base from '../layouts/Base.astro';
         .join('')}</ul>`;
       return;
     }
+    const partes = [
+      resultado.rutina ? `rutina de ${resultado.rutina.dias.length} días` : '',
+      resultado.grupos?.length ? `${resultado.grupos.length} bloque(s)` : '',
+      resultado.nuevos?.length ? `${resultado.nuevos.length} ejercicio(s) nuevo(s) tuyos` : '',
+      resultado.perfil ? 'tu perfil' : '',
+    ].filter(Boolean);
     caja.innerHTML = `<div class="aviso">
-      <strong>Plan válido ✓</strong> — ${resultado.rutina!.dias.length} días${
-        resultado.nuevos?.length ? ` · ${resultado.nuevos.length} ejercicio(s) nuevo(s) tuyos` : ''
-      }${resultado.perfil ? ' · incluye tu perfil' : ''}
+      <strong>Plan válido ✓</strong> — ${partes.join(' · ')}
       <ul>${resultado.resumenCambios.map((c) => `<li>${escapar(c)}</li>`).join('')}</ul>
-      <button class="boton-principal" id="btn-adoptar">${resultado.perfil ? 'Usar rutina y perfil' : 'Usar esta rutina'}</button>
+      <button class="boton-principal" id="btn-adoptar">Guardar todo</button>
     </div>`;
     $('#btn-adoptar').addEventListener('click', () => {
-      storage.setRutina(resultado.rutina!);
+      if (resultado.rutina) storage.setRutina(resultado.rutina);
+      for (const g of resultado.grupos ?? []) storage.guardarGrupo(g);
       if (resultado.nuevos?.length) {
         const existentes = storage.getCustoms().filter((c) => !resultado.nuevos!.some((n) => n.id === c.id));
         storage.setCustoms([...existentes, ...resultado.nuevos!]);

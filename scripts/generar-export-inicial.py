@@ -119,9 +119,20 @@ Devolvé UN SOLO bloque ```json al final con esta estructura exacta:
       "tipo": "<fuerza|elongacion|cardio>",
       "pasos": ["<paso 1>", "<paso 2>"]
     }}
+  ],
+  "grupos": [
+    {{
+      "nombre": "<ej: Movilidad de cadera>",
+      "descripcion": "<cuándo usarlo>",
+      "ejercicios": [ <mismo formato que los de la rutina> ]
+    }}
   ]
 }}
 ```
+
+"grupos" es opcional: bloques sueltos REUTILIZABLES que quedan guardados
+aparte de la rutina (calentamientos, movilidad, mini-sesiones de viaje).
+También puedo pedirte después SOLO grupos, sin rutina.
 
 Reglas del formato:
 - Incluí SIEMPRE el bloque "perfil" con mis datos de arriba pasados a ese
