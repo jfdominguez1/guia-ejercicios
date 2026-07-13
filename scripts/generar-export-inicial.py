@@ -46,7 +46,7 @@ Armame **la rutina semanal inicial** con estos datos:
 
 ## Banco de ejercicios disponible (elegí de acá por "id")
 
-Formato compacto: id · n (nombre) · m (movimiento) · mu (músculo) · g (equipamiento) · t (fuerza/elongacion).
+Formato compacto: id · n (nombre) · m (movimiento) · mu (músculo) · g (equipamiento) · t (fuerza/elongacion/cardio).
 Si te falta algún ejercicio importante que no está en el banco, podés crearlo
 (ver "ejercicios nuevos" abajo).
 
@@ -83,6 +83,8 @@ Devolvé UN SOLO bloque ```json al final con esta estructura exacta:
             "series": <1-6>,
             "repsMin": <número>,
             "repsMax": <número>,
+            "unidad": "<reps|seg|min — opcional, default reps>",
+            "fcObjetivo": {{ "min": <ppm>, "max": <ppm> }},
             "descansoSeg": <segundos de descanso entre series>
           }}
         ]
@@ -107,7 +109,12 @@ Reglas del formato:
   en "nuevos_ejercicios" con prefijo CUSTOM-.
 - Días de fuerza: 4-6 ejercicios. Sesión de elongación: incluila como un día
   más con "nombre": "Elongación (mañanas / días libres)".
-- En ejercicios de elongación repsMin/repsMax = segundos de mantenimiento.
+- "unidad" define qué son repsMin/repsMax: en ejercicios cardio usá
+  unidad "min" y opcionalmente "fcObjetivo" (zona de frecuencia cardíaca
+  objetivo en ppm); en elongación usá unidad "seg"; en fuerza omitila o
+  usá "reps".
+- En cardio con "series" > 1, "descansoSeg" es la recuperación activa entre
+  bloques (ej: 6 bloques de 2 min de trote con 180 seg caminando).
 - "nuevos_ejercicios" puede ir vacío: [].
 - No agregues texto después del bloque JSON.
 """

@@ -1,7 +1,8 @@
 // Tipos del dominio — sin DOM ni localStorage acá.
 
 export type GrupoEquip = 'banda' | 'pesas' | 'maquina' | 'cuerpo' | 'pelota' | 'rodillo';
-export type TipoEjercicio = 'fuerza' | 'elongacion';
+export type TipoEjercicio = 'fuerza' | 'elongacion' | 'cardio';
+export type UnidadEjercicio = 'reps' | 'seg' | 'min';
 export type Objetivo = 'fuerza' | 'musculo' | 'tono';
 export type Nivel = 'empiezo' | 'entrenado';
 
@@ -33,9 +34,18 @@ export interface EjercicioRutina {
   movimiento: string;
   ejercicioId: string;
   series: number;
-  /** En ejercicios de elongación, repsMin/repsMax son segundos de mantenimiento. */
+  /** repsMin/repsMax se interpretan según `unidad` (reps, segundos o minutos). */
   repsMin: number;
   repsMax: number;
+  /**
+   * Default 'reps' si falta (retrocompatible con rutinas viejas); en
+   * ejercicios de elongación sin unidad se interpreta como 'seg'.
+   * Cardio usa 'min'.
+   */
+  unidad?: UnidadEjercicio;
+  /** Zona de frecuencia cardíaca objetivo en ppm — solo tiene sentido en cardio. */
+  fcObjetivo?: { min: number; max: number };
+  /** En cardio con series > 1 es recuperación activa entre bloques. */
   descansoSeg: number;
 }
 

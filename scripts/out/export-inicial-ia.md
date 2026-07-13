@@ -26,7 +26,7 @@ Armame **la rutina semanal inicial** con estos datos:
 
 ## Banco de ejercicios disponible (elegí de acá por "id")
 
-Formato compacto: id · n (nombre) · m (movimiento) · mu (músculo) · g (equipamiento) · t (fuerza/elongacion).
+Formato compacto: id · n (nombre) · m (movimiento) · mu (músculo) · g (equipamiento) · t (fuerza/elongacion/cardio).
 Si te falta algún ejercicio importante que no está en el banco, podés crearlo
 (ver "ejercicios nuevos" abajo).
 
@@ -59,8 +59,8 @@ Si te falta algún ejercicio importante que no está en el banco, podés crearlo
 {"id":"1432","n":"Dominada de pie asistida","m":"traccion-dorsales","mu":"Dorsales","g":"maquina","t":"fuerza"},
 {"id":"0019","n":"Fondos de tríceps asistido (arrodillado)","m":"otro-triceps","mu":"Tríceps","g":"maquina","t":"fuerza"},
 {"id":"2364","n":"Fondos de pecho con agarre amplio asistidos (arrodillado)","m":"otro-pectorales","mu":"Pectorales","g":"maquina","t":"fuerza"},
-{"id":"3220","n":"Saltos con pies separados","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
-{"id":"3672","n":"Paso atrás y adelante","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
+{"id":"3220","n":"Saltos con pies separados","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
+{"id":"3672","n":"Paso atrás y adelante","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
 {"id":"3297","n":"Palanca trasera","m":"otro-espalda-alta","mu":"Espalda alta","g":"cuerpo","t":"fuerza"},
 {"id":"1405","n":"Estiramiento de espalda-pecho","m":"elongacion-dorsales","mu":"Dorsales","g":"cuerpo","t":"elongacion"},
 {"id":"1473","n":"Salto hacia atrás","m":"otro-cuadriceps","mu":"Cuádriceps","g":"cuerpo","t":"fuerza"},
@@ -261,7 +261,7 @@ Si te falta algún ejercicio importante que no está en el banco, podés crearlo
 {"id":"0125","n":"Curl de muñeca con barra v. 2","m":"otro-antebrazos","mu":"Antebrazos","g":"pesas","t":"fuerza"},
 {"id":"0127","n":"Sentadilla Zercher con barra","m":"piernas-empuje-gluteos","mu":"Glúteos","g":"pesas","t":"fuerza"},
 {"id":"3212","n":"Toque de puntas básico","m":"otro-gluteos","mu":"Glúteos","g":"cuerpo","t":"fuerza"},
-{"id":"3360","n":"Gateo de oso","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
+{"id":"3360","n":"Gateo de oso","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
 {"id":"1259","n":"Estiramiento de pecho con manos detrás de la cabeza","m":"elongacion-pectorales","mu":"Pectorales","g":"cuerpo","t":"elongacion"},
 {"id":"0129","n":"Fondos en banco (rodillas flexionadas)","m":"empuje-triceps","mu":"Tríceps","g":"cuerpo","t":"fuerza"},
 {"id":"1399","n":"Fondos en banco en piso","m":"empuje-triceps","mu":"Tríceps","g":"cuerpo","t":"fuerza"},
@@ -288,7 +288,7 @@ Si te falta algún ejercicio importante que no está en el banco, podés crearlo
 {"id":"0138","n":"Fondo hacia arriba","m":"otro-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
 {"id":"1374","n":"Salto desde caja con estabilización a una pierna","m":"otro-pantorrillas","mu":"Pantorrillas","g":"cuerpo","t":"fuerza"},
 {"id":"2466","n":"Puente - escalador (cuerpo cruzado)","m":"cadera-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
-{"id":"1160","n":"Burpee","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
+{"id":"1160","n":"Burpee","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
 {"id":"0870","n":"Butt-ups","m":"otro-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
 {"id":"1494","n":"Postura de mariposa","m":"elongacion-aductores","mu":"Aductores","g":"cuerpo","t":"elongacion"},
 {"id":"0148","n":"Press de hombro alternado en polea","m":"empuje-deltoides","mu":"Deltoides","g":"maquina","t":"fuerza"},
@@ -473,7 +473,7 @@ Si te falta algún ejercicio importante que no está en el banco, podés crearlo
 {"id":"0274","n":"Crunch en el piso","m":"core-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
 {"id":"3016","n":"Curl-up","m":"otro-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
 {"id":"3769","n":"Sentadilla reverencia","m":"piernas-empuje-gluteos","mu":"Glúteos","g":"cuerpo","t":"fuerza"},
-{"id":"2331","n":"Máquina elíptica","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"maquina","t":"fuerza"},
+{"id":"2331","n":"Máquina elíptica","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"maquina","t":"cardio"},
 {"id":"0276","n":"Dead bug","m":"otro-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
 {"id":"0277","n":"Crunch declinado","m":"core-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
 {"id":"0279","n":"Flexiones declinadas","m":"otro-pectorales","mu":"Pectorales","g":"cuerpo","t":"fuerza"},
@@ -505,7 +505,7 @@ Si te falta algún ejercicio importante que no está en el banco, podés crearlo
 {"id":"1654","n":"Curl de bíceps inverso con mancuerna","m":"curl-biceps","mu":"Bíceps","g":"pesas","t":"fuerza"},
 {"id":"1655","n":"Curl de bíceps en sentadilla con mancuerna","m":"piernas-empuje-biceps","mu":"Bíceps","g":"pesas","t":"fuerza"},
 {"id":"1656","n":"Curl de bíceps en posición V en pelota BOSU con mancuerna","m":"curl-biceps","mu":"Bíceps","g":"pesas","t":"fuerza"},
-{"id":"1201","n":"Burpee con mancuernas","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"pesas","t":"fuerza"},
+{"id":"1201","n":"Burpee con mancuernas","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"pesas","t":"cardio"},
 {"id":"0295","n":"Cargada con mancuernas","m":"otro-gluteos","mu":"Glúteos","g":"pesas","t":"fuerza"},
 {"id":"1731","n":"Press con agarre cerrado con mancuerna","m":"empuje-triceps","mu":"Tríceps","g":"pesas","t":"fuerza"},
 {"id":"0296","n":"Press agarre cerrado con mancuernas","m":"empuje-triceps","mu":"Tríceps","g":"pesas","t":"fuerza"},
@@ -830,7 +830,7 @@ Si te falta algún ejercicio importante que no está en el banco, podés crearlo
 {"id":"0469","n":"Crunch de abductores","m":"core-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
 {"id":"1383","n":"Elevación de talones en máquina hack","m":"elevacion-pantorrillas","mu":"Pantorrillas","g":"maquina","t":"fuerza"},
 {"id":"1384","n":"Elevación de talones a una pierna en máquina hack","m":"elevacion-pantorrillas","mu":"Pantorrillas","g":"maquina","t":"fuerza"},
-{"id":"3221","n":"Flexiones de rodillas mitad","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
+{"id":"3221","n":"Flexiones de rodillas mitad","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
 {"id":"3202","n":"Sit-up mitad","m":"core-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
 {"id":"1511","n":"Estiramiento de isquiotibiales","m":"elongacion-isquiotibiales","mu":"Isquiotibiales","g":"cuerpo","t":"elongacion"},
 {"id":"2139","n":"Bicicleta de brazos","m":"otro-pectorales","mu":"Pectorales","g":"maquina","t":"fuerza"},
@@ -845,7 +845,7 @@ Si te falta algún ejercicio importante que no está en el banco, podés crearlo
 {"id":"0474","n":"Elevación de cadera piernas rectas en barra","m":"elevacion-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
 {"id":"0475","n":"Elevación de piernas rectas en barra","m":"elevacion-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
 {"id":"0476","n":"Elevación de cadera piernas rectas con giro en barra","m":"elevacion-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
-{"id":"3636","n":"Rodilla alta contra pared","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
+{"id":"3636","n":"Rodilla alta contra pared","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
 {"id":"0484","n":"Elevación de cadera rodilla flexionada","m":"elevacion-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
 {"id":"1418","n":"Abrazo de rodillas al pecho","m":"otro-gluteos","mu":"Glúteos","g":"cuerpo","t":"fuerza"},
 {"id":"3234","n":"Aperturas altas con mancuernas","m":"elevacion-pectorales","mu":"Pectorales","g":"pesas","t":"fuerza"},
@@ -873,8 +873,8 @@ Si te falta algún ejercicio importante que no está en el banco, podés crearlo
 {"id":"1419","n":"Estiramiento en cruz de hierro","m":"elongacion-gluteos","mu":"Glúteos","g":"cuerpo","t":"elongacion"},
 {"id":"1297","n":"Apretón isométrico de pecho","m":"otro-pectorales","mu":"Pectorales","g":"cuerpo","t":"fuerza"},
 {"id":"0500","n":"Limpiaparabrisas isométrico","m":"otro-pectorales","mu":"Pectorales","g":"cuerpo","t":"fuerza"},
-{"id":"0501","n":"Jack burpee","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
-{"id":"3224","n":"Salto jumping jack","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
+{"id":"0501","n":"Jack burpee","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
+{"id":"3224","n":"Salto jumping jack","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
 {"id":"0507","n":"Sit-up tipo navaja","m":"core-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
 {"id":"0508","n":"Sit-up Janda","m":"core-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
 {"id":"0514","n":"Sentadilla saltada","m":"piernas-empuje-gluteos","mu":"Glúteos","g":"cuerpo","t":"fuerza"},
@@ -1021,7 +1021,7 @@ Si te falta algún ejercicio importante que no está en el banco, podés crearlo
 {"id":"3217","n":"Flexiones hinduistas modificadas","m":"otro-pectorales","mu":"Pectorales","g":"cuerpo","t":"fuerza"},
 {"id":"1421","n":"Flexión modificada hasta antebrazos","m":"otro-antebrazos","mu":"Antebrazos","g":"cuerpo","t":"fuerza"},
 {"id":"0628","n":"Caminata monstruo","m":"otro-gluteos","mu":"Glúteos","g":"cuerpo","t":"fuerza"},
-{"id":"0630","n":"Escalador","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
+{"id":"0630","n":"Escalador","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
 {"id":"0631","n":"Muscle up","m":"otro-dorsales","mu":"Dorsales","g":"cuerpo","t":"fuerza"},
 {"id":"1401","n":"Muscle-up (en barra vertical)","m":"otro-dorsales","mu":"Dorsales","g":"cuerpo","t":"fuerza"},
 {"id":"1403","n":"Estiramiento lateral de cuello","m":"elongacion-elevador-de-la-escapula","mu":"Elevador de la escápula","g":"cuerpo","t":"elongacion"},
@@ -1055,7 +1055,7 @@ Si te falta algún ejercicio importante que no está en el banco, podés crearlo
 {"id":"0651","n":"Dominada agarre neutro","m":"traccion-dorsales","mu":"Dorsales","g":"cuerpo","t":"fuerza"},
 {"id":"0652","n":"Dominada","m":"traccion-dorsales","mu":"Dorsales","g":"cuerpo","t":"fuerza"},
 {"id":"1689","n":"Tracción y empuje con peso corporal","m":"traccion-pectorales","mu":"Pectorales","g":"cuerpo","t":"fuerza"},
-{"id":"3638","n":"Push a carrera","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
+{"id":"3638","n":"Push a carrera","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
 {"id":"0662","n":"Flexiones","m":"otro-pectorales","mu":"Pectorales","g":"cuerpo","t":"fuerza"},
 {"id":"0659","n":"Flexiones contra la pared","m":"otro-pectorales","mu":"Pectorales","g":"cuerpo","t":"fuerza"},
 {"id":"0658","n":"Flexiones contra la pared v. 2","m":"otro-pectorales","mu":"Pectorales","g":"cuerpo","t":"fuerza"},
@@ -1092,14 +1092,14 @@ Si te falta algún ejercicio importante que no está en el banco, podés crearlo
 {"id":"2205","n":"Estiramiento de cadera y dorsales con rodillo","m":"elongacion-gluteos","mu":"Glúteos","g":"rodillo","t":"elongacion"},
 {"id":"2202","n":"Estiramiento de cadera con rodillo","m":"elongacion-gluteos","mu":"Glúteos","g":"rodillo","t":"elongacion"},
 {"id":"2207","n":"Estiramiento de dorsales lateral con rodillo","m":"elongacion-dorsales","mu":"Dorsales","g":"rodillo","t":"elongacion"},
-{"id":"0685","n":"Correr","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
-{"id":"0684","n":"Correr (cinta)","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
+{"id":"0685","n":"Correr","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
+{"id":"0684","n":"Correr (cinta)","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
 {"id":"1585","n":"Estiramiento de corredor","m":"elongacion-isquiotibiales","mu":"Isquiotibiales","g":"cuerpo","t":"elongacion"},
 {"id":"0687","n":"Giro ruso","m":"core-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
 {"id":"3012","n":"Fondos de escápula","m":"otro-trapecios","mu":"Trapecios","g":"cuerpo","t":"fuerza"},
 {"id":"3021","n":"Flexiones de escápula","m":"otro-serrato-anterior","mu":"Serrato anterior","g":"cuerpo","t":"fuerza"},
 {"id":"0688","n":"Dominada escapular","m":"traccion-trapecios","mu":"Trapecios","g":"cuerpo","t":"fuerza"},
-{"id":"3219","n":"Saltos de tijera","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
+{"id":"3219","n":"Saltos de tijera","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
 {"id":"1390","n":"Estiramiento de talones sentado","m":"elongacion-pantorrillas","mu":"Pantorrillas","g":"cuerpo","t":"elongacion"},
 {"id":"1424","n":"Estiramiento de glúteos sentado","m":"elongacion-gluteos","mu":"Glúteos","g":"cuerpo","t":"elongacion"},
 {"id":"0689","n":"Elevación de piernas sentado","m":"elevacion-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
@@ -1110,8 +1110,8 @@ Si te falta algún ejercicio importante que no está en el banco, podés crearlo
 {"id":"0697","n":"Curl femoral inverso autoasistido","m":"curl-isquiotibiales","mu":"Isquiotibiales","g":"cuerpo","t":"fuerza"},
 {"id":"1766","n":"Curl femoral inverso autoasistido","m":"curl-isquiotibiales","mu":"Isquiotibiales","g":"cuerpo","t":"fuerza"},
 {"id":"0696","n":"Curl femoral inverso autoasistido (en piso)","m":"curl-isquiotibiales","mu":"Isquiotibiales","g":"cuerpo","t":"fuerza"},
-{"id":"3222","n":"Salto sentadilla media","m":"piernas-empuje-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
-{"id":"3656","n":"Carrera paso corto","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
+{"id":"3222","n":"Salto sentadilla media","m":"piernas-empuje-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
+{"id":"3656","n":"Carrera paso corto","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
 {"id":"1763","n":"Dominada con agarre de hombro","m":"traccion-dorsales","mu":"Dorsales","g":"cuerpo","t":"fuerza"},
 {"id":"3699","n":"Toque de hombro","m":"otro-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
 {"id":"0699","n":"Flexiones con toque de hombro","m":"otro-pectorales","mu":"Pectorales","g":"cuerpo","t":"fuerza"},
@@ -1135,9 +1135,9 @@ Si te falta algún ejercicio importante que no está en el banco, podés crearlo
 {"id":"1489","n":"Sissy squat","m":"piernas-empuje-cuadriceps","mu":"Cuádriceps","g":"cuerpo","t":"fuerza"},
 {"id":"0735","n":"Sit-up v. 2","m":"core-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
 {"id":"3679","n":"Sit-up brazos sobre pecho","m":"core-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
-{"id":"3361","n":"Saltos de patinador","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
+{"id":"3361","n":"Saltos de patinador","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
 {"id":"2142","n":"Esquiador ergómetro","m":"otro-triceps","mu":"Tríceps","g":"maquina","t":"fuerza"},
-{"id":"3671","n":"Paso de esquí","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
+{"id":"3671","n":"Paso de esquí","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
 {"id":"3304","n":"Despellejar el gato","m":"otro-espalda-alta","mu":"Espalda alta","g":"cuerpo","t":"fuerza"},
 {"id":"1425","n":"Prensa de una pierna a 45° en máquina","m":"piernas-empuje-gluteos","mu":"Glúteos","g":"maquina","t":"fuerza"},
 {"id":"0738","n":"Prensa de talones 45° en prensa","m":"empuje-pantorrillas","mu":"Pantorrillas","g":"maquina","t":"fuerza"},
@@ -1220,9 +1220,9 @@ Si te falta algún ejercicio importante que no está en el banco, podés crearlo
 {"id":"0794","n":"Estiramiento lateral de pie","m":"elongacion-dorsales","mu":"Dorsales","g":"cuerpo","t":"elongacion"},
 {"id":"1364","n":"Inclinación pélvica de pie","m":"otro-columna-lumbares","mu":"Columna/lumbares","g":"cuerpo","t":"fuerza"},
 {"id":"0795","n":"Curl femoral de pie a una pierna","m":"curl-isquiotibiales","mu":"Isquiotibiales","g":"cuerpo","t":"fuerza"},
-{"id":"3223","n":"Salto de estrella","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
-{"id":"2138","n":"Bicicleta estática trote v. 3","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"maquina","t":"fuerza"},
-{"id":"0798","n":"Caminata bici estacionaria","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"maquina","t":"fuerza"},
+{"id":"3223","n":"Salto de estrella","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
+{"id":"2138","n":"Bicicleta estática trote v. 3","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"maquina","t":"cardio"},
+{"id":"0798","n":"Caminata bici estacionaria","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"maquina","t":"cardio"},
 {"id":"3314","n":"Maltesa piernas abiertas","m":"otro-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
 {"id":"3298","n":"Plancha piernas abiertas","m":"otro-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
 {"id":"1427","n":"Abductor de cadera con pierna recta","m":"otro-abductores","mu":"Abductores","g":"cuerpo","t":"fuerza"},
@@ -1233,7 +1233,7 @@ Si te falta algún ejercicio importante que no está en el banco, podés crearlo
 {"id":"0808","n":"Remo en suspensión","m":"traccion-espalda-alta","mu":"Espalda alta","g":"cuerpo","t":"fuerza"},
 {"id":"0809","n":"Sentadilla búlgara en suspensión","m":"piernas-empuje-cuadriceps","mu":"Cuádriceps","g":"cuerpo","t":"fuerza"},
 {"id":"3433","n":"Patadas de nadador v. 2","m":"otro-gluteos","mu":"Glúteos","g":"cuerpo","t":"fuerza"},
-{"id":"3318","n":"Swing 360","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
+{"id":"3318","n":"Swing 360","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
 {"id":"1753","n":"Fondos en tres bancos","m":"empuje-triceps","mu":"Tríceps","g":"cuerpo","t":"fuerza"},
 {"id":"0814","n":"Fondos de tríceps","m":"otro-triceps","mu":"Tríceps","g":"cuerpo","t":"fuerza"},
 {"id":"0812","n":"Fondos de tríceps (pierna banco)","m":"empuje-triceps","mu":"Tríceps","g":"cuerpo","t":"fuerza"},
@@ -1251,11 +1251,11 @@ Si te falta algún ejercicio importante que no está en el banco, podés crearlo
 {"id":"1366","n":"Perro boca arriba","m":"otro-columna-lumbares","mu":"Columna/lumbares","g":"cuerpo","t":"fuerza"},
 {"id":"3420","n":"V-sit en piso","m":"otro-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
 {"id":"0826","n":"Elevación de piernas vertical (en barras paralelas)","m":"elevacion-abdominales","mu":"Abdominales","g":"cuerpo","t":"fuerza"},
-{"id":"2141","n":"Elíptica caminata","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"maquina","t":"fuerza"},
-{"id":"3655","n":"Estocada caminando rodillas altas","m":"piernas-empuje-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
+{"id":"2141","n":"Elíptica caminata","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"maquina","t":"cardio"},
+{"id":"3655","n":"Estocada caminando rodillas altas","m":"piernas-empuje-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
 {"id":"1460","n":"Estocada caminando","m":"piernas-empuje-gluteos","mu":"Glúteos","g":"cuerpo","t":"fuerza"},
-{"id":"3666","n":"Caminata en cinta inclinada","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"maquina","t":"fuerza"},
-{"id":"2311","n":"Caminata en máquina de pasos","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"maquina","t":"fuerza"},
+{"id":"3666","n":"Caminata en cinta inclinada","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"maquina","t":"cardio"},
+{"id":"2311","n":"Caminata en máquina de pasos","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"maquina","t":"cardio"},
 {"id":"0830","n":"Fondos en banco lastrado","m":"empuje-triceps","mu":"Tríceps","g":"pesas","t":"fuerza"},
 {"id":"2987","n":"Dominada supina con agarre cerrado lastrada en jaula de fondos","m":"traccion-dorsales","mu":"Dorsales","g":"pesas","t":"fuerza"},
 {"id":"3643","n":"Sentadillas Cossack lastradas","m":"piernas-empuje-gluteos","mu":"Glúteos","g":"pesas","t":"fuerza"},
@@ -1290,7 +1290,7 @@ Si te falta algún ejercicio importante que no está en el banco, podés crearlo
 {"id":"1754","n":"Fondos en tres bancos lastrados","m":"empuje-triceps","mu":"Tríceps","g":"pesas","t":"fuerza"},
 {"id":"1755","n":"Fondos de tríceps lastrados","m":"otro-triceps","mu":"Tríceps","g":"pesas","t":"fuerza"},
 {"id":"1767","n":"Fondos de tríceps lastrados en barras paralelas altas","m":"otro-triceps","mu":"Tríceps","g":"pesas","t":"fuerza"},
-{"id":"3637","n":"Rueda de carrera","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"fuerza"},
+{"id":"3637","n":"Rueda de carrera","m":"otro-sistema-cardiovascular","mu":"Sistema cardiovascular","g":"cuerpo","t":"cardio"},
 {"id":"1429","n":"Dominada con agarre amplio","m":"traccion-dorsales","mu":"Dorsales","g":"cuerpo","t":"fuerza"},
 {"id":"1367","n":"Dominada posterior agarre amplio","m":"traccion-dorsales","mu":"Dorsales","g":"cuerpo","t":"fuerza"},
 {"id":"1311","n":"Flexiones agarre amplio","m":"otro-pectorales","mu":"Pectorales","g":"cuerpo","t":"fuerza"},
@@ -1331,6 +1331,8 @@ Devolvé UN SOLO bloque ```json al final con esta estructura exacta:
             "series": <1-6>,
             "repsMin": <número>,
             "repsMax": <número>,
+            "unidad": "<reps|seg|min — opcional, default reps>",
+            "fcObjetivo": { "min": <ppm>, "max": <ppm> },
             "descansoSeg": <segundos de descanso entre series>
           }
         ]
@@ -1355,6 +1357,11 @@ Reglas del formato:
   en "nuevos_ejercicios" con prefijo CUSTOM-.
 - Días de fuerza: 4-6 ejercicios. Sesión de elongación: incluila como un día
   más con "nombre": "Elongación (mañanas / días libres)".
-- En ejercicios de elongación repsMin/repsMax = segundos de mantenimiento.
+- "unidad" define qué son repsMin/repsMax: en ejercicios cardio usá
+  unidad "min" y opcionalmente "fcObjetivo" (zona de frecuencia cardíaca
+  objetivo en ppm); en elongación usá unidad "seg"; en fuerza omitila o
+  usá "reps".
+- En cardio con "series" > 1, "descansoSeg" es la recuperación activa entre
+  bloques (ej: 6 bloques de 2 min de trote con 180 seg caminando).
 - "nuevos_ejercicios" puede ir vacío: [].
 - No agregues texto después del bloque JSON.

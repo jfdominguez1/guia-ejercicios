@@ -191,9 +191,18 @@ def es_elongacion(name: str) -> bool:
     return any(k in name.lower() for k in ELONGACION_KEYWORDS)
 
 
+def tipo_de(ejercicio: dict) -> str:
+    """fuerza | elongacion | cardio. Cardio = target sistema cardiovascular."""
+    if es_elongacion(ejercicio["name"]):
+        return "elongacion"
+    if ejercicio["target"] == "cardiovascular system":
+        return "cardio"
+    return "fuerza"
+
+
 def clasificar(ejercicio: dict, musculos_es: dict[str, str]) -> dict | None:
-    elongacion = es_elongacion(ejercicio["name"])
-    if elongacion:
+    tipo = tipo_de(ejercicio)
+    if tipo == "elongacion":
         grupo = GRUPO_ELONGACION.get(ejercicio["equipment"])
     else:
         grupo = grupo_de(ejercicio["equipment"])
@@ -201,12 +210,12 @@ def clasificar(ejercicio: dict, musculos_es: dict[str, str]) -> dict | None:
         return None
     target = ejercicio["target"]
     musculo_es = musculos_es.get(target, target)
-    patron = "elongacion" if elongacion else patron_de(ejercicio["name"], target)
+    patron = "elongacion" if tipo == "elongacion" else patron_de(ejercicio["name"], target)
     return {
         "id": ejercicio["id"],
         "nombre_es": None,
         "nombre_en": ejercicio["name"],
-        "tipo": "elongacion" if elongacion else "fuerza",
+        "tipo": tipo,
         "grupo": grupo,
         "equipment": ejercicio["equipment"],
         "zona": ejercicio["body_part"],
@@ -276,8 +285,8 @@ def main() -> None:
 
     grupos_todos = sorted({e["grupo"] for e in catalogo})
     grupos = {g: sum(1 for e in catalogo if e["grupo"] == g) for g in grupos_todos}
-    elongacion = sum(1 for e in catalogo if e["tipo"] == "elongacion")
-    print(f"{len(catalogo)} ejercicios ({grupos}), elongación: {elongacion}, "
+    tipos = {t: sum(1 for e in catalogo if e["tipo"] == t) for t in ("fuerza", "elongacion", "cardio")}
+    print(f"{len(catalogo)} ejercicios ({grupos}), tipos: {tipos}, "
           f"media copiada: {copiados}, "
           f"básicos: {sum(1 for e in catalogo if e['basico'])}, "
           f"nombres pendientes: {len(pendientes)}")

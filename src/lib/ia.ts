@@ -1,7 +1,15 @@
 // Ciclo con la IA del usuario: export de texto (perfil + banco + rutina +
 // registro + pregunta + formato) e import validado de la respuesta.
 
-import type { DiaRutina, Ejercicio, GrupoEquip, Perfil, Rutina, Sesion } from './tipos';
+import type {
+  DiaRutina,
+  Ejercicio,
+  GrupoEquip,
+  Perfil,
+  Rutina,
+  Sesion,
+  UnidadEjercicio,
+} from './tipos';
 
 const SEMANAS_REGISTRO = 8;
 const MS_POR_DIA = 86_400_000;
@@ -33,6 +41,8 @@ Devolvé UN SOLO bloque \`\`\`json al final con esta estructura exacta:
             "series": <1-6>,
             "repsMin": <número>,
             "repsMax": <número>,
+            "unidad": "<reps|seg|min — opcional, default reps>",
+            "fcObjetivo": { "min": <ppm>, "max": <ppm> },
             "descansoSeg": <segundos entre series>
           }
         ]
@@ -53,8 +63,11 @@ Devolvé UN SOLO bloque \`\`\`json al final con esta estructura exacta:
 \`\`\`
 
 Reglas: cada "ejercicioId" existe en el banco o en "nuevos_ejercicios"
-(prefijo CUSTOM-). En elongación, repsMin/repsMax son SEGUNDOS de
-mantenimiento. "nuevos_ejercicios" puede ir vacío: []. No agregues texto
+(prefijo CUSTOM-). "unidad" define qué son repsMin/repsMax: en ejercicios
+cardio usá unidad "min" y opcionalmente "fcObjetivo" (zona de frecuencia
+cardíaca en ppm); en elongación usá unidad "seg"; en fuerza omitila o usá
+"reps". En cardio con series > 1, "descansoSeg" es la recuperación activa
+entre bloques. "nuevos_ejercicios" puede ir vacío: []. No agregues texto
 después del bloque JSON.`;
 
 function bancoCompacto(catalogo: Ejercicio[], customs: Ejercicio[]): string {
@@ -145,6 +158,45 @@ function esNumeroEn(valor: unknown, min: number, max: number): boolean {
   return typeof valor === 'number' && Number.isFinite(valor) && valor >= min && valor <= max;
 }
 
+const UNIDADES_VALIDAS: UnidadEjercicio[] = ['reps', 'seg', 'min'];
+const FC_MIN_PPM = 40;
+const FC_MAX_PPM = 220;
+
+function validarUnidad(
+  crudo: unknown,
+  etiqueta: string,
+  id: string,
+  errores: string[],
+): UnidadEjercicio | undefined {
+  if (crudo === undefined || crudo === null) return undefined;
+  if (!UNIDADES_VALIDAS.includes(crudo as UnidadEjercicio)) {
+    errores.push(`${etiqueta}, "${id}": unidad inválida "${String(crudo)}" (reps, seg o min).`);
+    return undefined;
+  }
+  return crudo as UnidadEjercicio;
+}
+
+function validarFc(
+  crudo: unknown,
+  etiqueta: string,
+  id: string,
+  errores: string[],
+): { min: number; max: number } | undefined {
+  if (crudo === undefined || crudo === null) return undefined;
+  const fc = crudo as Record<string, unknown>;
+  const valido =
+    esNumeroEn(fc.min, FC_MIN_PPM, FC_MAX_PPM) &&
+    esNumeroEn(fc.max, FC_MIN_PPM, FC_MAX_PPM) &&
+    (fc.min as number) < (fc.max as number);
+  if (!valido) {
+    errores.push(
+      `${etiqueta}, "${id}": fcObjetivo inválido (min < max, entre ${FC_MIN_PPM} y ${FC_MAX_PPM} ppm).`,
+    );
+    return undefined;
+  }
+  return { min: fc.min as number, max: fc.max as number };
+}
+
 function validarNuevos(crudos: unknown, errores: string[]): Ejercicio[] {
   if (crudos === undefined || crudos === null) return [];
   if (!Array.isArray(crudos)) {
@@ -208,12 +260,16 @@ function validarDias(
         errores.push(`${etiqueta}: el ejercicio "${id}" no existe en el banco ni en nuevos_ejercicios.`);
         continue;
       }
-      const maxReps = tipo === 'elongacion' ? 120 : 30;
+      const unidad = validarUnidad(e.unidad, etiqueta, id, errores);
+      const fcObjetivo = validarFc(e.fcObjetivo, etiqueta, id, errores);
+      // sin unidad explícita, elongación se interpreta en segundos (retrocompat)
+      const efectiva = unidad ?? (tipo === 'elongacion' ? 'seg' : 'reps');
+      const maxValor = efectiva === 'reps' ? 30 : 120;
       if (!esNumeroEn(e.series, 1, 6)) {
         errores.push(`${etiqueta}, "${id}": series fuera de rango (1-6).`);
       }
-      if (!esNumeroEn(e.repsMin, 1, maxReps) || !esNumeroEn(e.repsMax, 1, maxReps)) {
-        errores.push(`${etiqueta}, "${id}": reps fuera de rango (1-${maxReps}).`);
+      if (!esNumeroEn(e.repsMin, 1, maxValor) || !esNumeroEn(e.repsMax, 1, maxValor)) {
+        errores.push(`${etiqueta}, "${id}": ${efectiva} fuera de rango (1-${maxValor}).`);
       }
       ejercicios.push({
         movimiento: String(e.movimiento ?? ''),
@@ -221,6 +277,8 @@ function validarDias(
         series: Number(e.series),
         repsMin: Number(e.repsMin),
         repsMax: Number(e.repsMax),
+        ...(unidad ? { unidad } : {}),
+        ...(fcObjetivo ? { fcObjetivo } : {}),
         descansoSeg: Number(e.descansoSeg ?? 60),
       });
     }
