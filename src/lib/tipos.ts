@@ -19,6 +19,8 @@ export interface Ejercicio {
   pasos: string[];
   movimiento: string;
   basico: boolean;
+  /** Solo cardio: saltos/burpees/jacks. No se propone a nivel empiezo con 50+. */
+  impacto?: boolean;
   custom?: boolean;
 }
 

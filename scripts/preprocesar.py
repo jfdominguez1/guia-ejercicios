@@ -61,6 +61,20 @@ PATRONES: list[tuple[list[str], str]] = [
 ]
 TARGETS_CURL = {"biceps", "hamstrings"}
 
+# Cardio de impacto (saltos/burpees/jacks) — curado a mano 2026-07-12 (A3).
+# El generador/swaps no los proponen para nivel empiezo con 50+ años.
+CARDIO_IMPACTO_IDS: set[str] = {
+    "3220",  # astride jumps
+    "1160",  # burpee
+    "1201",  # dumbbell burpee
+    "0501",  # jack burpee
+    "3224",  # jack jump
+    "3219",  # scissor jumps
+    "3222",  # semi squat jump
+    "3361",  # skater hops
+    "3223",  # star jump
+}
+
 # Ejercicios básicos (nivel "empiezo"): lista curada explícita, editable a mano.
 # Criterio: clásicos simples y seguros, cubriendo movimiento × grupo (curada 2026-07-12).
 BASICOS_IDS: set[str] = {
@@ -216,6 +230,7 @@ def clasificar(ejercicio: dict, musculos_es: dict[str, str]) -> dict | None:
         "nombre_es": None,
         "nombre_en": ejercicio["name"],
         "tipo": tipo,
+        **({"impacto": ejercicio["id"] in CARDIO_IMPACTO_IDS} if tipo == "cardio" else {}),
         "grupo": grupo,
         "equipment": ejercicio["equipment"],
         "zona": ejercicio["body_part"],
