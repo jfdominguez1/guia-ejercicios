@@ -231,6 +231,7 @@ def clasificar(ejercicio: dict, musculos_es: dict[str, str]) -> dict | None:
         "nombre_en": ejercicio["name"],
         "tipo": tipo,
         **({"impacto": ejercicio["id"] in CARDIO_IMPACTO_IDS} if tipo == "cardio" else {}),
+        **({"elemento": "ayuda o correa"} if ejercicio["equipment"] == "assisted" else {}),
         "grupo": grupo,
         "equipment": ejercicio["equipment"],
         "zona": ejercicio["body_part"],

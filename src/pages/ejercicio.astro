@@ -76,6 +76,7 @@ import Base from '../layouts/Base.astro';
       <div class="carta tipo-${e.tipo}">
         <span class="eyebrow">Músculos</span>
         <p><strong>${escapar(e.musculo)}</strong>${e.secundarios.length ? ` + ${e.secundarios.map(escapar).join(', ')}` : ''}</p>
+        ${e.elemento ? `<span class="eyebrow">Necesitás</span><p>🧰 ${escapar(e.elemento)}</p>` : ''}
         <span class="eyebrow">Última vez (${LABEL_GRUPO[e.grupo]})</span>
         <p>${lineaUltimaVez(e)}</p>
       </div>

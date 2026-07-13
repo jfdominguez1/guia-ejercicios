@@ -23,6 +23,8 @@ export interface Ejercicio {
   impacto?: boolean;
   /** 'img' = solo imagen estática (posturas de yoga); default GIF con fallback. */
   media?: 'img';
+  /** Elemento necesario además del grupo: silla, barra fija, ayuda/correa, etc. */
+  elemento?: string;
   custom?: boolean;
 }
 

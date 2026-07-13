@@ -8,6 +8,7 @@ import Base from '../layouts/Base.astro';
   <div class="chips filtros" id="filtro-tipo"></div>
   <div class="chips filtros" id="filtro-grupo"></div>
   <div class="chips filtros" id="filtro-zona"></div>
+  <div class="chips filtros" id="filtro-elemento"></div>
   <p class="eyebrow" id="conteo"></p>
   <div id="lista"></div>
   <button class="boton-secundario" id="mas" hidden>Mostrar más</button>
@@ -63,9 +64,9 @@ import Base from '../layouts/Base.astro';
 
   let catalogo: Ejercicio[] = [];
   let visibles = PAGINA;
-  const filtros = { tipo: '', grupo: '', zona: '', texto: '' };
+  const filtros = { tipo: '', grupo: '', zona: '', elemento: '', texto: '' };
 
-  function chipsFiltro(contenedor: HTMLElement, opciones: Array<{ valor: string; label: string }>, clave: 'tipo' | 'grupo' | 'zona') {
+  function chipsFiltro(contenedor: HTMLElement, opciones: Array<{ valor: string; label: string }>, clave: 'tipo' | 'grupo' | 'zona' | 'elemento') {
     for (const o of opciones) {
       const chip = document.createElement('button');
       chip.type = 'button';
@@ -91,6 +92,8 @@ import Base from '../layouts/Base.astro';
         (!filtros.tipo || e.tipo === filtros.tipo) &&
         (!filtros.grupo || e.grupo === filtros.grupo) &&
         (!filtros.zona || e.zona === filtros.zona) &&
+        (!filtros.elemento ||
+          (filtros.elemento === 'sin' ? !e.elemento && e.grupo === 'cuerpo' : e.elemento === filtros.elemento)) &&
         (!texto || e.nombre_es.toLowerCase().includes(texto) || e.nombre_en.toLowerCase().includes(texto)),
     );
   }
@@ -106,7 +109,7 @@ import Base from '../layouts/Base.astro';
         <img src="${e.custom ? '' : urlImg(e.id)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'" />
         <div>
           <div class="nombre">${escapar(e.nombre_es)}</div>
-          <div class="detalle">${escapar(e.musculo)} · ${escapar(e.zona)} · ${e.grupo}${e.custom ? ' · tuyo' : ''}</div>
+          <div class="detalle">${escapar(e.musculo)} · ${escapar(e.zona)} · ${e.grupo}${e.elemento ? ` · 🧰 ${escapar(e.elemento)}` : ''}${e.custom ? ' · tuyo' : ''}</div>
         </div>
       </a>`,
       )
@@ -131,6 +134,12 @@ import Base from '../layouts/Base.astro';
     catalogo = cat;
     const zonas = [...new Set(cat.map((e) => e.zona))].sort();
     chipsFiltro($('#filtro-zona'), zonas.map((z) => ({ valor: z, label: z })), 'zona');
+    const elementos = [...new Set(cat.map((e) => e.elemento).filter(Boolean))].sort() as string[];
+    chipsFiltro(
+      $('#filtro-elemento'),
+      [{ valor: 'sin', label: 'Sin elementos' }, ...elementos.map((x) => ({ valor: x, label: `🧰 ${x}` }))],
+      'elemento',
+    );
     pintar();
   });
 </script>

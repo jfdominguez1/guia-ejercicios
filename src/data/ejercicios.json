@@ -323,6 +323,7 @@
   "nombre_es": "Estiramiento de pantorrillas acostado asistido",
   "nombre_en": "assisted lying calves stretch",
   "tipo": "elongacion",
+  "elemento": "ayuda o correa",
   "grupo": "cuerpo",
   "equipment": "assisted",
   "zona": "Pantorrillas",
@@ -345,6 +346,7 @@
   "nombre_es": "Estiramiento de glúteos acostado asistido",
   "nombre_en": "assisted lying glutes stretch",
   "tipo": "elongacion",
+  "elemento": "ayuda o correa",
   "grupo": "cuerpo",
   "equipment": "assisted",
   "zona": "Piernas",
@@ -367,6 +369,7 @@
   "nombre_es": "Estiramiento de glúteos y piramidal acostado asistido",
   "nombre_en": "assisted lying gluteus and piriformis stretch",
   "tipo": "elongacion",
+  "elemento": "ayuda o correa",
   "grupo": "cuerpo",
   "equipment": "assisted",
   "zona": "Piernas",
@@ -414,6 +417,7 @@
   "nombre_es": "Estiramiento de cuádriceps boca abajo asistido",
   "nombre_en": "assisted prone lying quads stretch",
   "tipo": "elongacion",
+  "elemento": "ayuda o correa",
   "grupo": "cuerpo",
   "equipment": "assisted",
   "zona": "Piernas",
@@ -437,6 +441,7 @@
   "nombre_es": "Estiramiento del recto femoral boca abajo asistido",
   "nombre_en": "assisted prone rectus femoris stretch",
   "tipo": "elongacion",
+  "elemento": "ayuda o correa",
   "grupo": "cuerpo",
   "equipment": "assisted",
   "zona": "Zona media",
@@ -484,6 +489,7 @@
   "nombre_es": "Estiramiento de pectoral mayor sentado asistido con pelota",
   "nombre_en": "assisted seated pectoralis major stretch with stability ball",
   "tipo": "elongacion",
+  "elemento": "ayuda o correa",
   "grupo": "cuerpo",
   "equipment": "assisted",
   "zona": "Pecho",
@@ -507,6 +513,7 @@
   "nombre_es": "Estiramiento de aductores de costado asistido",
   "nombre_en": "assisted side lying adductor stretch",
   "tipo": "elongacion",
+  "elemento": "ayuda o correa",
   "grupo": "cuerpo",
   "equipment": "assisted",
   "zona": "Piernas",
@@ -2656,7 +2663,7 @@
  },
  {
   "id": "1461",
-  "nombre_es": "Sentadilla completa con barra",
+  "nombre_es": "Sentadilla completa con barra (vista posterior)",
   "nombre_en": "barbell full squat (back pov)",
   "tipo": "fuerza",
   "grupo": "pesas",
@@ -2684,7 +2691,7 @@
  },
  {
   "id": "1462",
-  "nombre_es": "Sentadilla completa con barra",
+  "nombre_es": "Sentadilla completa con barra (vista lateral)",
   "nombre_en": "barbell full squat (side pov)",
   "tipo": "fuerza",
   "grupo": "pesas",
@@ -2956,7 +2963,7 @@
  },
  {
   "id": "0049",
-  "nombre_es": "Remo inclinado con barra",
+  "nombre_es": "Remo con barra en banco inclinado",
   "nombre_en": "barbell incline row",
   "tipo": "fuerza",
   "grupo": "pesas",
@@ -4219,7 +4226,7 @@
  },
  {
   "id": "1371",
-  "nombre_es": "Elevación de talones sentado con barra",
+  "nombre_es": "Elevación de talones sentado con barra v. 2",
   "nombre_en": "barbell seated calf raise",
   "tipo": "fuerza",
   "grupo": "pesas",
@@ -4545,7 +4552,7 @@
  },
  {
   "id": "2800",
-  "nombre_es": "Elevación de piernas alternada sentado con barra",
+  "nombre_es": "Elevación de piernas alternada sentado con barra v. 2",
   "nombre_en": "barbell sitted alternate leg raise (female)",
   "tipo": "fuerza",
   "grupo": "pesas",
@@ -5472,6 +5479,7 @@
   "nombre_es": "Estiramiento de pecho con manos detrás de la cabeza",
   "nombre_en": "behind head chest stretch",
   "tipo": "elongacion",
+  "elemento": "ayuda o correa",
   "grupo": "cuerpo",
   "equipment": "assisted",
   "zona": "Pecho",
@@ -5653,7 +5661,7 @@
  },
  {
   "id": "0140",
-  "nombre_es": "Dominada supina",
+  "nombre_es": "Dominada de bíceps",
   "nombre_en": "biceps pull-up",
   "tipo": "fuerza",
   "grupo": "cuerpo",
@@ -6621,7 +6629,7 @@
  },
  {
   "id": "0161",
-  "nombre_es": "Elevación frontal en polea",
+  "nombre_es": "Elevación frontal en polea v. 2",
   "nombre_en": "cable forward raise",
   "tipo": "fuerza",
   "grupo": "maquina",
@@ -6888,7 +6896,7 @@
  },
  {
   "id": "0172",
-  "nombre_es": "Extensión de tríceps inclinada en polea",
+  "nombre_es": "Pushdown inclinado en polea (dorsales)",
   "nombre_en": "cable incline pushdown",
   "tipo": "fuerza",
   "grupo": "maquina",
@@ -10099,7 +10107,7 @@
  },
  {
   "id": "1430",
-  "nombre_es": "Fondos de pecho",
+  "nombre_es": "Fondos de pecho en jaula",
   "nombre_en": "chest dip (on dip-pull-up cage)",
   "tipo": "fuerza",
   "grupo": "cuerpo",
@@ -10218,7 +10226,7 @@
  },
  {
   "id": "0253",
-  "nombre_es": "Dominada supina agarre cerrado",
+  "nombre_es": "Dominada agarre paralelo cerrado",
   "nombre_en": "chin-ups (narrow parallel grip)",
   "tipo": "fuerza",
   "grupo": "cuerpo",
@@ -10311,7 +10319,7 @@
  },
  {
   "id": "1327",
-  "nombre_es": "Dominada supina agarre cerrado",
+  "nombre_es": "Dominada supina agarre cerrado v. 2",
   "nombre_en": "close grip chin-up",
   "tipo": "fuerza",
   "grupo": "cuerpo",
@@ -12621,7 +12629,7 @@
  },
  {
   "id": "0327",
-  "nombre_es": "Remo inclinado con mancuernas",
+  "nombre_es": "Remo con mancuernas en banco inclinado",
   "nombre_en": "dumbbell incline row",
   "tipo": "fuerza",
   "grupo": "pesas",
@@ -14942,7 +14950,7 @@
  },
  {
   "id": "0378",
-  "nombre_es": "Vuelos posteriores con mancuernas",
+  "nombre_es": "Aperturas posteriores con mancuernas",
   "nombre_en": "dumbbell rear fly",
   "tipo": "fuerza",
   "grupo": "pesas",
@@ -14966,7 +14974,7 @@
  },
  {
   "id": "0380",
-  "nombre_es": "Vuelos posteriores con mancuernas",
+  "nombre_es": "Vuelos laterales posteriores con mancuernas",
   "nombre_en": "dumbbell rear lateral raise",
   "tipo": "fuerza",
   "grupo": "pesas",
@@ -15083,7 +15091,7 @@
  },
  {
   "id": "0383",
-  "nombre_es": "Vuelos posteriores con mancuernas",
+  "nombre_es": "Aperturas invertidas con mancuernas",
   "nombre_en": "dumbbell reverse fly",
   "tipo": "fuerza",
   "grupo": "pesas",
@@ -18183,7 +18191,7 @@
  },
  {
   "id": "1628",
-  "nombre_es": "Curl araña con barra EZ",
+  "nombre_es": "Curl araña con barra EZ v. 2",
   "nombre_en": "ez barbell spider curl",
   "tipo": "fuerza",
   "grupo": "pesas",
@@ -21645,7 +21653,7 @@
  },
  {
   "id": "0576",
-  "nombre_es": "Press de pecho en máquina",
+  "nombre_es": "Press de pecho en máquina v. 2",
   "nombre_en": "lever chest press",
   "tipo": "fuerza",
   "grupo": "maquina",
@@ -22509,7 +22517,7 @@
  },
  {
   "id": "2335",
-  "nombre_es": "Elevación de talones sentado en máquina",
+  "nombre_es": "Prensa de talones sentado en máquina",
   "nombre_en": "lever seated calf press",
   "tipo": "fuerza",
   "grupo": "maquina",
@@ -23054,7 +23062,7 @@
  },
  {
   "id": "1351",
-  "nombre_es": "Remo T-bar agarre supino en máquina",
+  "nombre_es": "Remo T-bar agarre supino en máquina v. 2",
   "nombre_en": "lever t-bar reverse grip row",
   "tipo": "fuerza",
   "grupo": "maquina",
@@ -25519,7 +25527,7 @@
  },
  {
   "id": "1766",
-  "nombre_es": "Curl femoral inverso autoasistido",
+  "nombre_es": "Curl femoral inverso autoasistido v. 2",
   "nombre_en": "self assisted inverse leg curl",
   "tipo": "fuerza",
   "grupo": "cuerpo",
@@ -26336,7 +26344,7 @@
  },
  {
   "id": "1464",
-  "nombre_es": "Prensa de piernas a 45° en máquina",
+  "nombre_es": "Prensa de piernas a 45° (vista posterior)",
   "nombre_en": "sled 45в° leg press (back pov)",
   "tipo": "fuerza",
   "grupo": "maquina",
@@ -26362,7 +26370,7 @@
  },
  {
   "id": "1463",
-  "nombre_es": "Prensa de piernas a 45° en máquina",
+  "nombre_es": "Prensa de piernas a 45° (vista lateral)",
   "nombre_en": "sled 45° leg press (side pov)",
   "tipo": "fuerza",
   "grupo": "maquina",
@@ -28868,7 +28876,7 @@
  },
  {
   "id": "2801",
-  "nombre_es": "Elevación de piernas girada",
+  "nombre_es": "Elevación de piernas girada v. 2",
   "nombre_en": "twisted leg raise (female)",
   "tipo": "fuerza",
   "grupo": "cuerpo",
@@ -29332,7 +29340,7 @@
  },
  {
   "id": "0834",
-  "nombre_es": "Elevación frontal con mancuernas",
+  "nombre_es": "Elevación frontal lastrada",
   "nombre_en": "weighted front raise",
   "tipo": "fuerza",
   "grupo": "pesas",
@@ -29762,7 +29770,7 @@
  },
  {
   "id": "0853",
-  "nombre_es": "Curl de bíceps de pie con mancuernas",
+  "nombre_es": "Curl de pie lastrado",
   "nombre_en": "weighted standing curl",
   "tipo": "fuerza",
   "grupo": "pesas",
@@ -31194,24 +31202,6 @@
   "basico": false
  },
  {
-  "id": "ST-Ankle_Circles",
-  "nombre_es": "Circulos con los tobillos",
-  "nombre_en": "Ankle Circles",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "body weight",
-  "zona": "Pantorrillas",
-  "musculo": "Pantorrillas",
-  "secundarios": [],
-  "pasos": [
-   "Usá un objeto resistente como un rack para sostenerte.",
-   "Levantá la pierna derecha en el aire (aproximadamente 5 cm del piso) y hacé un movimiento circular con el dedo gordo. Pretendé que estás dibujando un círculo grande con él.",
-   "Cuando termines con el pie derecho, repetí con la pierna izquierda."
-  ],
-  "movimiento": "elongacion-pantorrillas",
-  "basico": true
- },
- {
   "id": "ST-Ankle_On_The_Knee",
   "nombre_es": "Tobillo sobre la rodilla",
   "nombre_en": "Ankle On The Knee",
@@ -31234,7 +31224,7 @@
   "nombre_es": "Tibial anterior con rodillo",
   "nombre_en": "Anterior Tibialis-SMR",
   "tipo": "elongacion",
-  "grupo": "cuerpo",
+  "grupo": "rodillo",
   "equipment": "other",
   "zona": "Pantorrillas",
   "musculo": "Pantorrillas",
@@ -31244,7 +31234,8 @@
    "Usá un rodillo de músculos o un rodillo de cocina, aplicá presión en los músculos en la parte externa de las canillas. Trabajá desde justo debajo de la rodilla hasta arriba del tobillo, pausando en los puntos de tensión durante 10-30 segundos. Repetí en la otra pierna."
   ],
   "movimiento": "elongacion-pantorrillas",
-  "basico": false
+  "basico": false,
+  "elemento": "rodillo o pelotita de masaje"
  },
  {
   "id": "ST-Arm_Circles",
@@ -31267,27 +31258,6 @@
   "basico": true
  },
  {
-  "id": "ST-Behind_Head_Chest_Stretch",
-  "nombre_es": "Estiramiento de pecho detrás de la cabeza",
-  "nombre_en": "Behind Head Chest Stretch",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "other",
-  "zona": "Pecho",
-  "musculo": "Pecho",
-  "secundarios": [
-   "Hombros"
-  ],
-  "pasos": [
-   "Sentáte erguido en el piso con tu pareja detrás tuyo.",
-   "Colocá las manos detrás de tu cabeza y empujá los codos hacia atrás lo más lejos posible. Tu pareja debe sostener los codos.",
-   "Intentá suavemente tirar los codos hacia adelante con las manos aún detrás de la cabeza durante 10 segundos o más. Tu pareja debe impedir que los codos se muevan.",
-   "Ahora, relajá los músculos y que tu pareja tire suavemente de los codos hacia atrás lo cómodo que sea. Avisale a tu pareja cuándo el estiramiento es adecuado para evitar lesiones."
-  ],
-  "movimiento": "elongacion-pecho",
-  "basico": false
- },
- {
   "id": "ST-Brachialis-SMR",
   "nombre_es": "Braquial con rodillo",
   "nombre_en": "Brachialis-SMR",
@@ -31302,7 +31272,8 @@
    "Levantá las caderas del piso, apoyando tu peso en el brazo y en los pies. Sostené 10-30 segundos y luego cambiá de lado."
   ],
   "movimiento": "elongacion-biceps",
-  "basico": false
+  "basico": false,
+  "elemento": "rodillo o pelotita de masaje"
  },
  {
   "id": "ST-Calf_Stretch_Elbows_Against_Wall",
@@ -31355,7 +31326,8 @@
    "Colocá las manos a tu lado o justo detrás tuyo, y presioná para levantar las caderas del piso, colocando la mayor parte de tu peso contra el músculo de la pantorrilla. Rueda desde debajo de la rodilla hasta arriba del tobillo, pausando en los puntos de tensión durante 10-30 segundos. Repetí con la otra pierna."
   ],
   "movimiento": "elongacion-pantorrillas",
-  "basico": false
+  "basico": false,
+  "elemento": "rodillo o pelotita de masaje"
  },
  {
   "id": "ST-Cat_Stretch",
@@ -31376,27 +31348,6 @@
    "Sostené 15 segundos."
   ],
   "movimiento": "elongacion-zona-lumbar",
-  "basico": true
- },
- {
-  "id": "ST-Chair_Leg_Extended_Stretch",
-  "nombre_es": "Estiramiento con pierna extendida en silla",
-  "nombre_en": "Chair Leg Extended Stretch",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "other",
-  "zona": "Piernas",
-  "musculo": "Isquiotibiales",
-  "secundarios": [
-   "Aductores"
-  ],
-  "pasos": [
-   "Sentáte erguido en una silla y agarrá el asiento por los lados.",
-   "Levantá una pierna, extendiendo la rodilla, flexionando el tobillo mientras lo hacés.",
-   "Mové lentamente esa pierna hacia afuera lo más lejos que puedas, y luego volvé al centro y hacia abajo.",
-   "Repetí con la otra pierna."
-  ],
-  "movimiento": "elongacion-isquiotibiales",
   "basico": true
  },
  {
@@ -31437,45 +31388,8 @@
    "Estirá los brazos, manteniendo la espalda recta, y tirá tu cuerpo superior hacia adelante para sentir el estiramiento. Sostené 20-30 segundos."
   ],
   "movimiento": "elongacion-hombros",
-  "basico": true
- },
- {
-  "id": "ST-Chest_And_Front_Of_Shoulder_Stretch",
-  "nombre_es": "Estiramiento de pecho y hombro delantero",
-  "nombre_en": "Chest And Front Of Shoulder Stretch",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "other",
-  "zona": "Pecho",
-  "musculo": "Pecho",
-  "secundarios": [
-   "Hombros"
-  ],
-  "pasos": [
-   "Empezá de pie con las piernas juntas, sosteniendo una barra o un palo de escoba.",
-   "Agarrá la barra un poco más ancho que el ancho de hombros con las palmas hacia abajo.",
-   "Levantá cuidadosamente la barra hacia arriba y detrás de la cabeza."
-  ],
-  "movimiento": "elongacion-pecho",
-  "basico": true
- },
- {
-  "id": "ST-Chest_Stretch_on_Stability_Ball",
-  "nombre_es": "Estiramiento de pecho con pelota",
-  "nombre_en": "Chest Stretch on Stability Ball",
-  "tipo": "elongacion",
-  "grupo": "pelota",
-  "equipment": "exercise ball",
-  "zona": "Pecho",
-  "musculo": "Pecho",
-  "secundarios": [],
-  "pasos": [
-   "Empezá en cuatro puntos de apoyo al lado de una pelota de ejercicio.",
-   "Colocá los codos en la parte superior de la pelota, manteniendo el brazo hacia un lado.",
-   "Bajá el torso hacia el piso, manteniendo el codo en la pelota. Sostené el estiramiento durante 20-30 segundos y repetí con el otro brazo."
-  ],
-  "movimiento": "elongacion-pecho",
-  "basico": true
+  "basico": true,
+  "elemento": "silla"
  },
  {
   "id": "ST-Childs_Pose",
@@ -31581,25 +31495,6 @@
   "basico": true
  },
  {
-  "id": "ST-Dynamic_Chest_Stretch",
-  "nombre_es": "Estiramiento dinámico de pecho",
-  "nombre_en": "Dynamic Chest Stretch",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "body weight",
-  "zona": "Pecho",
-  "musculo": "Pecho",
-  "secundarios": [
-   "Espalda media"
-  ],
-  "pasos": [
-   "Poniéndote de pie con las manos juntas, brazos extendidos directamente frente a ti.",
-   "Manteniendo los brazos rectos, mové rápidamente los brazos hacia atrás lo más lejos posible y luego hacia adelante de nuevo, similar a un aplauso exagerado. Repetí 5-10 veces, aumentando la velocidad mientras lo hacés."
-  ],
-  "movimiento": "elongacion-pecho",
-  "basico": true
- },
- {
   "id": "ST-Elbow_Circles",
   "nombre_es": "Circulos con los codos",
   "nombre_en": "Elbow Circles",
@@ -31644,7 +31539,7 @@
   "nombre_es": "Pies con rodillo",
   "nombre_en": "Foot-SMR",
   "tipo": "elongacion",
-  "grupo": "cuerpo",
+  "grupo": "rodillo",
   "equipment": "other",
   "zona": "Pantorrillas",
   "musculo": "Pantorrillas",
@@ -31654,7 +31549,8 @@
    "Presioná firmemente, rodando por el arco del pie. Sostené 10-30 segundos y luego cambiá de pie."
   ],
   "movimiento": "elongacion-pantorrillas",
-  "basico": false
+  "basico": false,
+  "elemento": "rodillo o pelotita de masaje"
  },
  {
   "id": "ST-Frog_Hops",
@@ -31746,25 +31642,8 @@
    "Rueda sobre el rodillo desde debajo de la cadera hasta arriba de la parte posterior de la rodilla, pausando en los puntos de tensión durante 10-30 segundos. Repetí con la otra pierna."
   ],
   "movimiento": "elongacion-isquiotibiales",
-  "basico": true
- },
- {
-  "id": "ST-Hamstring_Stretch",
-  "nombre_es": "Estiramiento de isquiotibiales",
-  "nombre_en": "Hamstring Stretch",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "body weight",
-  "zona": "Piernas",
-  "musculo": "Isquiotibiales",
-  "secundarios": [],
-  "pasos": [
-   "Acóstate boca arriba con una pierna extendida hacia arriba, con la cadera a noventa grados. Mantené la otra pierna plana en el piso.",
-   "Pasá una banda, cinta o cuerda por la planta del pie.",
-   "Tirá de la banda para crear tensión en las pantorrillas e isquiotibiales. Sostené este estiramiento durante 10-30 segundos y repetí con la otra pierna."
-  ],
-  "movimiento": "elongacion-isquiotibiales",
-  "basico": true
+  "basico": true,
+  "elemento": "rodillo o pelotita de masaje"
  },
  {
   "id": "ST-Hip_Circles_prone",
@@ -31860,27 +31739,8 @@
    "Rueda la pierna sobre el rodillo desde la cadera hacia la rodilla, pausando durante 10-30 segundos en los puntos de tensión. Repetí con la pierna opuesta."
   ],
   "movimiento": "elongacion-abductores",
-  "basico": false
- },
- {
-  "id": "ST-Inchworm",
-  "nombre_es": "Oruga",
-  "nombre_en": "Inchworm",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "body only",
-  "zona": "Piernas",
-  "musculo": "Isquiotibiales",
-  "secundarios": [],
-  "pasos": [
-   "Poniéndote de pie con los pies juntos. Manteniendo las piernas rectas, estirá hacia abajo y colocá las manos en el piso directamente frente a ti.",
-   "Comenzá caminando las manos hacia adelante lentamente, alternando la izquierda y la derecha. Mientras lo hacés, flexioná solo en la cadera, manteniendo las piernas rectas.",
-   "Continuá hasta que tu cuerpo esté paralelo al piso en posición de flexión.",
-   "Ahora, mantené las manos en su lugar y caminá lentamente con los pies, moviéndose solo algunos centímetros a la vez.",
-   "Continuá caminando hasta que los pies estén al lado de las manos, manteniendo las piernas rectas mientras lo hacés."
-  ],
-  "movimiento": "elongacion-isquiotibiales",
-  "basico": true
+  "basico": false,
+  "elemento": "rodillo o pelotita de masaje"
  },
  {
   "id": "ST-Intermediate_Groin_Stretch",
@@ -31897,23 +31757,6 @@
    "Tirá suavemente de la banda para crear tensión en los músculos de la ingle e isquiotibiales. Sostené 10-20 segundos y repetí en el otro lado."
   ],
   "movimiento": "elongacion-isquiotibiales",
-  "basico": false
- },
- {
-  "id": "ST-Intermediate_Hip_Flexor_and_Quad_Stretch",
-  "nombre_es": "Estiramiento intermedio de flexores de cadera y cuádriceps",
-  "nombre_en": "Intermediate Hip Flexor and Quad Stretch",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "other",
-  "zona": "Piernas",
-  "musculo": "Cuádriceps",
-  "secundarios": [],
-  "pasos": [
-   "Acóstate boca abajo en el piso con una cuerda, banda o correa alrededor de un pie.",
-   "Flexioná la rodilla y extiende la cadera de la pierna a estirar, usando ambas manos para tirar de la banda. Tu rodilla y cadera deben levantarse del piso, creando tensión en los flexores de cadera y cuádriceps. Sostené el estiramiento durante 10-20 segundos y repetí en la otra pierna."
-  ],
-  "movimiento": "elongacion-cuadriceps",
   "basico": false
  },
  {
@@ -32026,25 +31869,8 @@
    "Mantené el brazo del lado que se estira detrás y hacia un lado mientras trasladás el peso hacia los dorsales, manteniendo el cuerpo superior fuera del piso. Sostené 10-30 segundos y cambiá de lado."
   ],
   "movimiento": "elongacion-dorsales",
-  "basico": true
- },
- {
-  "id": "ST-Leg-Up_Hamstring_Stretch",
-  "nombre_es": "Estiramiento de isquiotibiales con pierna elevada",
-  "nombre_en": "Leg-Up Hamstring Stretch",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "body weight",
-  "zona": "Piernas",
-  "musculo": "Isquiotibiales",
-  "secundarios": [],
-  "pasos": [
-   "Acóstate plano boca arriba, flexioná una rodilla y colocá ese pie plano en el piso para estabilizar la espina.",
-   "Extiende la otra pierna en el aire. Si estás apretado, no podrás enderezarla. Está bien. Extiende la rodilla para que la planta del pie elevado encare al techo (o lo más cerca que puedas).",
-   "Enderezá lentamente las piernas lo más posible y luego tirá la pierna hacia la nariz. Cambiá de lado."
-  ],
-  "movimiento": "elongacion-isquiotibiales",
-  "basico": true
+  "basico": true,
+  "elemento": "rodillo o pelotita de masaje"
  },
  {
   "id": "ST-Looking_At_Ceiling",
@@ -32078,24 +31904,8 @@
    "Levantá las caderas del piso e inclinäte hacia atrás, manteniendo el peso en la zona lumbar. Ahora trasladá el peso ligeramente hacia un lado, manteniendo el peso fuera de la espina y en los músculos al lado de ella. Rueda sobre la zona lumbar, sosteniendo los puntos de tensión durante 10-30 segundos. Repetí en el otro lado."
   ],
   "movimiento": "elongacion-zona-lumbar",
-  "basico": true
- },
- {
-  "id": "ST-Lower_Back_Curl",
-  "nombre_es": "Flexión de zona lumbar",
-  "nombre_en": "Lower Back Curl",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "body only",
-  "zona": "Zona media",
-  "musculo": "Abdominales",
-  "secundarios": [],
-  "pasos": [
-   "Acóstate boca abajo con los brazos hacia los lados.",
-   "Usá los músculos de la zona lumbar, extiende la espina levantando el pecho del piso. No usés los brazos para empujarte hacia arriba. Mantené la cabeza hacia arriba durante el movimiento. Repetí 10-20 veces."
-  ],
-  "movimiento": "elongacion-abdominales",
-  "basico": true
+  "basico": true,
+  "elemento": "rodillo o pelotita de masaje"
  },
  {
   "id": "ST-Lying_Bent_Leg_Groin",
@@ -32220,7 +32030,7 @@
   "nombre_es": "Cuello con rodillo",
   "nombre_en": "Neck-SMR",
   "tipo": "elongacion",
-  "grupo": "cuerpo",
+  "grupo": "rodillo",
   "equipment": "other",
   "zona": "Cuello",
   "musculo": "Cuello",
@@ -32230,7 +32040,8 @@
    "Comenzando en la parte superior del cuello, rueda lentamente hacia abajo en los músculos del cuello, pausando en los puntos de tensión durante 10-30 segundos."
   ],
   "movimiento": "elongacion-cuello",
-  "basico": false
+  "basico": false,
+  "elemento": "rodillo o pelotita de masaje"
  },
  {
   "id": "ST-On-Your-Back_Quad_Stretch",
@@ -32266,23 +32077,6 @@
    "Flexioná la rodilla izquierda detrás tuyo y sostené el pie izquierdo con la mano izquierda. Para estirar el flexor de cadera, empujá la cadera izquierda hacia adelante mientras empujás el pie izquierdo hacia atrás en la mano. Cambiá de lado."
   ],
   "movimiento": "elongacion-cuadriceps",
-  "basico": true
- },
- {
-  "id": "ST-One_Arm_Against_Wall",
-  "nombre_es": "Un brazo contra la pared",
-  "nombre_en": "One Arm Against Wall",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "body weight",
-  "zona": "Espalda",
-  "musculo": "Dorsales",
-  "secundarios": [],
-  "pasos": [
-   "Desde una posición de pie, colocá un brazo flexionado contra una pared o marco de puerta.",
-   "Inclinäte lentamente hacia el brazo hasta que sientas un estiramiento en los dorsales."
-  ],
-  "movimiento": "elongacion-dorsales",
   "basico": true
  },
  {
@@ -32325,7 +32119,8 @@
    "Dejá que la mayoría del peso cuelgue de esa mano mientras los pies quedan en el suelo. Mantené 10-20 segundos y cambiá de lado."
   ],
   "movimiento": "elongacion-dorsales",
-  "basico": true
+  "basico": true,
+  "elemento": "barra fija"
  },
  {
   "id": "ST-One_Knee_To_Chest",
@@ -32367,7 +32162,8 @@
    "Después de 10-20 segundos, relajá el brazo y dejá que tu compañero estire más los dorsales aplicando presión suave. Mantené 10-20 segundos y cambiá de lado."
   ],
   "movimiento": "elongacion-dorsales",
-  "basico": false
+  "basico": false,
+  "elemento": "barra fija"
  },
  {
   "id": "ST-Overhead_Stretch",
@@ -32412,24 +32208,6 @@
   "basico": false
  },
  {
-  "id": "ST-Pelvic_Tilt_Into_Bridge",
-  "nombre_es": "Inclinación pélvica hacia puente",
-  "nombre_en": "Pelvic Tilt Into Bridge",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "body weight",
-  "zona": "Espalda",
-  "musculo": "Zona lumbar",
-  "secundarios": [],
-  "pasos": [
-   "Acostáte con los pies en el piso, talones directamente bajo las rodillas.",
-   "Levantá solo la punta del cóccix hacia el techo para estirar la zona lumbar. Metéte el estómago.",
-   "Para hacer un puente, levantá toda la columna excepto el cuello."
-  ],
-  "movimiento": "elongacion-zona-lumbar",
-  "basico": false
- },
- {
   "id": "ST-Peroneals-SMR",
   "nombre_es": "Peroneos con rodillo",
   "nombre_en": "Peroneals-SMR",
@@ -32444,24 +32222,8 @@
    "Levantá las caderas del piso y comenzá a rodar desde debajo de la rodilla hasta encima del tobillo, pausando en puntos de tensión 10-30 segundos. Repetí en la otra pierna."
   ],
   "movimiento": "elongacion-pantorrillas",
-  "basico": false
- },
- {
-  "id": "ST-Peroneals_Stretch",
-  "nombre_es": "Estiramiento de peroneos",
-  "nombre_en": "Peroneals Stretch",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "other",
-  "zona": "Pantorrillas",
-  "musculo": "Pantorrillas",
-  "secundarios": [],
-  "pasos": [
-   "Sentado, pasá una correa, cuerda o banda alrededor de un pie.",
-   "Con la pierna estirada y el talón despegado del piso, tirá la correa de forma que el pie se invierta, jalando la parte interna hacia vos. Mantené 10-20 segundos y cambiá de lado."
-  ],
-  "movimiento": "elongacion-pantorrillas",
-  "basico": false
+  "basico": false,
+  "elemento": "rodillo o pelotita de masaje"
  },
  {
   "id": "ST-Piriformis-SMR",
@@ -32478,24 +32240,8 @@
    "Desplazá el peso hacia el lado de la pierna cruzada, rodando sobre los glúteos hasta sentir tensión en el glúteo superior. Podés asistir el estiramiento usando una mano para jalar la rodilla hacia el pecho. Mantené 10-30 segundos y cambiá de lado."
   ],
   "movimiento": "elongacion-gluteos",
-  "basico": false
- },
- {
-  "id": "ST-Posterior_Tibialis_Stretch",
-  "nombre_es": "Estiramiento de tibial posterior",
-  "nombre_en": "Posterior Tibialis Stretch",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "other",
-  "zona": "Pantorrillas",
-  "musculo": "Pantorrillas",
-  "secundarios": [],
-  "pasos": [
-   "Sentado, pasá una correa, cuerda o banda alrededor de un pie.",
-   "Con la pierna estirada y el talón despegado del piso, tirá la correa de forma que el pie se eversiorne, jalando la parte externa hacia vos. Mantené 10-20 segundos y cambiá de lado."
-  ],
-  "movimiento": "elongacion-pantorrillas",
-  "basico": false
+  "basico": false,
+  "elemento": "rodillo o pelotita de masaje"
  },
  {
   "id": "ST-Pyramid",
@@ -32548,7 +32294,8 @@
    "Desplazando el peso hacia la pierna a estirar, rodá sobre el rodillo desde encima de la rodilla hasta debajo de la cadera, pausando en puntos de tensión 10-30 segundos. Cambiá de lado."
   ],
   "movimiento": "elongacion-cuadriceps",
-  "basico": false
+  "basico": false,
+  "elemento": "rodillo o pelotita de masaje"
  },
  {
   "id": "ST-Rear_Leg_Raises",
@@ -32584,7 +32331,8 @@
    "Levantá las caderas del piso, colocando el peso sobre el rodillo. Desplazá el peso de un lado a otro, rodando sobre la espalda media y superior. Pausá en puntos de tensión 10-30 segundos."
   ],
   "movimiento": "elongacion-espalda-media",
-  "basico": false
+  "basico": false,
+  "elemento": "rodillo o pelotita de masaje"
  },
  {
   "id": "ST-Round_The_World_Shoulder_Stretch",
@@ -32861,23 +32609,6 @@
   "basico": true
  },
  {
-  "id": "ST-Side-Lying_Floor_Stretch",
-  "nombre_es": "Estiramiento lateral en piso acostado",
-  "nombre_en": "Side-Lying Floor Stretch",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "body weight",
-  "zona": "Espalda",
-  "musculo": "Dorsales",
-  "secundarios": [],
-  "pasos": [
-   "Acostáte sobre el lado izquierdo, doblando la rodilla izquierda adelante para estabilizar (usá también los abdominales).",
-   "Estirá la pierna derecha y descansá el pie derecho en el piso atrás. Estirá el brazo derecho sobre la cabeza y jalá suavemente la muñeca derecha para estirar todo el lado derecho del cuerpo. Cambiá de lado."
-  ],
-  "movimiento": "elongacion-dorsales",
-  "basico": true
- },
- {
   "id": "ST-Side_Leg_Raises",
   "nombre_es": "Elevación lateral de pierna",
   "nombre_en": "Side Leg Raises",
@@ -32913,23 +32644,6 @@
    "Jalá la rodilla izquierda hacia el hombro izquierdo y simultáneamente presioná el pie o rodilla hacia el piso. Para intensificar, estirá la pierna izquierda. Cambiá de lado."
   ],
   "movimiento": "elongacion-aductores",
-  "basico": true
- },
- {
-  "id": "ST-Side_Neck_Stretch",
-  "nombre_es": "Estiramiento lateral de cuello",
-  "nombre_en": "Side Neck Stretch",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "body weight",
-  "zona": "Cuello",
-  "musculo": "Cuello",
-  "secundarios": [],
-  "pasos": [
-   "Empezá con los hombros relajados, incliná suavemente la cabeza hacia el hombro.",
-   "Asistí el estiramiento con un tirón suave en el lado de la cabeza."
-  ],
-  "movimiento": "elongacion-cuello",
   "basico": true
  },
  {
@@ -32999,27 +32713,6 @@
   "basico": true
  },
  {
-  "id": "ST-Split_Squats",
-  "nombre_es": "Sentadillas con piernas divididas",
-  "nombre_en": "Split Squats",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "body weight",
-  "zona": "Piernas",
-  "musculo": "Isquiotibiales",
-  "secundarios": [
-   "Pantorrillas",
-   "Glúteos",
-   "Cuádriceps"
-  ],
-  "pasos": [
-   "Estando de pie, saltá hacia una posición con piernas divididas, una adelante y otra atrás, flexionando las rodillas y bajando las caderas ligeramente.",
-   "Mientras bajás, invierte el movimiento inmediatamente, saltando hacia atrás y revirtiendo la posición de las piernas. Repetí 5-10 veces en cada pierna."
-  ],
-  "movimiento": "elongacion-isquiotibiales",
-  "basico": false
- },
- {
   "id": "ST-Standing_Biceps_Stretch",
   "nombre_es": "Estiramiento de bíceps de pie",
   "nombre_en": "Standing Biceps Stretch",
@@ -33055,7 +32748,8 @@
    "Mantené la rodilla de apoyo ligeramente doblada y evitá que sobrepase los dedos del pie. Cambiá de lado."
   ],
   "movimiento": "elongacion-cuadriceps",
-  "basico": true
+  "basico": true,
+  "elemento": "banco o silla"
  },
  {
   "id": "ST-Standing_Gastrocnemius_Calf_Stretch",
@@ -33131,45 +32825,6 @@
    "Doblá ambas rodillas y levantá el talón trasero del piso mientras presionas la cadera derecha hacia adelante. No es fácil lograr un estiramiento profundo estando de pie porque es difícil relajar el flexor de cadera mientras lo apoyas. Cambiá de lado."
   ],
   "movimiento": "elongacion-cuadriceps",
-  "basico": true
- },
- {
-  "id": "ST-Standing_Lateral_Stretch",
-  "nombre_es": "Estiramiento lateral de pie",
-  "nombre_en": "Standing Lateral Stretch",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "body weight",
-  "zona": "Zona media",
-  "musculo": "Abdominales",
-  "secundarios": [],
-  "pasos": [
-   "Tomáte una posición con los pies ligeramente más ancho que la distancia de caderas y rodillas ligeramente dobladas.",
-   "Ponéte la mano derecha en la cadera derecha para soportar la columna.",
-   "Levantá el brazo izquierdo en línea vertical y ponéte la mano izquierda detrás de la cabeza. Mantené mientras inclinas el torso a la derecha.",
-   "Distribuí el peso parejamente entre ambas piernas (no te inclines sobre la cadera izquierda). Cambiá de lado."
-  ],
-  "movimiento": "elongacion-abdominales",
-  "basico": true
- },
- {
-  "id": "ST-Standing_Pelvic_Tilt",
-  "nombre_es": "Inclinación pélvica de pie",
-  "nombre_en": "Standing Pelvic Tilt",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "body weight",
-  "zona": "Espalda",
-  "musculo": "Zona lumbar",
-  "secundarios": [
-   "Glúteos"
-  ],
-  "pasos": [
-   "Empezá con los pies a la distancia de las caderas.",
-   "Doblá las rodillas ligeramente para mantenerlas suave y elásticas.",
-   "Quizás quieras mover la pelvis adelante y atrás varias veces antes de mantener la punta del cóccix hacia adelante en este estiramiento."
-  ],
-  "movimiento": "elongacion-zona-lumbar",
   "basico": true
  },
  {
@@ -33327,24 +32982,6 @@
   "basico": true
  },
  {
-  "id": "ST-Triceps_Stretch",
-  "nombre_es": "Estiramiento de tríceps",
-  "nombre_en": "Triceps Stretch",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "body weight",
-  "zona": "Brazos",
-  "musculo": "Tríceps",
-  "secundarios": [
-   "Dorsales"
-  ],
-  "pasos": [
-   "Ponéte la mano detrás de la cabeza, sujetá el codo y tirá suavemente. Mantené 10-20 segundos y cambiá de lado."
-  ],
-  "movimiento": "elongacion-triceps",
-  "basico": true
- },
- {
   "id": "ST-Upper_Back-Leg_Grab",
   "nombre_es": "Agarre de pierna desde espalda alta",
   "nombre_en": "Upper Back-Leg Grab",
@@ -33362,24 +32999,6 @@
    "Mantené las rodillas juntas y las piernas extendidas mientras llevás el pecho hacia las rodillas. También podés estirar la espalda media jalando la espalda lejos de las rodillas mientras las abrazas."
   ],
   "movimiento": "elongacion-isquiotibiales",
-  "basico": true
- },
- {
-  "id": "ST-Upper_Back_Stretch",
-  "nombre_es": "Estiramiento de espalda alta",
-  "nombre_en": "Upper Back Stretch",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "body weight",
-  "zona": "Espalda",
-  "musculo": "Espalda media",
-  "secundarios": [
-   "Espalda media"
-  ],
-  "pasos": [
-   "Agarráte los dedos juntos con los pulgares apuntando hacia abajo, redondea los hombros mientras alcanzas las manos hacia adelante."
-  ],
-  "movimiento": "elongacion-espalda-media",
   "basico": true
  },
  {
@@ -33445,23 +33064,5 @@
   ],
   "movimiento": "elongacion-isquiotibiales",
   "basico": false
- },
- {
-  "id": "ST-Wrist_Circles",
-  "nombre_es": "Círculos de muñeca",
-  "nombre_en": "Wrist Circles",
-  "tipo": "elongacion",
-  "grupo": "cuerpo",
-  "equipment": "body only",
-  "zona": "Antebrazos",
-  "musculo": "Antebrazos",
-  "secundarios": [],
-  "pasos": [
-   "Empezá parándote erguido con los pies al ancho de los hombros. Elevá los brazos a los lados hasta que estén totalmente extendidos y paralelos al piso a la altura de los hombros. El torso y brazos forman la letra T. Palmas hacia abajo.",
-   "Manteniendo todo el cuerpo quieto excepto las muñecas, comenzá a rotar ambas muñecas hacia adelante en movimiento circular. Pretendé que estás dibujando círculos usando las manos como pincel. Respirá normalmente.",
-   "Repetí la cantidad de repeticiones recomendadas."
-  ],
-  "movimiento": "elongacion-antebrazos",
-  "basico": true
  }
 ]
