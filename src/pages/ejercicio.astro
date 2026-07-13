@@ -1,0 +1,85 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base titulo="Ejercicio — Guía de Ejercicios" activa="catalogo">
+  <div id="detalle"><p class="ayuda">Cargando…</p></div>
+</Base>
+
+<style>
+  #detalle :global(.gif) {
+    width: 100%;
+    max-width: 360px;
+    border-radius: var(--radio);
+    background: var(--borde);
+    display: block;
+    margin: 0 auto;
+  }
+  #detalle :global(ol) { padding-left: 20px; }
+  #detalle :global(li) { margin: 6px 0; }
+  #detalle :global(.variante-grupo) { margin: 6px 0; font-size: 14px; }
+</style>
+
+<script>
+  import { variantesDe, ultimaVez } from '../lib/motor';
+  import { storage } from '../lib/storage';
+  import { cargarCatalogoCompleto, urlGif, urlImg, escapar, rutaBase, hoyISO, haceDias } from '../ui/datos';
+  import type { Ejercicio, GrupoEquip } from '../lib/tipos';
+
+  const LABEL_GRUPO: Record<string, string> = {
+    pesas: 'Pesas', maquina: 'Máquina', banda: 'Banda', cuerpo: 'Cuerpo', pelota: 'Pelota', rodillo: 'Rodillo',
+  };
+
+  function lineaUltimaVez(e: Ejercicio): string {
+    const registro = ultimaVez(storage.getSesiones(), e.id, e.grupo);
+    if (!registro) return 'Nunca lo hiciste';
+    const mejor = registro.series[registro.series.length - 1];
+    const peso = mejor?.pesoKg !== undefined ? ` · ${mejor.pesoKg} kg` : '';
+    const rpe = registro.rpe !== undefined ? ` · RPE ${registro.rpe}` : '';
+    return `${haceDias(registro.fecha, hoyISO())} · ${registro.series.length}×${mejor?.reps ?? '?'}${peso}${rpe}`;
+  }
+
+  async function pintar() {
+    const id = new URLSearchParams(location.search).get('id') ?? '';
+    const catalogo = await cargarCatalogoCompleto();
+    const e = catalogo.find((x) => x.id === id);
+    const caja = document.querySelector('#detalle')!;
+    if (!e) {
+      caja.innerHTML = `<p class="error">No encontré ese ejercicio.</p>`;
+      return;
+    }
+
+    const variantes = variantesDe(catalogo, e.movimiento);
+    const listaVariantes = (Object.entries(variantes) as Array<[GrupoEquip, Ejercicio[]]>)
+      .filter(([grupo, lista]) => lista.length > 0 && grupo !== e.grupo)
+      .map(
+        ([grupo, lista]) => `
+        <div class="variante-grupo"><strong>${LABEL_GRUPO[grupo]}</strong>: ${lista
+          .slice(0, 3)
+          .map((v) => `<a href="${rutaBase}/ejercicio/?id=${encodeURIComponent(v.id)}">${escapar(v.nombre_es)}</a>`)
+          .join(' · ')}</div>`,
+      )
+      .join('');
+
+    const media = e.custom
+      ? `<div class="carta" style="text-align:center">🏋️ Ejercicio tuyo (sin GIF)</div>`
+      : `<img class="gif" src="${urlGif(e.id)}" alt="Demostración de ${escapar(e.nombre_es)}"
+           onerror="this.onerror=null;this.src='${urlImg(e.id)}'" />`;
+
+    caja.innerHTML = `
+      <h1>${escapar(e.nombre_es)}</h1>
+      <p class="eyebrow">${escapar(e.nombre_en)} · ${e.grupo} · ${e.tipo}</p>
+      ${media}
+      <div class="carta tipo-${e.tipo}">
+        <span class="eyebrow">Músculos</span>
+        <p><strong>${escapar(e.musculo)}</strong>${e.secundarios.length ? ` + ${e.secundarios.map(escapar).join(', ')}` : ''}</p>
+        <span class="eyebrow">Última vez (${LABEL_GRUPO[e.grupo]})</span>
+        <p>${lineaUltimaVez(e)}</p>
+      </div>
+      ${e.pasos.length ? `<h2>Cómo se hace</h2><ol>${e.pasos.map((p) => `<li>${escapar(p)}</li>`).join('')}</ol>` : ''}
+      ${listaVariantes ? `<h2>El mismo movimiento con otro equipo</h2>${listaVariantes}` : ''}
+    `;
+  }
+
+  pintar();
+</script>

@@ -1,0 +1,136 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base titulo="Catálogo — Guía de Ejercicios" activa="catalogo">
+  <h1>Catálogo</h1>
+  <input type="text" id="busqueda" placeholder="Buscar ejercicio (español o inglés)…" autocomplete="off" />
+  <div class="chips filtros" id="filtro-tipo"></div>
+  <div class="chips filtros" id="filtro-grupo"></div>
+  <div class="chips filtros" id="filtro-zona"></div>
+  <p class="eyebrow" id="conteo"></p>
+  <div id="lista"></div>
+  <button class="boton-secundario" id="mas" hidden>Mostrar más</button>
+</Base>
+
+<style>
+  .filtros { margin: 8px 0; }
+  .filtros :global(.chip) { padding: 6px 10px; font-size: 13px; }
+  #lista :global(.item) {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
+    background: var(--carta);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    padding: 10px;
+    margin: 8px 0;
+  }
+  #lista :global(img) {
+    width: 56px;
+    height: 56px;
+    border-radius: 10px;
+    object-fit: cover;
+    background: var(--borde);
+    flex: none;
+  }
+  #lista :global(.nombre) { font-weight: 700; font-size: 15px; }
+  #lista :global(.detalle) { font-size: 12.5px; color: var(--tinta-suave); }
+</style>
+
+<script>
+  import { cargarCatalogoCompleto, urlImg, escapar, rutaBase } from '../ui/datos';
+  import type { Ejercicio } from '../lib/tipos';
+
+  const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T;
+  const PAGINA = 60;
+
+  const TIPOS = [
+    { valor: 'fuerza', label: 'Fuerza' },
+    { valor: 'elongacion', label: 'Elongación' },
+    { valor: 'cardio', label: 'Cardio' },
+  ];
+  const GRUPOS = [
+    { valor: 'pesas', label: 'Pesas' },
+    { valor: 'maquina', label: 'Máquina' },
+    { valor: 'banda', label: 'Banda' },
+    { valor: 'cuerpo', label: 'Cuerpo' },
+    { valor: 'pelota', label: 'Pelota' },
+    { valor: 'rodillo', label: 'Rodillo' },
+  ];
+
+  let catalogo: Ejercicio[] = [];
+  let visibles = PAGINA;
+  const filtros = { tipo: '', grupo: '', zona: '', texto: '' };
+
+  function chipsFiltro(contenedor: HTMLElement, opciones: Array<{ valor: string; label: string }>, clave: 'tipo' | 'grupo' | 'zona') {
+    for (const o of opciones) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip';
+      chip.textContent = o.label;
+      chip.setAttribute('aria-pressed', 'false');
+      chip.addEventListener('click', () => {
+        const activo = chip.getAttribute('aria-pressed') === 'true';
+        for (const otro of contenedor.querySelectorAll('.chip')) otro.setAttribute('aria-pressed', 'false');
+        chip.setAttribute('aria-pressed', String(!activo));
+        filtros[clave] = activo ? '' : o.valor;
+        visibles = PAGINA;
+        pintar();
+      });
+      contenedor.appendChild(chip);
+    }
+  }
+
+  function filtrar(): Ejercicio[] {
+    const texto = filtros.texto.toLowerCase();
+    return catalogo.filter(
+      (e) =>
+        (!filtros.tipo || e.tipo === filtros.tipo) &&
+        (!filtros.grupo || e.grupo === filtros.grupo) &&
+        (!filtros.zona || e.zona === filtros.zona) &&
+        (!texto || e.nombre_es.toLowerCase().includes(texto) || e.nombre_en.toLowerCase().includes(texto)),
+    );
+  }
+
+  function pintar() {
+    const resultado = filtrar();
+    $('#conteo').textContent = `${resultado.length} ejercicios`;
+    $('#lista').innerHTML = resultado
+      .slice(0, visibles)
+      .map(
+        (e) => `
+      <a class="item" href="${rutaBase}/ejercicio/?id=${encodeURIComponent(e.id)}">
+        <img src="${e.custom ? '' : urlImg(e.id)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'" />
+        <div>
+          <div class="nombre">${escapar(e.nombre_es)}</div>
+          <div class="detalle">${escapar(e.musculo)} · ${escapar(e.zona)} · ${e.grupo}${e.custom ? ' · tuyo' : ''}</div>
+        </div>
+      </a>`,
+      )
+      .join('');
+    ($('#mas') as HTMLButtonElement).hidden = resultado.length <= visibles;
+  }
+
+  chipsFiltro($('#filtro-tipo'), TIPOS, 'tipo');
+  chipsFiltro($('#filtro-grupo'), GRUPOS, 'grupo');
+
+  ($('#busqueda') as HTMLInputElement).addEventListener('input', (e) => {
+    filtros.texto = (e.target as HTMLInputElement).value.trim();
+    visibles = PAGINA;
+    pintar();
+  });
+  $('#mas').addEventListener('click', () => {
+    visibles += PAGINA;
+    pintar();
+  });
+
+  cargarCatalogoCompleto().then((cat) => {
+    catalogo = cat;
+    const zonas = [...new Set(cat.map((e) => e.zona))].sort();
+    chipsFiltro($('#filtro-zona'), zonas.map((z) => ({ valor: z, label: z })), 'zona');
+    pintar();
+  });
+</script>
