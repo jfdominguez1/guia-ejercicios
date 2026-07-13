@@ -35,6 +35,18 @@ GRUPOS: dict[str, list[str]] = {
     "cuerpo": ["body weight"],
 }
 
+# Elongación / movilidad (JFD 2026-07-12): entra TODO lo que matchee por
+# nombre, con equipamiento propio (pelota, rodillo) además de los 4 grupos.
+ELONGACION_KEYWORDS = ["stretch", "yoga", "pose", "mobility", "foam roll"]
+GRUPO_ELONGACION: dict[str, str] = {
+    "body weight": "cuerpo",
+    "assisted": "cuerpo",
+    "weighted": "cuerpo",
+    "rope": "banda",       # se hace igual con banda o toalla
+    "stability ball": "pelota",
+    "roller": "rodillo",
+}
+
 # Patrones por keyword en name, en orden de prioridad (primer match gana).
 # 'leg press' va antes que 'press' para caer en piernas-empuje y no en empuje.
 PATRONES: list[tuple[list[str], str]] = [
@@ -175,17 +187,26 @@ def patron_de(name: str, target: str) -> str:
     return "otro"
 
 
+def es_elongacion(name: str) -> bool:
+    return any(k in name.lower() for k in ELONGACION_KEYWORDS)
+
+
 def clasificar(ejercicio: dict, musculos_es: dict[str, str]) -> dict | None:
-    grupo = grupo_de(ejercicio["equipment"])
+    elongacion = es_elongacion(ejercicio["name"])
+    if elongacion:
+        grupo = GRUPO_ELONGACION.get(ejercicio["equipment"])
+    else:
+        grupo = grupo_de(ejercicio["equipment"])
     if grupo is None:
         return None
     target = ejercicio["target"]
-    patron = patron_de(ejercicio["name"], target)
     musculo_es = musculos_es.get(target, target)
+    patron = "elongacion" if elongacion else patron_de(ejercicio["name"], target)
     return {
         "id": ejercicio["id"],
         "nombre_es": None,
         "nombre_en": ejercicio["name"],
+        "tipo": "elongacion" if elongacion else "fuerza",
         "grupo": grupo,
         "equipment": ejercicio["equipment"],
         "zona": ejercicio["body_part"],
@@ -239,7 +260,9 @@ def main() -> None:
     if faltantes:
         sys.exit(f"ERROR: ids de BASICOS_IDS fuera del catálogo: {sorted(faltantes)}")
     for e in catalogo:
-        e["basico"] = e["id"] in BASICOS_IDS
+        # elongación sin equipo especial es apta para nivel "empiezo"
+        elongacion_simple = e["tipo"] == "elongacion" and e["grupo"] in ("cuerpo", "banda")
+        e["basico"] = e["id"] in BASICOS_IDS or elongacion_simple
 
     copiados = copiar_media(catalogo)
     for e in catalogo:
@@ -251,8 +274,11 @@ def main() -> None:
     pendientes = {e["id"]: e["nombre_en"] for e in catalogo}
     SALIDA_PENDIENTES.write_text(json.dumps(pendientes, ensure_ascii=False, indent=1))
 
-    grupos = {g: sum(1 for e in catalogo if e["grupo"] == g) for g in GRUPOS}
-    print(f"{len(catalogo)} ejercicios ({grupos}), media copiada: {copiados}, "
+    grupos_todos = sorted({e["grupo"] for e in catalogo})
+    grupos = {g: sum(1 for e in catalogo if e["grupo"] == g) for g in grupos_todos}
+    elongacion = sum(1 for e in catalogo if e["tipo"] == "elongacion")
+    print(f"{len(catalogo)} ejercicios ({grupos}), elongación: {elongacion}, "
+          f"media copiada: {copiados}, "
           f"básicos: {sum(1 for e in catalogo if e['basico'])}, "
           f"nombres pendientes: {len(pendientes)}")
 
