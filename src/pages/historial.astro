@@ -1,0 +1,213 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base titulo="Historial — Guía de Ejercicios" activa="historial">
+  <h1>Historial</h1>
+  <div class="carta" id="calendario"></div>
+  <button class="boton-principal" id="btn-cardio">+ Registrar cardio</button>
+  <div id="alta-cardio"></div>
+  <h2>Sesiones</h2>
+  <div id="sesiones"></div>
+</Base>
+
+<style>
+  #calendario :global(.cabecera) { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  #calendario :global(.grilla) {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    text-align: center;
+  }
+  #calendario :global(.dow) { font-size: 11px; color: var(--tinta-suave); font-weight: 700; }
+  #calendario :global(.dia) {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+  #calendario :global(.dia.fuerza) { background: var(--fuerza); color: #fff; font-weight: 700; }
+  #calendario :global(.dia.cardio) { background: var(--cardio); color: #fff; font-weight: 700; }
+  #calendario :global(.dia.elongacion) { background: var(--elongacion); color: #fff; font-weight: 700; }
+  #calendario :global(.dia.otro) { background: var(--accion); color: var(--accion-tinta); font-weight: 700; }
+  #calendario :global(.dia.hoy) { outline: 2px solid var(--tinta); }
+  #calendario :global(.leyenda) { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--tinta-suave); }
+  #calendario :global(.punto) { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
+
+  #sesiones :global(details) {
+    background: var(--carta);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    padding: 10px 14px;
+    margin: 8px 0;
+  }
+  #sesiones :global(summary) { font-weight: 700; cursor: pointer; }
+  #sesiones :global(.meta) { font-size: 13px; color: var(--tinta-suave); }
+</style>
+
+<script>
+  import { storage } from '../lib/storage';
+  import { registrarOtra, fechaValidaRetro } from '../lib/registro';
+  import { cargarCatalogoCompleto, hoyISO, escapar, exigirPerfil } from '../ui/datos';
+  import type { Ejercicio, Sesion, TipoCardio } from '../lib/tipos';
+
+  const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T;
+  exigirPerfil();
+
+  let catalogo: Ejercicio[] = [];
+  let mesVisto = hoyISO().slice(0, 7); // YYYY-MM
+
+  const NOMBRE_TIPO: Record<string, string> = {
+    fuerza: 'Fuerza', cardio: 'Cardio', elongacion: 'Elongación', otro: 'Actividad',
+  };
+
+  function sesionesDe(fecha: string): Sesion[] {
+    return storage.getSesiones().filter((s) => s.fecha === fecha);
+  }
+
+  function pintarCalendario() {
+    const [anio, mes] = mesVisto.split('-').map(Number) as [number, number];
+    const primero = new Date(Date.UTC(anio, mes - 1, 1));
+    const diasEnMes = new Date(Date.UTC(anio, mes, 0)).getUTCDate();
+    const offset = (primero.getUTCDay() + 6) % 7; // lunes primero
+    const nombreMes = primero.toLocaleDateString('es-AR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+    const celdas: string[] = ['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d) => `<div class="dow">${d}</div>`);
+    for (let i = 0; i < offset; i++) celdas.push('<div></div>');
+    for (let d = 1; d <= diasEnMes; d++) {
+      const fecha = `${mesVisto}-${String(d).padStart(2, '0')}`;
+      const del = sesionesDe(fecha);
+      const clase = del[0] ? ` ${del[0].tipo}` : '';
+      celdas.push(`<div class="dia${clase}${fecha === hoyISO() ? ' hoy' : ''}">${d}</div>`);
+    }
+    $('#calendario').innerHTML = `
+      <div class="cabecera">
+        <button class="boton-silencioso" id="mes-antes">‹</button>
+        <strong style="text-transform:capitalize">${nombreMes}</strong>
+        <button class="boton-silencioso" id="mes-despues">›</button>
+      </div>
+      <div class="grilla">${celdas.join('')}</div>
+      <div class="leyenda">
+        <span><span class="punto" style="background:var(--fuerza)"></span>Fuerza</span>
+        <span><span class="punto" style="background:var(--cardio)"></span>Cardio</span>
+        <span><span class="punto" style="background:var(--elongacion)"></span>Elongación</span>
+        <span><span class="punto" style="background:var(--accion)"></span>Otra</span>
+      </div>`;
+    $('#mes-antes').addEventListener('click', () => moverMes(-1));
+    $('#mes-despues').addEventListener('click', () => moverMes(1));
+  }
+
+  function moverMes(delta: number) {
+    const [anio, mes] = mesVisto.split('-').map(Number) as [number, number];
+    const nueva = new Date(Date.UTC(anio, mes - 1 + delta, 1));
+    mesVisto = `${nueva.getUTCFullYear()}-${String(nueva.getUTCMonth() + 1).padStart(2, '0')}`;
+    pintarCalendario();
+  }
+
+  function detalleSesion(s: Sesion): string {
+    const lineas: string[] = [];
+    if (s.estado === 'otra') lineas.push(`Registrada como "hice otra cosa"${s.duracionMin ? ` · ${s.duracionMin} min` : ''}`);
+    if (s.cardio) {
+      lineas.push(
+        `${s.cardio.tipo} · ${s.cardio.minutos} min${s.cardio.km ? ` · ${s.cardio.km} km` : ''}${s.cardio.sensacion ? ` · ${escapar(s.cardio.sensacion)}` : ''}`,
+      );
+    }
+    if (s.fcPromedio) lineas.push(`🫀 FC promedio ${s.fcPromedio} ppm`);
+    if (s.rpe !== undefined) lineas.push(`RPE ${s.rpe}/10`);
+    if (s.notas) lineas.push(escapar(s.notas));
+    for (const item of s.items ?? []) {
+      const info = catalogo.find((e) => e.id === item.ejercicioId);
+      const series = item.series.map((x) => `${x.reps}${x.pesoKg !== undefined ? `×${x.pesoKg}kg` : ''}`).join(' · ');
+      lineas.push(`${escapar(info?.nombre_es ?? item.ejercicioId)} (${item.variante}): ${series}`);
+    }
+    return lineas.map((l) => `<p class="meta">${l}</p>`).join('') || '<p class="meta">Sin detalle — hecha es hecha.</p>';
+  }
+
+  function pintarSesiones() {
+    const sesiones = [...storage.getSesiones()].sort((a, b) => b.fecha.localeCompare(a.fecha));
+    $('#sesiones').innerHTML = sesiones.length
+      ? sesiones
+          .slice(0, 60)
+          .map(
+            (s) => `<details>
+          <summary>${s.fecha} — ${escapar(s.diaRutina ?? NOMBRE_TIPO[s.tipo] ?? s.tipo)}</summary>
+          ${detalleSesion(s)}
+        </details>`,
+          )
+          .join('')
+      : '<div class="carta"><p>Todavía no hay sesiones. La primera se registra desde Hoy con un tap.</p></div>';
+  }
+
+  function pintarAltaCardio() {
+    const tipos: Array<{ v: TipoCardio; l: string }> = [
+      { v: 'corrida', l: 'Corrida' },
+      { v: 'caminata', l: 'Caminata' },
+      { v: 'bicicleta', l: 'Bici' },
+      { v: 'eliptica', l: 'Elíptica' },
+      { v: 'cinta', l: 'Cinta' },
+    ];
+    $('#alta-cardio').innerHTML = `<div class="carta tipo-cardio" id="cardio">
+      <span class="eyebrow">Registrar cardio</span>
+      <div class="chips" style="margin-top:8px">${tipos.map((t) => `<button class="chip" data-tipo="${t.v}">${t.l}</button>`).join('')}</div>
+      <label>¿Qué día?</label><input type="date" id="cardio-fecha" value="${hoyISO()}" />
+      <label>Minutos</label><input type="number" id="cardio-min" inputmode="numeric" value="30" min="5" max="300" />
+      <label>Km <span class="eyebrow">(opcional)</span></label><input type="number" id="cardio-km" inputmode="decimal" step="0.1" min="0" />
+      <label>FC promedio <span class="eyebrow">(opcional, ppm)</span></label><input type="number" id="cardio-fc" inputmode="numeric" min="40" max="220" placeholder="De tu banda o reloj" />
+      <label>¿Cómo te sentiste? <span class="eyebrow">(opcional)</span></label><input type="text" id="cardio-sensacion" maxlength="80" />
+      <p class="error" id="cardio-error" role="alert"></p>
+      <button class="boton-principal" id="cardio-guardar" disabled>Guardar cardio ✓</button>
+    </div>`;
+    const panel = $('#alta-cardio');
+    let tipo: TipoCardio | null = null;
+    panel.querySelectorAll('[data-tipo]').forEach((chip) =>
+      chip.addEventListener('click', () => {
+        panel.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-pressed', 'false'));
+        chip.setAttribute('aria-pressed', 'true');
+        tipo = (chip as HTMLElement).dataset.tipo as TipoCardio;
+        ($('#cardio-guardar') as HTMLButtonElement).disabled = false;
+      }),
+    );
+    $('#cardio-guardar').addEventListener('click', () => {
+      const error = $('#cardio-error');
+      error.textContent = '';
+      const fecha = ($('#cardio-fecha') as HTMLInputElement).value;
+      const minutos = Number(($('#cardio-min') as HTMLInputElement).value);
+      const km = Number(($('#cardio-km') as HTMLInputElement).value) || undefined;
+      const fc = Number(($('#cardio-fc') as HTMLInputElement).value) || undefined;
+      const sensacion = ($('#cardio-sensacion') as HTMLInputElement).value.trim() || undefined;
+      if (!tipo || !minutos) return;
+      if (!fechaValidaRetro(fecha, hoyISO())) {
+        error.textContent = 'La fecha tiene que ser de los últimos 7 días.';
+        return;
+      }
+      if (fc !== undefined && (fc < 40 || fc > 220)) {
+        error.textContent = 'La FC promedio va entre 40 y 220 ppm.';
+        return;
+      }
+      const base = registrarOtra(tipo === 'caminata' || tipo === 'cinta' ? tipo : 'otro', minutos, fecha);
+      storage.agregarSesion({
+        ...base,
+        tipo: 'cardio',
+        estado: 'hecha',
+        cardio: { tipo, minutos, ...(km ? { km } : {}), ...(sensacion ? { sensacion } : {}) },
+        ...(fc ? { fcPromedio: fc } : {}),
+      });
+      $('#alta-cardio').innerHTML = '';
+      pintarCalendario();
+      pintarSesiones();
+    });
+    document.getElementById('cardio')?.scrollIntoView({ block: 'start' });
+  }
+
+  $('#btn-cardio').addEventListener('click', pintarAltaCardio);
+
+  cargarCatalogoCompleto().then((cat) => {
+    catalogo = cat;
+    pintarCalendario();
+    pintarSesiones();
+    if (location.hash === '#cardio') pintarAltaCardio();
+  });
+</script>
