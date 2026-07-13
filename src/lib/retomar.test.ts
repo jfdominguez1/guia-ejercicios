@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import {
   detectarPausa,
   detectarPausas,
+  estadoHome,
   reducirDia,
   reducirRutina,
   pesoSugeridoRetomar,
@@ -157,6 +158,29 @@ describe('resolverRetomar — escalado por duración de pausa', () => {
     const r = resolverRetomar(RUTINA, [sesion('2026-07-02')], '2026-07-12', CONFIG_DEFAULT, CAT);
     expect(r.mensaje).not.toMatch(/\d+ días/);
     expect(r.mensaje?.toLowerCase()).not.toContain('no entren');
+  });
+});
+
+describe('estadoHome — precedencia retomar > salteo (C4)', () => {
+  it('10 días sin sesiones → SOLO modo retomar, sin banner de salteo', () => {
+    const r = estadoHome(RUTINA, [sesion('2026-07-02')], '2026-07-12', CONFIG_DEFAULT, CAT);
+    expect(r.modo).toBe('retomar');
+    expect(r.retomar?.nivel).toBe('corta');
+    expect(r.salteo).toBeUndefined();
+  });
+
+  it('3 días sin sesión → banner de salteo normal, sin modo retomar', () => {
+    const r = estadoHome(RUTINA, [sesion('2026-07-09')], '2026-07-12', CONFIG_DEFAULT, CAT);
+    expect(r.modo).toBe('normal');
+    expect(r.retomar).toBeUndefined();
+    expect(r.salteo).toBeDefined();
+    expect(r.salteo?.diaIndex).toBeDefined();
+  });
+
+  it('sin sesiones nunca → normal con salteo apuntando al día 0 (empezar)', () => {
+    const r = estadoHome(RUTINA, [], '2026-07-12', CONFIG_DEFAULT, CAT);
+    expect(r.modo).toBe('normal');
+    expect(r.salteo?.diaIndex).toBe(0);
   });
 });
 

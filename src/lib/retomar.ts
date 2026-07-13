@@ -3,6 +3,7 @@
 // el pasado en tono de pérdida — solo mira hacia adelante.
 
 import { unidadEfectiva } from './formato';
+import { resolverSalteo, type ResultadoSalteo } from './motor';
 import type { Config, DiaRutina, Ejercicio, EjercicioRutina, GrupoEquip, Rutina, Sesion, TipoEjercicio } from './tipos';
 
 const MS_POR_DIA = 86_400_000;
@@ -140,4 +141,28 @@ export function resolverRetomar(
     semanaReducida: pausa.nivel === 'media',
     sugerirIA: pausa.nivel === 'larga',
   };
+}
+
+export interface EstadoHome {
+  modo: 'normal' | 'retomar';
+  /** Solo en modo retomar: la home muestra ÚNICAMENTE esto. */
+  retomar?: ResultadoRetomar;
+  /** Solo en modo normal: qué toca hoy (banner de salteo incluido). */
+  salteo?: ResultadoSalteo;
+}
+
+/**
+ * Precedencia de la home (C4): si hay pausa activa, el modo retomar es lo
+ * único en pantalla — el banner de salteo no se muestra.
+ */
+export function estadoHome(
+  rutina: Rutina,
+  sesiones: Sesion[],
+  hoyISO: string,
+  config: Config,
+  catalogo: Ejercicio[],
+): EstadoHome {
+  const retomar = resolverRetomar(rutina, sesiones, hoyISO, config, catalogo);
+  if (retomar.modo === 'retomar') return { modo: 'retomar', retomar };
+  return { modo: 'normal', salteo: resolverSalteo(rutina, sesiones, hoyISO) };
 }
