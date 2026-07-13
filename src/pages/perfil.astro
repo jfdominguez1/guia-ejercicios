@@ -47,7 +47,156 @@ import Base from '../layouts/Base.astro';
     <p class="error" id="error-perfil" role="alert"></p>
     <button type="submit" class="boton-principal" id="btn-generar">Generar mi rutina</button>
   </form>
+
+  <section class="carta" id="ia">
+    <h2>📥 Importar plan de mi IA</h2>
+    <p class="ayuda">Pegá la respuesta de tu IA o subí el archivo. La valido, te muestro qué cambia y recién ahí la adopto.</p>
+    <input type="file" id="import-archivo" accept=".md,.txt,.json" />
+    <textarea id="import-texto" rows="5" placeholder="…o pegá acá la respuesta completa (con el bloque ```json)"></textarea>
+    <button class="boton-secundario" id="btn-validar">Validar plan</button>
+    <div id="import-resultado"></div>
+
+    <h2>📤 Exportar para mi IA</h2>
+    <label for="export-pregunta">La pregunta (editala si querés)</label>
+    <textarea id="export-pregunta" rows="3"></textarea>
+    <button class="boton-secundario" id="btn-exportar">Generar y copiar</button>
+    <textarea id="export-texto" rows="4" readonly hidden></textarea>
+  </section>
+
+  <section class="carta" id="datos">
+    <h2>Tus datos</h2>
+    <p class="ayuda" id="backup-estado"></p>
+    <button class="boton-secundario" id="btn-backup">Descargar backup</button>
+    <label for="restaurar-archivo">Restaurar desde backup</label>
+    <input type="file" id="restaurar-archivo" accept=".json" />
+    <p class="error" id="datos-error" role="alert"></p>
+  </section>
 </Base>
+
+<script>
+  import { generarExport, validarImport, PREGUNTA_DEFAULT } from '../lib/ia';
+  import { storage } from '../lib/storage';
+  import { cargarCatalogo, hoyISO, escapar, rutaBase } from '../ui/datos';
+
+  const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T;
+  const MS_DIA = 86_400_000;
+  const AVISO_BACKUP_DIAS = 30;
+
+  // --- Backup (C5: aviso suave, nunca interrumpe) ---
+  function pintarEstadoBackup() {
+    const ultimo = localStorage.getItem('ge:ultimoBackup');
+    const estado = $('#backup-estado');
+    if (!ultimo) {
+      estado.textContent = 'Nunca hiciste un backup. Todo vive en este teléfono: bajate uno (1 tap).';
+      return;
+    }
+    const dias = Math.round((Date.parse(hoyISO()) - Date.parse(ultimo)) / MS_DIA);
+    estado.textContent =
+      dias >= AVISO_BACKUP_DIAS
+        ? `Último backup: hace ${dias} días. Bajate uno nuevo (1 tap).`
+        : `Último backup: ${ultimo}.`;
+  }
+
+  $('#btn-backup').addEventListener('click', () => {
+    const blob = new Blob([storage.exportarBackup()], { type: 'application/json' });
+    const enlace = document.createElement('a');
+    enlace.href = URL.createObjectURL(blob);
+    enlace.download = `guia-ejercicios-backup-${hoyISO()}.json`;
+    enlace.click();
+    URL.revokeObjectURL(enlace.href);
+    localStorage.setItem('ge:ultimoBackup', hoyISO());
+    pintarEstadoBackup();
+  });
+
+  ($('#restaurar-archivo') as HTMLInputElement).addEventListener('change', async (e) => {
+    const archivo = (e.target as HTMLInputElement).files?.[0];
+    if (!archivo) return;
+    if (!confirm('Restaurar el backup reemplaza lo que hay en este teléfono. ¿Sigo?')) return;
+    const ok = storage.restaurarBackup(await archivo.text());
+    if (ok) window.location.href = `${rutaBase}/`;
+    else $('#datos-error').textContent = 'Ese archivo no parece un backup de la app.';
+  });
+
+  pintarEstadoBackup();
+
+  // --- Export para la IA ---
+  ($('#export-pregunta') as HTMLTextAreaElement).value = PREGUNTA_DEFAULT;
+  $('#btn-exportar').addEventListener('click', async () => {
+    const perfil = storage.getPerfil();
+    const rutina = storage.getRutina();
+    if (!perfil || !rutina) {
+      $('#datos-error').textContent = 'Antes generá (o importá) una rutina.';
+      return;
+    }
+    const catalogo = await cargarCatalogo();
+    const texto = generarExport(
+      perfil,
+      rutina,
+      storage.getSesiones(),
+      catalogo,
+      storage.getCustoms(),
+      ($('#export-pregunta') as HTMLTextAreaElement).value.trim() || undefined,
+      hoyISO(),
+    );
+    const salida = $('#export-texto') as HTMLTextAreaElement;
+    salida.hidden = false;
+    salida.value = texto;
+    try {
+      await navigator.clipboard.writeText(texto);
+      ($('#btn-exportar') as HTMLButtonElement).textContent = 'Copiado ✓ (también quedó abajo)';
+    } catch {
+      ($('#btn-exportar') as HTMLButtonElement).textContent = 'Listo abajo — copialo a mano';
+    }
+  });
+
+  // --- Import del plan de la IA ---
+  ($('#import-archivo') as HTMLInputElement).addEventListener('change', async (e) => {
+    const archivo = (e.target as HTMLInputElement).files?.[0];
+    if (archivo) ($('#import-texto') as HTMLTextAreaElement).value = await archivo.text();
+  });
+
+  $('#btn-validar').addEventListener('click', async () => {
+    const texto = ($('#import-texto') as HTMLTextAreaElement).value;
+    const caja = $('#import-resultado');
+    if (!texto.trim()) {
+      caja.innerHTML = '<p class="error">Pegá la respuesta o subí el archivo primero.</p>';
+      return;
+    }
+    const catalogo = await cargarCatalogo();
+    const resultado = validarImport(
+      texto,
+      [...catalogo, ...storage.getCustoms()],
+      storage.getRutina() ?? undefined,
+    );
+    if (!resultado.ok) {
+      caja.innerHTML = `<p class="error">No lo pude importar:</p><ul>${resultado.errores
+        .map((er) => `<li class="error">${escapar(er)}</li>`)
+        .join('')}</ul>`;
+      return;
+    }
+    caja.innerHTML = `<div class="aviso">
+      <strong>Plan válido ✓</strong> — ${resultado.rutina!.dias.length} días${
+        resultado.nuevos?.length ? ` · ${resultado.nuevos.length} ejercicio(s) nuevo(s) tuyos` : ''
+      }
+      <ul>${resultado.resumenCambios.map((c) => `<li>${escapar(c)}</li>`).join('')}</ul>
+      <button class="boton-principal" id="btn-adoptar">Usar esta rutina</button>
+    </div>`;
+    $('#btn-adoptar').addEventListener('click', () => {
+      storage.setRutina(resultado.rutina!);
+      if (resultado.nuevos?.length) {
+        const existentes = storage.getCustoms().filter((c) => !resultado.nuevos!.some((n) => n.id === c.id));
+        storage.setCustoms([...existentes, ...resultado.nuevos!]);
+      }
+      if (storage.getPerfil()) {
+        window.location.href = `${rutaBase}/`;
+      } else {
+        caja.innerHTML =
+          '<div class="aviso"><strong>Rutina adoptada ✓</strong> — ahora completá tu perfil arriba y guardalo (elegí "No" cuando pregunte si regenero: tu rutina importada queda).</div>';
+        window.scrollTo({ top: 0 });
+      }
+    });
+  });
+</script>
 
 <script>
   import { generarRutina } from '../lib/motor';
@@ -181,14 +330,16 @@ import Base from '../layouts/Base.astro';
       return;
     }
     cajaError.textContent = '';
-    const habia = storage.getRutina();
-    if (habia && !confirm('Ya tenés una rutina. ¿La regenero con este perfil?')) return;
-
     storage.setPerfil(resultado);
     storage.setConfig({
       objetivoSemanal: Number(($('#objetivo-semanal') as HTMLInputElement).value) || CONFIG_DEFAULT.objetivoSemanal,
       umbralPausaDias: Number(($('#umbral-pausa') as HTMLInputElement).value) || CONFIG_DEFAULT.umbralPausaDias,
     });
+    const habia = storage.getRutina();
+    if (habia && !confirm('Ya tenés una rutina. ¿La regenero con este perfil? (Si la importaste de tu IA, respondé Cancelar: se guarda el perfil y tu rutina queda como está.)')) {
+      window.location.href = `${rutaBase}/`;
+      return;
+    }
     const boton = $('#btn-generar') as HTMLButtonElement;
     boton.disabled = true;
     boton.textContent = 'Generando…';
