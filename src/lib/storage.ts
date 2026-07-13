@@ -1,10 +1,11 @@
 // Acceso tipado a localStorage con prefijo ge:. Nunca tira: ante error
 // devuelve el default (browser en privado, quota llena, JSON corrupto).
 
-import type { Ejercicio, Perfil, Rutina, Sesion } from './tipos';
+import { CONFIG_DEFAULT } from './registro';
+import type { Config, Ejercicio, Perfil, Rutina, Sesion } from './tipos';
 
 const PREFIJO = 'ge:';
-const CLAVES = ['perfil', 'rutina', 'sesiones', 'customs'] as const;
+const CLAVES = ['perfil', 'rutina', 'sesiones', 'customs', 'config'] as const;
 
 function leer<T>(clave: string, porDefecto: T): T {
   try {
@@ -38,6 +39,10 @@ export const storage = {
 
   getCustoms: (): Ejercicio[] => leer<Ejercicio[]>('customs', []),
   setCustoms: (customs: Ejercicio[]): void => guardar('customs', customs),
+
+  /** Config con defaults: campos nuevos futuros no rompen lo guardado. */
+  getConfig: (): Config => ({ ...CONFIG_DEFAULT, ...leer<Partial<Config>>('config', {}) }),
+  setConfig: (config: Config): void => guardar('config', config),
 
   /** Backup completo re-importable (cambio de teléfono / limpieza de browser). */
   exportarBackup(): string {

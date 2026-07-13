@@ -73,12 +73,32 @@ export interface ItemSesion {
   series: SerieHecha[];
 }
 
-export type TipoCardio = 'corrida' | 'caminata' | 'bicicleta' | 'eliptica';
+export type TipoCardio = 'corrida' | 'caminata' | 'bicicleta' | 'eliptica' | 'cinta';
+export type TipoSesion = 'fuerza' | 'cardio' | 'elongacion' | 'otro';
+/** 'hecha' = sesión planificada completada · 'otra' = "hice otra cosa". */
+export type EstadoSesion = 'hecha' | 'otra';
 
 export interface Sesion {
   fecha: string;
-  tipo: 'fuerza' | 'cardio' | 'elongacion';
+  tipo: TipoSesion;
+  /** Default 'hecha' si falta (sesiones viejas). */
+  estado?: EstadoSesion;
   diaIndex?: number;
+  /** Nombre del día planificado al momento de registrar (robusto ante regeneraciones). */
+  diaRutina?: string;
+  /** "¿Qué tan dura estuvo?" 1-10 — siempre opcional. */
+  rpe?: number;
+  notas?: string;
+  /** Duración aproximada del registro rápido "hice otra cosa". */
+  duracionMin?: number;
+  /** Detalle fino (pesos/reps por serie) — opcional, nunca obligatorio. */
   items?: ItemSesion[];
   cardio?: { tipo: TipoCardio; minutos: number; km?: number; sensacion?: string };
+}
+
+export interface Config {
+  /** Sesiones por semana que cuentan como objetivo en la home. */
+  objetivoSemanal: number;
+  /** Días sin ninguna sesión a partir de los cuales se entra en modo retomar. */
+  umbralPausaDias: number;
 }

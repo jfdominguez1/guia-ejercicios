@@ -71,6 +71,12 @@ describe('storage', () => {
     expect(() => storage.setPerfil(PERFIL)).not.toThrow();
   });
 
+  it('config: defaults si no hay nada, merge con lo guardado', () => {
+    expect(storage.getConfig()).toEqual({ objetivoSemanal: 3, umbralPausaDias: 7 });
+    ls.setItem('ge:config', '{"objetivoSemanal": 4}');
+    expect(storage.getConfig()).toEqual({ objetivoSemanal: 4, umbralPausaDias: 7 });
+  });
+
   it('backup exporta todo y restaura', () => {
     storage.setPerfil(PERFIL);
     storage.agregarSesion({ fecha: '2026-07-10', tipo: 'fuerza', diaIndex: 0, items: [] });

@@ -90,6 +90,26 @@ describe('generarExport', () => {
   });
 });
 
+describe('generarExport — historial con estados y pausas', () => {
+  it('reporta hechas vs "otra" y los períodos de pausa detectados', () => {
+    const conPausa: Sesion[] = [
+      { fecha: '2026-06-01', tipo: 'fuerza', estado: 'hecha', diaIndex: 0 },
+      { fecha: '2026-06-20', tipo: 'cardio', estado: 'otra', duracionMin: 40 },
+      { fecha: '2026-07-05', tipo: 'fuerza', diaIndex: 1 }, // vieja sin estado = hecha
+    ];
+    const texto = generarExport(PERFIL, RUTINA, conPausa, CAT, [], undefined, '2026-07-12');
+    expect(texto).toContain('1 registradas como "hice otra cosa"');
+    expect(texto).toContain('2026-06-01 → 2026-06-20 (19 días)');
+    expect(texto).toContain('2026-06-20 → 2026-07-05 (15 días)');
+    expect(texto).toContain('"estado"');
+  });
+
+  it('sin pausas lo dice explícito', () => {
+    const texto = generarExport(PERFIL, RUTINA, SESIONES, CAT, [], undefined, '2026-07-12');
+    expect(texto).toContain('Períodos de pausa detectados: ninguno.');
+  });
+});
+
 function respuestaValida(extra = ''): string {
   return `La rutina debe evolucionar porque venís progresando.
 

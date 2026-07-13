@@ -1,6 +1,8 @@
 // Ciclo con la IA del usuario: export de texto (perfil + banco + rutina +
 // registro + pregunta + formato) e import validado de la respuesta.
 
+import { CONFIG_DEFAULT } from './registro';
+import { detectarPausas } from './retomar';
 import type {
   DiaRutina,
   Ejercicio,
@@ -96,6 +98,15 @@ export function generarExport(
   const fuerza = recientes.filter((s) => s.tipo === 'fuerza').length;
   const cardio = recientes.filter((s) => s.tipo === 'cardio').length;
   const elongacion = recientes.filter((s) => s.tipo === 'elongacion').length;
+  const hechas = recientes.filter((s) => (s.estado ?? 'hecha') === 'hecha').length;
+  const otras = recientes.filter((s) => s.estado === 'otra').length;
+  const pausas = detectarPausas(recientes, CONFIG_DEFAULT.umbralPausaDias);
+  const lineaPausas =
+    pausas.length === 0
+      ? 'Períodos de pausa detectados: ninguno.'
+      : `Períodos de pausa detectados (sin entrenar ${CONFIG_DEFAULT.umbralPausaDias}+ días): ` +
+        pausas.map((p) => `${p.desde} → ${p.hasta} (${p.dias} días)`).join(' · ') +
+        '. Tenelos en cuenta: ajustá la rutina a lo que realmente pasó, no a lo ideal.';
 
   return `# Revisión de mi rutina de entrenamiento
 
@@ -124,6 +135,9 @@ ${JSON.stringify(rutina, null, 1)}
 ## Registro (últimas ${SEMANAS_REGISTRO} semanas)
 
 Resumen: ${fuerza} sesiones de fuerza, ${cardio} de cardio, ${elongacion} de elongación.
+Por estado: ${hechas} sesiones planificadas hechas, ${otras} registradas como "hice otra cosa".
+${lineaPausas}
+Cada sesión trae "estado" ('hecha' = la planificada, 'otra' = actividad libre con duracionMin).
 
 \`\`\`json
 ${JSON.stringify(recientes, null, 1)}
