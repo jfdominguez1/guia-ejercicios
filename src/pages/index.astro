@@ -1,13 +1,317 @@
 ---
+import Base from '../layouts/Base.astro';
 ---
 
-<html lang="es">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width" />
-		<title>Guía de Ejercicios</title>
-	</head>
-	<body>
-		<h1>Guía de Ejercicios</h1>
-	</body>
-</html>
+<Base titulo="Hoy — Guía de Ejercicios" activa="hoy">
+  <div id="hoy"><p class="ayuda">Cargando…</p></div>
+</Base>
+
+<style>
+  /* La métrica de la semana es EL número de la app: discos de barra. */
+  #hoy :global(.semana) { text-align: center; padding: 18px 14px; }
+  #hoy :global(.semana .numero) {
+    font-size: 44px;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+  #hoy :global(.discos) { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
+  #hoy :global(.disco) {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 3px solid var(--tinta-suave);
+    background: transparent;
+  }
+  #hoy :global(.disco.lleno) { background: var(--accion); border-color: var(--accion); }
+
+  #hoy :global(.ejercicio) {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--borde);
+  }
+  #hoy :global(.ejercicio:last-child) { border-bottom: none; }
+  #hoy :global(.ejercicio a) { color: inherit; text-decoration: none; font-weight: 700; }
+  #hoy :global(.dosis) { font-size: 14px; color: var(--tinta-suave); }
+  #hoy :global(.ultima) { font-size: 13px; color: var(--tinta-suave); }
+  #hoy :global(.acciones-extra) { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  #hoy :global(.acciones-extra button) { flex: 1 1 40%; font-size: 14px; padding: 10px; }
+  #hoy :global(.retomar) { text-align: center; padding: 28px 16px; }
+  #hoy :global(.retomar p) { font-size: 16px; }
+  #hoy :global(.rpe-chips) { margin-top: 10px; }
+</style>
+
+<script>
+  import { resolverSalteo, generarElongacion, regenerar, ultimaVezMovimiento } from '../lib/motor';
+  import { estadoHome, type ResultadoRetomar } from '../lib/retomar';
+  import { registrarHecha, registrarOtra, fechaValidaRetro, resumenSemanal, type TipoRapido } from '../lib/registro';
+  import { convertirDiaSinGym } from '../lib/singym';
+  import { formatearObjetivo, formatearFc, etiquetaDescanso } from '../lib/formato';
+  import { storage } from '../lib/storage';
+  import { cargarCatalogoCompleto, exigirPerfil, hoyISO, haceDias, escapar, rutaBase } from '../ui/datos';
+  import type { DiaRutina, Ejercicio, Sesion } from '../lib/tipos';
+
+  const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T;
+  const caja = $('#hoy');
+
+  const perfil = exigirPerfil();
+  let catalogo: Ejercicio[] = [];
+  let modoSinGym = sessionStorage.getItem('ge:singym') === hoyISO();
+
+  function porId(id: string): Ejercicio | undefined {
+    return catalogo.find((e) => e.id === id);
+  }
+
+  function htmlSemana(): string {
+    const config = storage.getConfig();
+    const r = resumenSemanal(storage.getSesiones(), hoyISO(), config.objetivoSemanal);
+    const discos = Array.from(
+      { length: Math.max(r.objetivo, Math.min(r.hechas, 7)) },
+      (_, i) => `<div class="disco${i < r.hechas ? ' lleno' : ''}"></div>`,
+    ).join('');
+    return `<div class="carta semana">
+      <span class="eyebrow">Esta semana</span>
+      <div class="numero">${r.hechas} de ${r.objetivo}</div>
+      <div class="discos">${discos}</div>
+    </div>`;
+  }
+
+  function htmlEjercicio(e: DiaRutina['ejercicios'][number]): string {
+    const info = porId(e.ejercicioId);
+    const tipo = info?.tipo ?? 'fuerza';
+    const fc = formatearFc(e);
+    const registro = info
+      ? ultimaVezMovimiento(storage.getSesiones(), e.movimiento, info.grupo, catalogo)
+      : null;
+    let ultima = 'Nunca lo hiciste';
+    if (registro) {
+      const s = registro.series[registro.series.length - 1];
+      const peso = s?.pesoKg !== undefined ? ` · ${s.pesoKg} kg` : '';
+      const rpe = registro.rpe !== undefined ? ` · RPE ${registro.rpe}` : '';
+      ultima = `${haceDias(registro.fecha, hoyISO())} · ${registro.series.length}×${s?.reps ?? '?'}${peso}${rpe}`;
+    }
+    return `<div class="ejercicio">
+      <a href="${rutaBase}/ejercicio/?id=${encodeURIComponent(e.ejercicioId)}">${escapar(info?.nombre_es ?? e.ejercicioId)}</a>
+      <div class="dosis">${e.series}× ${formatearObjetivo(e, tipo)} · ${etiquetaDescanso(e, tipo)} ${e.descansoSeg}s${fc ? ` · ${fc}` : ''}</div>
+      <div class="ultima">${ultima}</div>
+    </div>`;
+  }
+
+  function htmlSesion(dia: DiaRutina, avisos: string[] = []): string {
+    return `<div class="carta">
+      <span class="eyebrow">${escapar(dia.enfoque)}</span>
+      <h2 style="margin-top:2px">${escapar(dia.nombre)}</h2>
+      ${dia.ejercicios.map(htmlEjercicio).join('')}
+      ${avisos.map((a) => `<p class="ayuda">⚠️ ${escapar(a)}</p>`).join('')}
+    </div>`;
+  }
+
+  function guardarYPedirRpe(sesion: Sesion) {
+    storage.agregarSesion(sesion);
+    pintar();
+    const carta = document.createElement('div');
+    carta.className = 'carta pop';
+    carta.innerHTML = `<strong>Guardada ✓</strong>
+      <p class="ayuda">¿Qué tan dura estuvo? (opcional)</p>
+      <div class="chips rpe-chips">${Array.from({ length: 10 }, (_, i) => `<button class="chip" data-rpe="${i + 1}">${i + 1}</button>`).join('')}
+      <button class="chip" data-rpe="">Omitir</button></div>`;
+    caja.prepend(carta);
+    carta.addEventListener('click', (ev) => {
+      const boton = (ev.target as HTMLElement).closest('[data-rpe]') as HTMLElement | null;
+      if (!boton) return;
+      const rpe = Number(boton.dataset.rpe);
+      if (rpe) {
+        const sesiones = storage.getSesiones();
+        const ultima = sesiones[sesiones.length - 1];
+        if (ultima) storage.setSesiones([...sesiones.slice(0, -1), { ...ultima, rpe }]);
+      }
+      carta.remove();
+    });
+  }
+
+  function panelOtraCosa(fecha: string) {
+    const carta = document.createElement('div');
+    carta.className = 'carta';
+    const tipos: Array<{ v: TipoRapido; l: string }> = [
+      { v: 'caminata', l: 'Caminata' },
+      { v: 'cinta', l: 'Cinta' },
+      { v: 'fuerza', l: 'Fuerza' },
+      { v: 'elongacion', l: 'Elongación' },
+      { v: 'otro', l: 'Otro' },
+    ];
+    carta.innerHTML = `<span class="eyebrow">¿Qué hiciste${fecha === hoyISO() ? '' : ` el ${fecha}`}?</span>
+      <div class="chips" style="margin-top:8px">${tipos.map((t) => `<button class="chip" data-tipo="${t.v}">${t.l}</button>`).join('')}</div>
+      <label>Duración aproximada (min)</label>
+      <input type="number" inputmode="numeric" value="30" min="5" max="300" />
+      <button class="boton-principal" style="margin-top:10px" disabled>Guardar</button>`;
+    const input = carta.querySelector('input')!;
+    const guardar = carta.querySelector('.boton-principal') as HTMLButtonElement;
+    let tipo: TipoRapido | null = null;
+    carta.addEventListener('click', (ev) => {
+      const chip = (ev.target as HTMLElement).closest('[data-tipo]') as HTMLElement | null;
+      if (!chip) return;
+      for (const c of carta.querySelectorAll('.chip')) c.setAttribute('aria-pressed', 'false');
+      chip.setAttribute('aria-pressed', 'true');
+      tipo = chip.dataset.tipo as TipoRapido;
+      guardar.disabled = false;
+    });
+    guardar.addEventListener('click', () => {
+      if (!tipo) return;
+      storage.agregarSesion(registrarOtra(tipo, Number(input.value) || 30, fecha));
+      carta.remove();
+      pintar();
+    });
+    caja.prepend(carta);
+  }
+
+  function panelRetro() {
+    const carta = document.createElement('div');
+    carta.className = 'carta';
+    carta.innerHTML = `<span class="eyebrow">Registrar un día pasado</span>
+      <label>¿Qué día?</label><input type="date" />
+      <p class="error"></p>
+      <div class="acciones-extra">
+        <button data-accion="hecha">La sesión que tocaba ✓</button>
+        <button data-accion="otra">Hice otra cosa</button>
+      </div>`;
+    const inputFecha = carta.querySelector('input')!;
+    const error = carta.querySelector('.error')!;
+    carta.addEventListener('click', (ev) => {
+      const boton = (ev.target as HTMLElement).closest('[data-accion]') as HTMLElement | null;
+      if (!boton) return;
+      const fecha = inputFecha.value;
+      if (!fecha || !fechaValidaRetro(fecha, hoyISO())) {
+        error.textContent = 'Elegí una fecha de los últimos 7 días.';
+        return;
+      }
+      carta.remove();
+      if (boton.dataset.accion === 'otra') {
+        panelOtraCosa(fecha);
+      } else {
+        const rutina = storage.getRutina();
+        const salteo = rutina ? resolverSalteo(rutina, storage.getSesiones(), fecha) : null;
+        if (rutina && salteo) {
+          storage.agregarSesion(registrarHecha(rutina, salteo.diaIndex, catalogo, fecha));
+          pintar();
+        }
+      }
+    });
+    caja.prepend(carta);
+  }
+
+  function htmlRetomar(retomar: ResultadoRetomar): string {
+    return `<div class="carta retomar">
+      <h2>Retomar hoy</h2>
+      <p>${escapar(retomar.mensaje ?? '')}</p>
+      <button class="boton-principal" id="btn-retomar">Retomar hoy</button>
+      ${retomar.sugerirIA ? `<a class="boton boton-secundario" style="display:block;text-align:center" href="${rutaBase}/perfil/#ia">Exportar para mi IA</a>` : ''}
+    </div>`;
+  }
+
+  function pintar() {
+    const rutina = storage.getRutina();
+    if (!rutina) {
+      caja.innerHTML = `${htmlSemana()}<div class="carta"><p>Todavía no hay rutina.</p>
+        <a class="boton-principal" style="display:block;text-align:center;text-decoration:none" href="${rutaBase}/perfil/">Armar mi rutina</a></div>`;
+      return;
+    }
+    const sesiones = storage.getSesiones();
+    const config = storage.getConfig();
+    const estado = estadoHome(rutina, sesiones, hoyISO(), config, catalogo);
+
+    // Modo retomar: una sola cosa en pantalla. Cero culpa.
+    if (estado.modo === 'retomar' && !sessionStorage.getItem('ge:retomando')) {
+      caja.innerHTML = htmlSemana() + htmlRetomar(estado.retomar!);
+      $('#btn-retomar')?.addEventListener('click', () => {
+        sessionStorage.setItem('ge:retomando', hoyISO());
+        pintar();
+      });
+      return;
+    }
+
+    const retomando = estado.modo === 'retomar' && estado.retomar?.sesionReducida;
+    const salteo = estado.salteo;
+    let dia: DiaRutina;
+    let banner = '';
+    if (retomando) {
+      dia = estado.retomar!.sesionReducida!;
+    } else if (salteo && salteo.tipo === 'combinada' && salteo.ejercicios?.length && !sessionStorage.getItem('ge:sinCombinada')) {
+      dia = { nombre: 'Sesión combinada', enfoque: 'lo esencial de lo que quedó', ejercicios: salteo.ejercicios };
+      banner = `<div class="aviso">${escapar(salteo.mensaje)} <button class="boton-silencioso" id="btn-dejar-pasar">Seguir normal</button></div>`;
+    } else {
+      dia = rutina.dias[salteo?.diaIndex ?? 0] ?? rutina.dias[0]!;
+      if (salteo && salteo.tipo !== 'normal') banner = `<div class="aviso">${escapar(salteo.mensaje)}</div>`;
+    }
+
+    const diaIndex = retomando ? 0 : (salteo?.diaIndex ?? 0);
+    const mostrado = modoSinGym ? convertirDiaSinGym(dia, catalogo, storage.getCustoms(), perfil!) : { dia, avisos: [] };
+
+    caja.innerHTML = `
+      ${htmlSemana()}
+      ${banner}
+      ${modoSinGym ? `<div class="aviso">Modo sin gym: variantes con tu cuerpo y banda por hoy. <button class="boton-silencioso" id="btn-singym-off">Volver</button></div>` : ''}
+      ${htmlSesion(mostrado.dia, mostrado.avisos)}
+      <button class="boton-principal" id="btn-hecha">Hecha ✓</button>
+      <button class="boton-secundario" id="btn-otra">Hice otra cosa</button>
+      <div class="acciones-extra">
+        <a class="boton" style="text-align:center;text-decoration:none" href="${rutaBase}/entrenar/">Entrenar ahora</a>
+        <button id="btn-elongacion">+ Elongación</button>
+        <button id="btn-singym">${modoSinGym ? 'Con equipo' : 'Hoy sin gym'}</button>
+        <button id="btn-retro">Otro día</button>
+        <a class="boton" style="text-align:center;text-decoration:none" href="${rutaBase}/historial/#cardio">+ Cardio</a>
+        <button id="btn-regenerar">Regenerar ↻</button>
+      </div>`;
+
+    $('#btn-hecha').addEventListener('click', () => {
+      const sesion = registrarHecha(rutina, diaIndex, catalogo, hoyISO());
+      guardarYPedirRpe(retomando || dia.nombre === 'Sesión combinada' ? { ...sesion, diaRutina: dia.nombre } : sesion);
+      sessionStorage.removeItem('ge:retomando');
+    });
+    $('#btn-otra').addEventListener('click', () => panelOtraCosa(hoyISO()));
+    $('#btn-retro').addEventListener('click', panelRetro);
+    $('#btn-singym').addEventListener('click', () => {
+      modoSinGym = !modoSinGym;
+      if (modoSinGym) sessionStorage.setItem('ge:singym', hoyISO());
+      else sessionStorage.removeItem('ge:singym');
+      pintar();
+    });
+    $('#btn-singym-off')?.addEventListener('click', () => {
+      modoSinGym = false;
+      sessionStorage.removeItem('ge:singym');
+      pintar();
+    });
+    $('#btn-elongacion').addEventListener('click', () => {
+      const sesionElong = generarElongacion(perfil!, catalogo, Date.now() % 100000);
+      const carta = document.createElement('div');
+      carta.className = 'carta tipo-elongacion';
+      carta.innerHTML = `${htmlSesion(sesionElong)}<button class="boton-principal">Elongación hecha ✓</button>
+        <button class="boton-silencioso">Cerrar</button>`;
+      carta.querySelector('.boton-principal')!.addEventListener('click', () => {
+        storage.agregarSesion({ fecha: hoyISO(), tipo: 'elongacion', estado: 'hecha', diaRutina: 'Elongación' });
+        carta.remove();
+        pintar();
+      });
+      carta.querySelector('.boton-silencioso')!.addEventListener('click', () => carta.remove());
+      caja.prepend(carta);
+    });
+    $('#btn-dejar-pasar')?.addEventListener('click', () => {
+      sessionStorage.setItem('ge:sinCombinada', hoyISO());
+      pintar();
+    });
+    $('#btn-regenerar').addEventListener('click', () => {
+      if (!confirm('¿Regenero la rutina? Se cambian los ejercicios elegidos (mismo esquema).')) return;
+      storage.setRutina(regenerar(rutina, catalogo, perfil!));
+      pintar();
+    });
+  }
+
+  if (perfil) {
+    cargarCatalogoCompleto().then((cat) => {
+      catalogo = cat;
+      if (sessionStorage.getItem('ge:singym') !== hoyISO()) sessionStorage.removeItem('ge:singym');
+      if (sessionStorage.getItem('ge:sinCombinada') !== hoyISO()) sessionStorage.removeItem('ge:sinCombinada');
+      if (sessionStorage.getItem('ge:retomando') !== hoyISO()) sessionStorage.removeItem('ge:retomando');
+      pintar();
+    });
+  }
+</script>
