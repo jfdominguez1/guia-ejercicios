@@ -29,6 +29,11 @@ const tabs = [
     <main>
       <slot />
     </main>
+    <script is:inline define:vars={{ base }}>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register(`${base}/sw.js`).catch(() => {});
+      }
+    </script>
     <nav class="tabs" aria-label="Navegación principal">
       {tabs.map((t) => (
         <a href={t.href} class:list={['tab', { activa: activa === t.id }]} aria-current={activa === t.id ? 'page' : undefined}>

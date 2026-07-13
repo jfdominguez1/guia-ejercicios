@@ -63,6 +63,13 @@ import Base from '../layouts/Base.astro';
     <textarea id="export-texto" rows="4" readonly hidden></textarea>
   </section>
 
+  <section class="carta" id="offline">
+    <h2>Modo offline</h2>
+    <p class="ayuda">La app ya funciona sin señal después de usarla una vez con conexión. Para tener también TODAS las demostraciones (GIFs, ~150MB), bajalas con WiFi:</p>
+    <button class="boton-secundario" id="btn-descargar-todo">Descargar todas las demostraciones</button>
+    <p class="ayuda" id="descarga-progreso"></p>
+  </section>
+
   <section class="carta" id="datos">
     <h2>Tus datos</h2>
     <p class="ayuda" id="backup-estado"></p>
@@ -118,6 +125,30 @@ import Base from '../layouts/Base.astro';
   });
 
   pintarEstadoBackup();
+
+  // --- Descargar toda la media para offline (Fase 4) ---
+  $('#btn-descargar-todo').addEventListener('click', async () => {
+    const progreso = $('#descarga-progreso');
+    const registro = await navigator.serviceWorker?.ready.catch(() => null);
+    if (!registro?.active) {
+      progreso.textContent = 'El modo offline no está disponible en este navegador.';
+      return;
+    }
+    const catalogo = await cargarCatalogo();
+    const urls = catalogo.flatMap((e) => {
+      const img = `${rutaBase}/media/img/${e.id}.jpg`;
+      return e.media === 'img' ? [img] : [`${rutaBase}/media/gif/${e.id}.gif`, img];
+    });
+    progreso.textContent = `Descargando 0 de ${urls.length}…`;
+    navigator.serviceWorker.addEventListener('message', (ev) => {
+      if (ev.data?.tipo !== 'progreso-media') return;
+      progreso.textContent =
+        ev.data.hechas >= ev.data.total
+          ? `Listo ✓ — ${ev.data.total} archivos guardados en el teléfono.`
+          : `Descargando ${ev.data.hechas} de ${ev.data.total}… (dejá la pantalla abierta)`;
+    });
+    registro.active.postMessage({ tipo: 'descargar-media', urls });
+  });
 
   // --- Export para la IA ---
   ($('#export-pregunta') as HTMLTextAreaElement).value = PREGUNTA_DEFAULT;

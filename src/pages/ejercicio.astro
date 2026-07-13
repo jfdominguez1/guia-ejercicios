@@ -69,7 +69,8 @@ import Base from '../layouts/Base.astro';
            onerror="this.onerror=null;this.src='${urlImg(e.id)}'" />`;
 
     caja.innerHTML = `
-      <h1>${escapar(e.nombre_es)}</h1>
+      <button class="boton-silencioso" id="btn-volver" style="padding-left:0">‹ Volver</button>
+      <h1 style="margin-top:0">${escapar(e.nombre_es)}</h1>
       <p class="eyebrow">${escapar(e.nombre_en)} · ${e.grupo} · ${e.tipo}</p>
       ${media}
       <div class="carta tipo-${e.tipo}">
@@ -81,6 +82,11 @@ import Base from '../layouts/Base.astro';
       ${e.pasos.length ? `<h2>Cómo se hace</h2><ol>${e.pasos.map((p) => `<li>${escapar(p)}</li>`).join('')}</ol>` : ''}
       ${listaVariantes ? `<h2>El mismo movimiento con otro equipo</h2>${listaVariantes}` : ''}
     `;
+    document.querySelector('#btn-volver')!.addEventListener('click', () => {
+      // en la PWA instalada no hay botón atrás del browser
+      if (history.length > 1) history.back();
+      else window.location.href = `${rutaBase}/catalogo/`;
+    });
   }
 
   pintar();
