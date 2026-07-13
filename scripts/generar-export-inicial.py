@@ -27,7 +27,13 @@ PLANTILLA = """\
 - Nivel: [COMPLETÁ: "empiezo" (vuelvo a arrancar / poca experiencia) o "entrenado"]
 - Objetivo: [COMPLETÁ: "fuerza", "musculo" o "tono"]
 - Equipamiento disponible: [COMPLETÁ: lista entre "banda", "pesas", "maquina", "cuerpo", "pelota", "rodillo"]
+- FC máxima conocida: [OPCIONAL: en ppm, si la tenés medida con banda/reloj; si no la sabés, borrá esta línea y usá 220−edad]
+- FC en reposo: [OPCIONAL: en ppm]
 - Notas de salud/lesiones: [OPCIONAL]
+
+Para los días de cardio, definí "fcObjetivo" con zonas como % de mi FC máxima:
+Recuperación <61% · Zona 2 61-73% · Tempo 73-81% · Fuerte 81-90%. No prescribas
+nada por encima del 90%.
 
 ## Qué te pido
 

@@ -90,6 +90,23 @@ describe('generarExport', () => {
   });
 });
 
+describe('generarExport — FC y zonas en Quién soy (C1)', () => {
+  it('con fcMaxConocida y fcReposo: informa dato medido y las 4 zonas', () => {
+    const perfil = { ...PERFIL, fcMaxConocida: 180, fcReposo: 58 };
+    const texto = generarExport(perfil, RUTINA, [], CAT, [], undefined, '2026-07-12');
+    expect(texto).toContain('FC máxima: 180 ppm (medida)');
+    expect(texto).toContain('FC en reposo: 58 ppm');
+    expect(texto).toContain('Zona 2 110-131');
+    expect(texto).toContain('Fuerte 146-162');
+  });
+
+  it('sin datos de FC: estima 220−edad y no inventa reposo', () => {
+    const texto = generarExport(PERFIL, RUTINA, [], CAT, [], undefined, '2026-07-12');
+    expect(texto).toContain('FC máxima: 168 ppm (estimada 220−edad)'); // edad 52
+    expect(texto).not.toContain('FC en reposo');
+  });
+});
+
 describe('generarExport — historial con estados y pausas', () => {
   it('reporta hechas vs "otra" y los períodos de pausa detectados', () => {
     const conPausa: Sesion[] = [

@@ -28,6 +28,10 @@ export interface Perfil {
   nivel: Nivel;
   objetivo: Objetivo;
   equipamiento: GrupoEquip[];
+  /** FC máxima medida (ppm). Si falta se estima 220 − edad. */
+  fcMaxConocida?: number;
+  /** FC en reposo (ppm), informativa. */
+  fcReposo?: number;
 }
 
 export interface EjercicioRutina {

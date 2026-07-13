@@ -1,6 +1,7 @@
 // Ciclo con la IA del usuario: export de texto (perfil + banco + rutina +
 // registro + pregunta + formato) e import validado de la respuesta.
 
+import { fcMaxEfectiva, zonasFc } from './fc';
 import { CONFIG_DEFAULT } from './registro';
 import { detectarPausas } from './retomar';
 import type {
@@ -119,6 +120,12 @@ export function generarExport(
 - Nivel: ${perfil.nivel}
 - Objetivo: ${perfil.objetivo}
 - Equipamiento disponible: ${perfil.equipamiento.join(', ')}
+- FC máxima: ${fcMaxEfectiva(perfil)} ppm ${perfil.fcMaxConocida ? '(medida)' : '(estimada 220−edad)'}${
+    perfil.fcReposo ? `\n- FC en reposo: ${perfil.fcReposo} ppm` : ''
+  }
+- Zonas de FC (ppm): ${zonasFc(perfil)
+    .map((z) => `${z.nombre} ${z.min}-${z.max}`)
+    .join(' · ')} — usalas para el "fcObjetivo" de los días de cardio.
 
 ## Banco de ejercicios disponible (elegí de acá por "id")
 
