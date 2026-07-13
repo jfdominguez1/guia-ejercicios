@@ -10,12 +10,14 @@ import type {
   Perfil,
   Rutina,
   Sesion,
+  TipoEjercicio,
   UnidadEjercicio,
 } from './tipos';
 
 const SEMANAS_REGISTRO = 8;
 const MS_POR_DIA = 86_400_000;
 const GRUPOS_VALIDOS: GrupoEquip[] = ['banda', 'pesas', 'maquina', 'cuerpo', 'pelota', 'rodillo'];
+const TIPOS_VALIDOS: TipoEjercicio[] = ['fuerza', 'elongacion', 'cardio'];
 
 export const PREGUNTA_DEFAULT =
   'Con estos datos: ¿mi rutina debe EVOLUCIONAR (progresar cargas/volumen ' +
@@ -57,7 +59,7 @@ Devolvé UN SOLO bloque \`\`\`json al final con esta estructura exacta:
       "nombre_es": "<nombre en español>",
       "musculo": "<músculo principal>",
       "grupo": "<banda|pesas|maquina|cuerpo|pelota|rodillo>",
-      "tipo": "<fuerza|elongacion>",
+      "tipo": "<fuerza|elongacion|cardio>",
       "pasos": ["<paso 1>", "<paso 2>"]
     }
   ]
@@ -229,7 +231,14 @@ function validarNuevos(crudos: unknown, errores: string[]): Ejercicio[] {
       errores.push(`Ejercicio nuevo "${id}": faltan campos (nombre_es, musculo, grupo válido).`);
       continue;
     }
-    const tipo = item.tipo === 'elongacion' ? 'elongacion' : 'fuerza';
+    const tipoCrudo = item.tipo ?? 'fuerza';
+    if (!TIPOS_VALIDOS.includes(tipoCrudo as TipoEjercicio)) {
+      errores.push(
+        `Ejercicio nuevo "${id}": tipo inválido "${String(tipoCrudo)}" (fuerza, elongacion o cardio).`,
+      );
+      continue;
+    }
+    const tipo = tipoCrudo as TipoEjercicio;
     nuevos.push({
       id,
       nombre_es: String(item.nombre_es),

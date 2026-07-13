@@ -183,6 +183,35 @@ describe('validarImport', () => {
     expect(r.nuevos?.[0]?.custom).toBe(true);
   });
 
+  it('CUSTOM tipo cardio es válido y conserva el tipo (bug B1)', () => {
+    const nuevo = `{
+      "id": "CUSTOM-caminata-z2",
+      "nombre_es": "Caminata Zona 2",
+      "musculo": "Sistema cardiovascular",
+      "grupo": "cuerpo",
+      "tipo": "cardio",
+      "pasos": ["Caminá rápido sosteniendo la zona"]
+    }`;
+    const texto = respuestaValida(nuevo).replace('"ejercicioId": "0002"', '"ejercicioId": "CUSTOM-caminata-z2"')
+      .replace('"repsMin": 8, "repsMax": 12', '"repsMin": 40, "repsMax": 40, "unidad": "min"');
+    const r = validarImport(texto, CAT, RUTINA);
+    expect(r.ok).toBe(true);
+    expect(r.nuevos?.[0]?.tipo).toBe('cardio');
+  });
+
+  it('CUSTOM con tipo inválido (ej. yoga) → error claro, no coerción silenciosa', () => {
+    const malo = `{
+      "id": "CUSTOM-x",
+      "nombre_es": "X",
+      "musculo": "m",
+      "grupo": "cuerpo",
+      "tipo": "yoga"
+    }`;
+    const r = validarImport(respuestaValida(malo), CAT, RUTINA);
+    expect(r.ok).toBe(false);
+    expect(r.errores.join(' ')).toContain('yoga');
+  });
+
   it('CUSTOM sin campos mínimos o sin prefijo → error', () => {
     const malo = `{ "id": "press-landmine", "nombre_es": "X", "musculo": "m", "grupo": "pesas" }`;
     expect(validarImport(respuestaValida(malo), CAT, RUTINA).ok).toBe(false);

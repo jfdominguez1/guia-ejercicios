@@ -97,7 +97,7 @@ Devolvé UN SOLO bloque ```json al final con esta estructura exacta:
       "nombre_es": "<nombre en español>",
       "musculo": "<músculo principal>",
       "grupo": "<banda|pesas|maquina|cuerpo|pelota|rodillo>",
-      "tipo": "<fuerza|elongacion>",
+      "tipo": "<fuerza|elongacion|cardio>",
       "pasos": ["<paso 1>", "<paso 2>"]
     }}
   ]
