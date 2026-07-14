@@ -236,7 +236,8 @@ import Base from '../layouts/Base.astro';
     if (guardado) {
       try {
         const previo = JSON.parse(guardado) as Draft;
-        if (previo.fecha === hoyISO() && previo.nombreDia === dia.nombre) {
+        // El largo debe coincidir: si se editó la rutina a mitad de día, el draft viejo no sirve.
+        if (previo.fecha === hoyISO() && previo.nombreDia === dia.nombre && previo.ejercicios.length === dia.ejercicios.length) {
           draft = previo;
           pintar();
           return;

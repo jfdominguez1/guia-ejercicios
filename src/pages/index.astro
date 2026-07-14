@@ -43,6 +43,7 @@ import Base from '../layouts/Base.astro';
 
 <script>
   import { resolverSalteo, generarElongacion, regenerar, ultimaVezMovimiento } from '../lib/motor';
+  import { actualizarDosis, quitarEjercicio, sustituirEjercicio } from '../lib/editor';
   import { estadoHome, type ResultadoRetomar } from '../lib/retomar';
   import { registrarHecha, registrarOtra, registrarGrupo, fechaValidaRetro, resumenSemanal, type TipoRapido } from '../lib/registro';
   import { convertirDiaSinGym } from '../lib/singym';
@@ -156,26 +157,23 @@ import Base from '../layouts/Base.astro';
         carta.remove();
         return;
       }
-      const dias = [...rutina.dias];
-      const ejercicios = [...dia.ejercicios];
       if (accion === 'quitar') {
         if (!confirm('¿Saco este ejercicio del día?')) return;
-        ejercicios.splice(idx, 1);
+        storage.setRutina(quitarEjercicio(rutina, diaIndex, idx));
       } else {
         const idNuevo = (carta.querySelector('select') as HTMLSelectElement | null)?.value;
         const nuevoInfo = idNuevo ? porId(idNuevo) : undefined;
         const leer = (campo: string) =>
           Number((carta.querySelector(`[data-campo="${campo}"]`) as HTMLInputElement).value) || 1;
-        ejercicios[idx] = {
-          ...e,
-          ...(nuevoInfo ? { ejercicioId: nuevoInfo.id, movimiento: nuevoInfo.movimiento } : {}),
-          series: Math.min(6, leer('series')),
-          repsMin: leer('repsMin'),
-          repsMax: Math.max(leer('repsMin'), leer('repsMax')),
-        };
+        const base = nuevoInfo ? sustituirEjercicio(rutina, diaIndex, idx, nuevoInfo) : rutina;
+        storage.setRutina(
+          actualizarDosis(base, diaIndex, idx, {
+            series: leer('series'),
+            repsMin: leer('repsMin'),
+            repsMax: leer('repsMax'),
+          }),
+        );
       }
-      dias[diaIndex] = { ...dia, ejercicios };
-      storage.setRutina({ ...rutina, dias });
       carta.remove();
       pintar();
     });

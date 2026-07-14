@@ -10,6 +10,7 @@ const BASE = new URL(self.registration.scope).pathname.replace(/\/$/, '');
 
 const SHELL = [
   `${BASE}/`,
+  `${BASE}/rutina/`,
   `${BASE}/perfil/`,
   `${BASE}/catalogo/`,
   `${BASE}/historial/`,

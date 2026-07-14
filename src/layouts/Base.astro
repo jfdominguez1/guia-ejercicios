@@ -1,12 +1,13 @@
 ---
 interface Props {
   titulo?: string;
-  activa?: 'hoy' | 'historial' | 'catalogo' | 'perfil';
+  activa?: 'hoy' | 'rutina' | 'historial' | 'catalogo' | 'perfil';
 }
 const { titulo = 'Guía de Ejercicios', activa } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const tabs = [
   { id: 'hoy', label: 'Hoy', href: `${base}/` },
+  { id: 'rutina', label: 'Rutina', href: `${base}/rutina/` },
   { id: 'historial', label: 'Historial', href: `${base}/historial/` },
   { id: 'catalogo', label: 'Catálogo', href: `${base}/catalogo/` },
   { id: 'perfil', label: 'Perfil', href: `${base}/perfil/` },
