@@ -129,4 +129,11 @@ export interface Config {
   objetivoSemanal: number;
   /** Días sin ninguna sesión a partir de los cuales se entra en modo retomar. */
   umbralPausaDias: number;
+  /**
+   * Unidad en la que se TIPEA el peso. El dato se guarda siempre en kg; esto
+   * solo evita convertir a mano frente a una máquina rotulada en libras.
+   */
+  unidadEntrada?: UnidadPeso;
 }
+
+export type UnidadPeso = 'kg' | 'lb';

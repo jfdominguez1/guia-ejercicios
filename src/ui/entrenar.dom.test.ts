@@ -282,3 +282,83 @@ describe('día elegido a mano', () => {
     expect(texto()).toContain('Remo');
   });
 });
+
+describe('kg y libras', () => {
+  const peso = (i = 0) => $$('.serie [data-campo="peso"]')[i] as HTMLInputElement;
+  const tipearPeso = (valor: string, i = 0) => {
+    peso(i).value = valor;
+    peso(i).dispatchEvent(new Event('change'));
+  };
+
+  it('muestra la referencia de la última vez en kg Y en lb', () => {
+    storage.agregarSesion({
+      fecha: '2026-07-15', tipo: 'fuerza', estado: 'hecha',
+      items: [{ ejercicioId: 'F1', variante: 'pesas', series: [{ reps: 10, pesoKg: 20 }, { reps: 10, pesoKg: 20 }] }],
+    });
+    montar();
+    expect($('.dato-referencia').textContent).toBe('2×10 · 20 kg · 44,1 lb');
+  });
+
+  it('si nunca lo hiciste lo dice sin culpa', () => {
+    montar();
+    expect($('.dato-referencia').textContent).toContain('Nunca lo hiciste');
+  });
+
+  it('en kg guarda lo tipeado tal cual', () => {
+    montar();
+    tipearPeso('22.5');
+    expect(leerDraft().ejercicios[0].series[0].pesoKg).toBe(22.5);
+  });
+
+  it('en lb convierte a kg antes de guardar', () => {
+    storage.setConfig({ ...storage.getConfig(), unidadEntrada: 'lb' });
+    montar();
+    tipearPeso('45'); // 45 lb = 20,41 kg
+    expect(leerDraft().ejercicios[0].series[0].pesoKg).toBe(20.41);
+  });
+
+  it('al cambiar de unidad el input se reexpresa sin cambiar el dato', () => {
+    montar();
+    tipearPeso('20');
+    expect(leerDraft().ejercicios[0].series[0].pesoKg).toBe(20);
+    $('[data-unidad="lb"]').click();
+    expect(peso().value).toBe('44.1');
+    // El dato guardado sigue siendo el mismo: solo cambió cómo se muestra.
+    expect(leerDraft().ejercicios[0].series[0].pesoKg).toBe(20);
+  });
+
+  it('muestra el equivalente en la otra unidad al lado', () => {
+    montar();
+    tipearPeso('20');
+    expect($('[data-equiv="0"]').textContent).toBe('44,1 lb');
+  });
+
+  it('el botón + sube por el paso de la unidad activa', () => {
+    montar();
+    tipearPeso('20');
+    $('[data-paso="1"]').click();
+    expect(leerDraft().ejercicios[0].series[0].pesoKg).toBe(22.5); // +2,5 kg
+  });
+
+  it('en libras el botón + sube de a 5 lb, no de a 2,5 kg', () => {
+    storage.setConfig({ ...storage.getConfig(), unidadEntrada: 'lb' });
+    montar();
+    tipearPeso('45');
+    $('[data-paso="1"]').click();
+    expect(peso().value).toBe('50');
+  });
+
+  it('el botón − no baja de cero', () => {
+    montar();
+    $('[data-paso="-1"]').click();
+    expect(leerDraft().ejercicios[0].series[0].pesoKg).toBeUndefined();
+  });
+
+  it('la unidad elegida se recuerda entre sesiones', () => {
+    montar();
+    $('[data-unidad="lb"]').click();
+    expect(storage.getConfig().unidadEntrada).toBe('lb');
+    montar();
+    expect($('[data-unidad="lb"]').getAttribute('aria-pressed')).toBe('true');
+  });
+});

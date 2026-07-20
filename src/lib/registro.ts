@@ -3,7 +3,7 @@
 
 import type { Config, DiaRutina, Ejercicio, GrupoGuardado, Rutina, Sesion, TipoSesion } from './tipos';
 
-export const CONFIG_DEFAULT: Config = { objetivoSemanal: 3, umbralPausaDias: 7 };
+export const CONFIG_DEFAULT: Config = { objetivoSemanal: 3, umbralPausaDias: 7, unidadEntrada: 'kg' };
 
 const MS_POR_DIA = 86_400_000;
 export const MAX_DIAS_RETRO = 7;

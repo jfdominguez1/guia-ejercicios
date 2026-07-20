@@ -11,6 +11,7 @@ import {
   type EdicionSesion,
 } from '../lib/historial';
 import { fechaValidaRetro, registrarOtra } from '../lib/registro';
+import { resumenSeries } from '../lib/unidades';
 import { storage } from '../lib/storage';
 import { escapar } from './datos';
 import type { Ejercicio, ItemSesion, Sesion, TipoCardio } from '../lib/tipos';
@@ -103,7 +104,7 @@ export function montarHistorial(deps: DepsHistorial): void {
         lineas.push(`${nombre}: salteado`);
         continue;
       }
-      const series = item.series.map((x) => `${x.reps}${x.pesoKg !== undefined ? `×${x.pesoKg}kg` : ''}`).join(' · ');
+      const series = resumenSeries(item.series);
       const original = item.enLugarDe ? porId(item.enLugarDe) : undefined;
       const cambio = original ? ` <span class="meta">(en lugar de ${escapar(original.nombre_es)})</span>` : '';
       lineas.push(`${nombre} (${item.variante}): ${series}${cambio}`);

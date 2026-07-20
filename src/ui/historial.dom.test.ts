@@ -67,7 +67,7 @@ describe('listado', () => {
     expect(texto).toContain('2026-07-18');
     expect(texto).toContain('Día 1 — Empuje');
     expect(texto).toContain('Press banca');
-    expect(texto).toContain('10×20kg');
+    expect(texto).toContain('1×10 · 20 kg · 44,1 lb');
   });
 
   it('sin sesiones muestra el mensaje vacío y no rompe', () => {

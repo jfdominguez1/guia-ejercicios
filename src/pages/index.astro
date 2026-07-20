@@ -60,6 +60,7 @@ import Base from '../layouts/Base.astro';
   import { registrarHecha, registrarOtra, registrarGrupo, fechaValidaRetro, resumenSemanal, type TipoRapido } from '../lib/registro';
   import { convertirDiaSinGym } from '../lib/singym';
   import { formatearObjetivo, formatearFc, etiquetaDescanso } from '../lib/formato';
+  import { resumenSeries } from '../lib/unidades';
   import { storage } from '../lib/storage';
   import { cargarCatalogoCompleto, exigirPerfil, hoyISO, haceDias, escapar, rutaBase } from '../ui/datos';
   import type { DiaRutina, Ejercicio, Rutina, Sesion } from '../lib/tipos';
@@ -109,10 +110,8 @@ import Base from '../layouts/Base.astro';
       : null;
     let ultima = 'Nunca lo hiciste';
     if (registro) {
-      const s = registro.series[registro.series.length - 1];
-      const peso = s?.pesoKg !== undefined ? ` · ${s.pesoKg} kg` : '';
       const rpe = registro.rpe !== undefined ? ` · RPE ${registro.rpe}` : '';
-      ultima = `${haceDias(registro.fecha, hoyISO())} · ${registro.series.length}×${s?.reps ?? '?'}${peso}${rpe}`;
+      ultima = `${haceDias(registro.fecha, hoyISO())} · ${resumenSeries(registro.series)}${rpe}`;
     }
     return `<div class="ejercicio">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">

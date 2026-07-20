@@ -124,7 +124,7 @@ describe('resumenSemanal — EL número de la home', () => {
   });
 
   it('config default: objetivo 3, umbral de pausa 7', () => {
-    expect(CONFIG_DEFAULT).toEqual({ objetivoSemanal: 3, umbralPausaDias: 7 });
+    expect(CONFIG_DEFAULT).toEqual({ objetivoSemanal: 3, umbralPausaDias: 7, unidadEntrada: 'kg' });
   });
 });
 

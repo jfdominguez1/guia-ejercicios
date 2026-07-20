@@ -8,6 +8,7 @@ import { parsearDiaElegido, resolverDiaDeHoy } from '../lib/dia';
 import { formatearObjetivo, formatearFc } from '../lib/formato';
 import { convertirDiaSinGym } from '../lib/singym';
 import { storage } from '../lib/storage';
+import { ajustarPeso, aKg, desdeKg, equivalente, resumenSeries, type UnidadPeso } from '../lib/unidades';
 import { crearBuscador, etiquetaGrupo, htmlOpciones } from './buscador';
 import { urlGif, urlImg, escapar, rutaBase } from './datos';
 import type { DiaRutina, Ejercicio, EjercicioRutina, GrupoEquip, ItemSesion, Perfil, SerieHecha } from '../lib/tipos';
@@ -49,6 +50,7 @@ export function montarEntrenar(deps: DepsEntrenar): void {
   let sinGym = false;
 
   const porId = (id: string) => catalogo.find((e) => e.id === id);
+  const unidadEntrada = (): UnidadPeso => storage.getConfig().unidadEntrada ?? 'kg';
 
   function guardarDraft() {
     try {
@@ -211,6 +213,9 @@ export function montarEntrenar(deps: DepsEntrenar): void {
     const variantes = variantesDe(catalogo, planificado.movimiento);
     const gruposDisponibles = (Object.keys(variantes) as GrupoEquip[]).filter((g) => variantes[g].length > 0);
     const fc = formatearFc(planificado);
+    const unidad = unidadEntrada();
+    const previa = ultimaVez(storage.getSesiones(), estado.ejercicioId, estado.variante);
+    const referencia = previa ? resumenSeries(previa.series) : '';
 
     caja.innerHTML = `
       <div class="progreso">
@@ -228,16 +233,33 @@ export function montarEntrenar(deps: DepsEntrenar): void {
           ${gruposDisponibles.map((g) => `<button class="chip" data-grupo="${g}" aria-pressed="${g === estado.variante}">${etiquetaGrupo(g)}</button>`).join('')}
         </div>
       </div>
+      <div class="carta referencia">
+        <span class="eyebrow">La última vez</span>
+        <p class="dato-referencia">${referencia ? escapar(referencia) : 'Nunca lo hiciste — arrancá cómodo.'}</p>
+      </div>
       <div class="carta">
-        <span class="eyebrow">Series — tocá el círculo al terminar cada una</span>
+        <div class="cabecera-series">
+          <span class="eyebrow">Series — tocá el círculo al terminar</span>
+          <div class="chips unidad">
+            <button class="chip" data-unidad="kg" aria-pressed="${unidad === 'kg'}">kg</button>
+            <button class="chip" data-unidad="lb" aria-pressed="${unidad === 'lb'}">lb</button>
+          </div>
+        </div>
         ${estado.series
-          .map(
-            (s, i) => `<div class="serie${s.hecha ? ' hecha' : ''}" data-i="${i}">
+          .map((s, i) => {
+            const enUnidad = s.pesoKg === undefined ? '' : String(desdeKg(s.pesoKg, unidad));
+            const otra = s.pesoKg === undefined ? '' : equivalente(desdeKg(s.pesoKg, unidad), unidad);
+            return `<div class="serie${s.hecha ? ' hecha' : ''}" data-i="${i}">
             <button class="check" aria-label="Serie ${i + 1} ${s.hecha ? 'hecha' : 'pendiente'}">${s.hecha ? '✓' : i + 1}</button>
             <input type="number" inputmode="numeric" data-campo="reps" value="${s.reps}" aria-label="Repeticiones" />
-            <input type="number" inputmode="decimal" step="0.5" data-campo="peso" value="${s.pesoKg ?? ''}" placeholder="kg" aria-label="Peso en kg" />
-          </div>`,
-          )
+            <div class="peso">
+              <button class="paso" data-paso="-1" data-i="${i}" aria-label="Bajar peso serie ${i + 1}">−</button>
+              <input type="number" inputmode="decimal" step="0.5" data-campo="peso" value="${enUnidad}" placeholder="${unidad}" aria-label="Peso en ${unidad}" />
+              <button class="paso" data-paso="1" data-i="${i}" aria-label="Subir peso serie ${i + 1}">+</button>
+            </div>
+            <span class="equiv" data-equiv="${i}">${otra}</span>
+          </div>`;
+          })
           .join('')}
       </div>
       <div class="acciones-ej">
@@ -266,13 +288,39 @@ export function montarEntrenar(deps: DepsEntrenar): void {
       });
       fila.querySelectorAll('input').forEach((input) =>
         input.addEventListener('change', () => {
+          const campo = (input as HTMLInputElement).dataset.campo;
           const valor = Number((input as HTMLInputElement).value);
-          if ((input as HTMLInputElement).dataset.campo === 'reps') estado.series[i]!.reps = valor || 0;
-          else estado.series[i]!.pesoKg = valor || undefined;
+          if (campo === 'reps') {
+            estado.series[i]!.reps = valor || 0;
+          } else {
+            // Lo tipeado está en la unidad activa; al dato siempre entra en kg.
+            estado.series[i]!.pesoKg = valor ? aKg(valor, unidad) : undefined;
+            const otra = fila.querySelector(`[data-equiv="${i}"]`) as HTMLElement | null;
+            if (otra) otra.textContent = equivalente(valor, unidad);
+          }
           guardarDraft();
         }),
       );
     });
+    caja.querySelectorAll('[data-paso]').forEach((boton) =>
+      boton.addEventListener('click', () => {
+        const b = boton as HTMLElement;
+        const i = Number(b.dataset.i);
+        const signo = Number(b.dataset.paso) as 1 | -1;
+        const serie = estado.series[i]!;
+        const ajustado = ajustarPeso(serie.pesoKg, unidad, signo);
+        serie.pesoKg = ajustado || undefined;
+        guardarDraft();
+        pintar();
+      }),
+    );
+    caja.querySelectorAll('[data-unidad]').forEach((chip) =>
+      chip.addEventListener('click', () => {
+        const elegida = (chip as HTMLElement).dataset.unidad as UnidadPeso;
+        storage.setConfig({ ...storage.getConfig(), unidadEntrada: elegida });
+        pintar();
+      }),
+    );
     caja.querySelector('#btn-cambiar')!.addEventListener('click', pintarCambiar);
     caja.querySelector('#btn-saltear')!.addEventListener('click', () => {
       estado.salteado = !estado.salteado;

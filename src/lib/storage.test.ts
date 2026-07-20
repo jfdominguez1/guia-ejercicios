@@ -85,9 +85,9 @@ describe('storage', () => {
   });
 
   it('config: defaults si no hay nada, merge con lo guardado', () => {
-    expect(storage.getConfig()).toEqual({ objetivoSemanal: 3, umbralPausaDias: 7 });
+    expect(storage.getConfig()).toEqual({ objetivoSemanal: 3, umbralPausaDias: 7, unidadEntrada: 'kg' });
     ls.setItem('ge:config', '{"objetivoSemanal": 4}');
-    expect(storage.getConfig()).toEqual({ objetivoSemanal: 4, umbralPausaDias: 7 });
+    expect(storage.getConfig()).toEqual({ objetivoSemanal: 4, umbralPausaDias: 7, unidadEntrada: 'kg' });
   });
 
   it('backup exporta todo y restaura', () => {

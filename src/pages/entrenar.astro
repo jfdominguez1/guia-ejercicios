@@ -18,10 +18,44 @@ import Base from '../layouts/Base.astro';
   #wizard :global(.progreso) { display: flex; justify-content: space-between; align-items: center; }
   #wizard :global(.serie) {
     display: grid;
-    grid-template-columns: 44px 1fr 1fr;
+    grid-template-columns: 44px 64px 1fr;
     gap: 8px;
     align-items: center;
-    margin: 8px 0;
+    margin: 10px 0;
+  }
+  #wizard :global(.serie .peso) { display: flex; gap: 6px; align-items: center; }
+  #wizard :global(.serie .peso input) { text-align: center; min-width: 0; }
+  #wizard :global(.serie .paso) {
+    flex: 0 0 44px;
+    height: 44px;
+    padding: 0;
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  /* El equivalente en la otra unidad ocupa la fila de abajo, alineado al peso. */
+  #wizard :global(.serie .equiv) {
+    grid-column: 3;
+    font-size: 12px;
+    color: var(--tinta-suave);
+    text-align: center;
+    margin-top: -6px;
+  }
+  #wizard :global(.cabecera-series) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  #wizard :global(.chips.unidad) { gap: 4px; }
+  #wizard :global(.chips.unidad .chip) { padding: 5px 12px; font-size: 13px; }
+  #wizard :global(.referencia) { padding: 12px 14px; }
+  #wizard :global(.dato-referencia) {
+    margin: 2px 0 0;
+    font-size: 17px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
   }
   #wizard :global(.serie .check) {
     width: 40px;

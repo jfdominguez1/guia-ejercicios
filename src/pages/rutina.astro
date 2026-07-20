@@ -47,6 +47,7 @@ import Base from '../layouts/Base.astro';
   import { resolverSalteo, ultimaVezMovimiento } from '../lib/motor';
   import { ejerciciosEsquivados } from '../lib/registro';
   import { formatearObjetivo, formatearFc, etiquetaDescanso } from '../lib/formato';
+  import { resumenSeries } from '../lib/unidades';
   import { storage } from '../lib/storage';
   import { cargarCatalogoCompleto, exigirPerfil, hoyISO, haceDias, escapar, rutaBase } from '../ui/datos';
   import type { Ejercicio, EjercicioRutina, Rutina } from '../lib/tipos';
@@ -69,9 +70,7 @@ import Base from '../layouts/Base.astro';
       : null;
     let ultima = '';
     if (registro) {
-      const s = registro.series[registro.series.length - 1];
-      const peso = s?.pesoKg !== undefined ? ` · ${s.pesoKg} kg` : '';
-      ultima = `<div class="ultima">${haceDias(registro.fecha, hoyISO())} · ${registro.series.length}×${s?.reps ?? '?'}${peso}</div>`;
+      ultima = `<div class="ultima">${haceDias(registro.fecha, hoyISO())} · ${resumenSeries(registro.series)}</div>`;
     }
     return `<div class="ejercicio">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
