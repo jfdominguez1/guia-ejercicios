@@ -3,11 +3,12 @@
 // .astro para poder testearlo con jsdom.
 
 import { resolverSalteo, variantesDe, ultimaVez } from '../lib/motor';
-import { alternativasDe, buscarEjercicios, sustituirEjercicio } from '../lib/editor';
+import { alternativasDe, sustituirEjercicio } from '../lib/editor';
 import { parsearDiaElegido, resolverDiaDeHoy } from '../lib/dia';
 import { formatearObjetivo, formatearFc } from '../lib/formato';
 import { convertirDiaSinGym } from '../lib/singym';
 import { storage } from '../lib/storage';
+import { crearBuscador, etiquetaGrupo, htmlOpciones } from './buscador';
 import { urlGif, urlImg, escapar, rutaBase } from './datos';
 import type { DiaRutina, Ejercicio, EjercicioRutina, GrupoEquip, ItemSesion, Perfil, SerieHecha } from '../lib/tipos';
 
@@ -20,10 +21,6 @@ export interface DepsEntrenar {
   /** Navegación inyectable: en tests no hay window.location real. */
   navegar: (ruta: string) => void;
 }
-
-const LABEL_GRUPO: Record<string, string> = {
-  pesas: 'Pesas', maquina: 'Máquina', banda: 'Banda', cuerpo: 'Cuerpo', pelota: 'Pelota', rodillo: 'Rodillo',
-};
 
 export function montarEntrenar(deps: DepsEntrenar): void {
   const { contenedor: caja, catalogo, perfil, hoy, navegar } = deps;
@@ -143,54 +140,28 @@ export function montarEntrenar(deps: DepsEntrenar): void {
     });
   }
 
-  function htmlOpciones(lista: Ejercicio[]): string {
-    return lista
-      .map(
-        (e) => `<button class="opcion-ej" data-elegir="${escapar(e.id)}">
-          <strong>${escapar(e.nombre_es)}</strong>
-          <span class="ayuda">${escapar(e.musculo)} · ${escapar(LABEL_GRUPO[e.grupo] ?? e.grupo)}</span>
-        </button>`,
-      )
-      .join('');
-  }
-
   /** Elegir otro ejercicio para este paso: equivalentes, mismo músculo o todo el catálogo. */
-  function pintarCambiar(filtro: string) {
+  function pintarCambiar() {
     const estado = draft.ejercicios[draft.indice]!;
     const info = porId(estado.ejercicioId);
     const alt = info
       ? alternativasDe(catalogo, info, perfil.equipamiento)
       : { equivalentes: [], mismoMusculo: [] };
-    const resultados = filtro.trim().length >= 2 ? buscarEjercicios(catalogo, filtro, 20) : [];
 
     caja.innerHTML = `
       <h1>Cambiar ejercicio</h1>
       <p class="ayuda">En lugar de <strong>${escapar(info?.nombre_es ?? estado.ejercicioId)}</strong></p>
-      <div class="carta">
-        <label for="buscar-ej">Buscar en el catálogo</label>
-        <input id="buscar-ej" type="search" placeholder="nombre o músculo…" value="${escapar(filtro)}" />
-      </div>
-      ${filtro.trim().length >= 2
-        ? `<div class="carta"><span class="eyebrow">Resultados</span>
-            ${resultados.length ? htmlOpciones(resultados) : '<p class="ayuda">Nada con ese nombre.</p>'}</div>`
-        : `${alt.equivalentes.length ? `<div class="carta"><span class="eyebrow">Lo mismo, con otro implemento</span>${htmlOpciones(alt.equivalentes)}</div>` : ''}
-           ${alt.mismoMusculo.length ? `<div class="carta"><span class="eyebrow">Otro ejercicio para el mismo músculo</span>${htmlOpciones(alt.mismoMusculo)}</div>` : ''}
-           ${!alt.equivalentes.length && !alt.mismoMusculo.length ? '<p class="ayuda">No hay alternativas directas — buscá en el catálogo.</p>' : ''}`}
+      <div class="carta" id="caja-buscador"></div>
       <button class="boton-secundario" id="btn-cancelar-cambio">Volver sin cambiar</button>`;
 
-    const input = caja.querySelector('#buscar-ej') as HTMLInputElement;
-    // Re-render por input pierde el foco: se repone y se manda el cursor al final.
-    input.addEventListener('input', () => {
-      pintarCambiar(input.value);
-      const nuevo = caja.querySelector('#buscar-ej') as HTMLInputElement;
-      nuevo.focus();
-      nuevo.setSelectionRange(nuevo.value.length, nuevo.value.length);
-    });
-    caja.querySelectorAll('[data-elegir]').forEach((boton) =>
-      boton.addEventListener('click', () => {
-        const elegido = porId((boton as HTMLElement).dataset.elegir!);
-        if (elegido) pintarConfirmarCambio(elegido);
-      }),
+    // Con el campo vacío se ven las alternativas; al tipear, el catálogo entero.
+    const sugerencias = () =>
+      `${alt.equivalentes.length ? `<span class="eyebrow" style="display:block;margin-top:10px">Lo mismo, con otro implemento</span>${htmlOpciones(alt.equivalentes)}` : ''}
+       ${alt.mismoMusculo.length ? `<span class="eyebrow" style="display:block;margin-top:10px">Otro ejercicio para el mismo músculo</span>${htmlOpciones(alt.mismoMusculo)}` : ''}
+       ${!alt.equivalentes.length && !alt.mismoMusculo.length ? '<p class="ayuda">No hay alternativas directas — buscá en el catálogo.</p>' : ''}`;
+
+    caja.querySelector('#caja-buscador')!.appendChild(
+      crearBuscador({ catalogo, alElegir: pintarConfirmarCambio, htmlInicial: sugerencias }),
     );
     caja.querySelector('#btn-cancelar-cambio')!.addEventListener('click', pintar);
   }
@@ -217,7 +188,7 @@ export function montarEntrenar(deps: DepsEntrenar): void {
       boton.addEventListener('click', () => {
         const alcance = (boton as HTMLElement).dataset.alcance;
         if (alcance === 'volver') {
-          pintarCambiar('');
+          pintarCambiar();
           return;
         }
         cambiarEjercicio(estado, nuevo, alcance === 'siempre');
@@ -254,7 +225,7 @@ export function montarEntrenar(deps: DepsEntrenar): void {
       <div class="carta">
         <span class="eyebrow">¿Con qué lo hacés hoy?</span>
         <div class="chips" style="margin-top:6px">
-          ${gruposDisponibles.map((g) => `<button class="chip" data-grupo="${g}" aria-pressed="${g === estado.variante}">${LABEL_GRUPO[g]}</button>`).join('')}
+          ${gruposDisponibles.map((g) => `<button class="chip" data-grupo="${g}" aria-pressed="${g === estado.variante}">${etiquetaGrupo(g)}</button>`).join('')}
         </div>
       </div>
       <div class="carta">
@@ -302,7 +273,7 @@ export function montarEntrenar(deps: DepsEntrenar): void {
         }),
       );
     });
-    caja.querySelector('#btn-cambiar')!.addEventListener('click', () => pintarCambiar(''));
+    caja.querySelector('#btn-cambiar')!.addEventListener('click', pintarCambiar);
     caja.querySelector('#btn-saltear')!.addEventListener('click', () => {
       estado.salteado = !estado.salteado;
       if (estado.salteado) {
