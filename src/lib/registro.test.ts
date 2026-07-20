@@ -6,6 +6,7 @@ import {
   fechaValidaRetro,
   resumenSemanal,
   ejerciciosEsquivados,
+  yaHaySesion,
   CONFIG_DEFAULT,
 } from './registro';
 import type { Ejercicio, Rutina, Sesion } from './tipos';
@@ -159,5 +160,25 @@ describe('ejerciciosEsquivados', () => {
 
   it('tolera sesiones sin items', () => {
     expect(ejerciciosEsquivados([{ fecha: '2026-07-20', tipo: 'fuerza' }])).toEqual([]);
+  });
+});
+
+describe('yaHaySesion', () => {
+  const s = (fecha: string, tipo: Sesion['tipo']): Sesion => ({ fecha, tipo, estado: 'hecha' });
+
+  it('detecta otra sesión del mismo tipo el mismo día', () => {
+    expect(yaHaySesion([s('2026-07-20', 'fuerza')], '2026-07-20', 'fuerza')).toBe(true);
+  });
+
+  it('no confunde tipos distintos: fuerza y cardio el mismo día es normal', () => {
+    expect(yaHaySesion([s('2026-07-20', 'cardio')], '2026-07-20', 'fuerza')).toBe(false);
+  });
+
+  it('no confunde días', () => {
+    expect(yaHaySesion([s('2026-07-19', 'fuerza')], '2026-07-20', 'fuerza')).toBe(false);
+  });
+
+  it('sin sesiones es false', () => {
+    expect(yaHaySesion([], '2026-07-20', 'fuerza')).toBe(false);
   });
 });

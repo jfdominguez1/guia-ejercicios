@@ -36,6 +36,7 @@ function montar(respuestas: boolean[] = []) {
     <div id="calendario"></div>
     <button id="btn-cardio">+ Registrar cardio</button>
     <div id="alta-cardio"></div>
+    <div id="aviso-historial"></div>
     <div id="sesiones"></div>`;
   const preguntas: string[] = [];
   let i = 0;
@@ -132,30 +133,56 @@ describe('editar', () => {
   });
 });
 
-describe('borrar', () => {
-  it('pregunta dos veces y recién ahí borra', () => {
+describe('borrar y deshacer', () => {
+  it('pregunta una sola vez, mostrando qué se borra', () => {
     storage.setSesiones([sesionFuerza()]);
-    const { preguntas } = montar([true, true]);
+    const { preguntas } = montar([true]);
     botonAccion('borrar').click();
-    expect(preguntas).toHaveLength(2);
+    expect(preguntas).toHaveLength(1);
     expect(preguntas[0]).toContain('¿Borrar esta sesión?');
-    expect(preguntas[1]).toContain('no se puede deshacer');
+    expect(preguntas[0]).toContain('Día 1 — Empuje');
     expect(storage.getSesiones()).toHaveLength(0);
   });
 
-  it('cortar en la primera pregunta no borra ni vuelve a preguntar', () => {
+  it('cancelar no borra nada', () => {
     storage.setSesiones([sesionFuerza()]);
-    const { preguntas } = montar([false]);
+    montar([false]);
     botonAccion('borrar').click();
-    expect(preguntas).toHaveLength(1);
     expect(storage.getSesiones()).toHaveLength(1);
   });
 
-  it('cortar en la segunda pregunta tampoco borra', () => {
-    storage.setSesiones([sesionFuerza()]);
-    montar([true, false]);
+  it('ofrece Deshacer y la restaura completa', () => {
+    storage.setSesiones([sesionFuerza({ rpe: 8 })]);
+    montar([true]);
     botonAccion('borrar').click();
-    expect(storage.getSesiones()).toHaveLength(1);
+    expect($('[data-deshacer]')).not.toBeNull();
+    $('[data-deshacer]').click();
+    const restaurada = storage.getSesiones();
+    expect(restaurada).toHaveLength(1);
+    expect(restaurada[0]).toMatchObject({ id: 's1', rpe: 8, fecha: '2026-07-18' });
+    expect($('[data-deshacer]')).toBeNull();
+  });
+
+  it('la borrada queda en la papelera y sale al deshacer', () => {
+    storage.setSesiones([sesionFuerza()]);
+    montar([true]);
+    botonAccion('borrar').click();
+    expect(storage.getPapelera().map((s) => s.id)).toEqual(['s1']);
+    $('[data-deshacer]').click();
+    expect(storage.getPapelera()).toHaveLength(0);
+  });
+
+  it('al deshacer vuelve a su lugar por fecha, no al final', () => {
+    storage.setSesiones([
+      sesionFuerza({ id: 's1', fecha: '2026-07-10' }),
+      sesionFuerza({ id: 's2', fecha: '2026-07-15' }),
+      sesionFuerza({ id: 's3', fecha: '2026-07-19' }),
+    ]);
+    montar([true]);
+    // Ordenado por fecha desc, el segundo "Borrar" es el de s2.
+    $$('#sesiones [data-accion="borrar"]')[1]!.click();
+    $('[data-deshacer]').click();
+    expect(storage.getSesiones().map((s) => s.id)).toEqual(['s1', 's2', 's3']);
   });
 
   it('borra la sesión correcta cuando hay varias', () => {
@@ -164,10 +191,32 @@ describe('borrar', () => {
       sesionFuerza({ id: 's2', fecha: '2026-07-18' }),
       sesionFuerza({ id: 's3', fecha: '2026-07-19' }),
     ]);
-    montar([true, true]);
-    // El listado ordena por fecha desc: el primer "Borrar" es el de s3.
+    montar([true]);
     $$('#sesiones [data-accion="borrar"]')[0]!.click();
     expect(storage.getSesiones().map((s) => s.id)).toEqual(['s1', 's2']);
+  });
+});
+
+describe('nombre del ejercicio', () => {
+  it('si el id ya no está en el catálogo usa el nombre guardado', () => {
+    storage.setSesiones([
+      sesionFuerza({
+        items: [{ ejercicioId: 'BORRADO', nombre: 'Press viejo', variante: 'pesas', series: [{ reps: 10 }] }],
+      }),
+    ]);
+    montar();
+    expect($('#sesiones').textContent).toContain('Press viejo');
+    expect($('#sesiones').textContent).not.toContain('BORRADO');
+  });
+
+  it('el catálogo gana sobre el nombre guardado (pudo renombrarse)', () => {
+    storage.setSesiones([
+      sesionFuerza({
+        items: [{ ejercicioId: 'F1', nombre: 'Nombre viejo', variante: 'pesas', series: [{ reps: 10 }] }],
+      }),
+    ]);
+    montar();
+    expect($('#sesiones').textContent).toContain('Press banca');
   });
 });
 

@@ -129,3 +129,12 @@ export function ejerciciosEsquivados(
     .map(([ejercicioId, veces]) => ({ ejercicioId, veces }))
     .sort((a, b) => b.veces - a.veces);
 }
+
+/**
+ * ¿Ya hay una sesión de ese tipo registrada ese día? Tocar "Hecha ✓" dos veces
+ * mete dos sesiones sin avisar e infla la métrica de la semana, que es EL
+ * número de la home.
+ */
+export function yaHaySesion(sesiones: Sesion[], fecha: string, tipo: TipoSesion): boolean {
+  return sesiones.some((s) => s.fecha === fecha && s.tipo === tipo);
+}

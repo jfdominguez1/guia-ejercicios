@@ -57,7 +57,7 @@ import Base from '../layouts/Base.astro';
   import { actualizarDosis, quitarEjercicio, sustituirEjercicio } from '../lib/editor';
   import { opcionesDeDia, parsearDiaElegido, resolverDiaDeHoy, serializarDiaElegido } from '../lib/dia';
   import { estadoHome, type ResultadoRetomar } from '../lib/retomar';
-  import { registrarHecha, registrarOtra, registrarGrupo, fechaValidaRetro, resumenSemanal, type TipoRapido } from '../lib/registro';
+  import { registrarHecha, registrarOtra, registrarGrupo, fechaValidaRetro, resumenSemanal, yaHaySesion, type TipoRapido } from '../lib/registro';
   import { convertirDiaSinGym } from '../lib/singym';
   import { formatearObjetivo, formatearFc, etiquetaDescanso } from '../lib/formato';
   import { resumenSeries } from '../lib/unidades';
@@ -435,6 +435,9 @@ import Base from '../layouts/Base.astro';
       ${htmlBloques()}`;
 
     $('#btn-hecha').addEventListener('click', () => {
+      // Dos taps por error meten dos sesiones y le mienten al número de la semana.
+      if (yaHaySesion(storage.getSesiones(), hoyISO(), 'fuerza')
+        && !confirm('Ya registraste una sesión de fuerza hoy. ¿Agrego otra igual?')) return;
       const sesion = registrarHecha(rutina, diaIndex, catalogo, hoyISO());
       guardarYPedirRpe(retomando || dia.nombre === 'Sesión combinada' ? { ...sesion, diaRutina: dia.nombre } : sesion);
       sessionStorage.removeItem('ge:retomando');

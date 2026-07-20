@@ -1,7 +1,18 @@
 // Feature: editar y borrar sesiones del historial. Es el dato que no se puede
 // recuperar, así que se valida todo y nada se pisa sin pasar validación.
 import { describe, it, expect } from 'vitest';
-import { asegurarIds, borrarSesion, describirSesion, editarSesion, validarEdicion, type EdicionSesion } from './historial';
+import {
+  asegurarIds,
+  borrarSesion,
+  describirSesion,
+  editarSesion,
+  enviarAPapelera,
+  MAX_PAPELERA,
+  reinsertar,
+  restaurarDePapelera,
+  validarEdicion,
+  type EdicionSesion,
+} from './historial';
 import type { Sesion } from './tipos';
 
 const HOY = '2026-07-20';
@@ -153,5 +164,47 @@ describe('asegurarIds', () => {
 
   it('array vacío no rompe', () => {
     expect(asegurarIds([], generar)).toEqual([]);
+  });
+});
+
+describe('papelera', () => {
+  it('la borrada queda primera', () => {
+    const r = enviarAPapelera([sesion({ id: 'vieja' })], sesion({ id: 'nueva' }));
+    expect(r.map((s) => s.id)).toEqual(['nueva', 'vieja']);
+  });
+
+  it('no se pasa del tope y descarta la más vieja', () => {
+    let papelera: Sesion[] = [];
+    for (let i = 0; i < MAX_PAPELERA + 3; i++) papelera = enviarAPapelera(papelera, sesion({ id: `s${i}` }));
+    expect(papelera).toHaveLength(MAX_PAPELERA);
+    expect(papelera[0]!.id).toBe(`s${MAX_PAPELERA + 2}`);
+    expect(papelera.some((s) => s.id === 's0')).toBe(false);
+  });
+
+  it('borrar dos veces la misma no la duplica', () => {
+    const una = sesion({ id: 'a' });
+    expect(enviarAPapelera(enviarAPapelera([], una), una)).toHaveLength(1);
+  });
+
+  it('restaurar la saca de la papelera y la devuelve', () => {
+    const papelera = [sesion({ id: 'a' }), sesion({ id: 'b' })];
+    const r = restaurarDePapelera(papelera, 'a')!;
+    expect(r.sesion.id).toBe('a');
+    expect(r.papelera.map((s) => s.id)).toEqual(['b']);
+  });
+
+  it('restaurar algo que ya no está devuelve null', () => {
+    expect(restaurarDePapelera([], 'a')).toBeNull();
+  });
+
+  it('reinsertar respeta el orden por fecha', () => {
+    const sesiones = [sesion({ id: 'a', fecha: '2026-07-10' }), sesion({ id: 'c', fecha: '2026-07-20' })];
+    const r = reinsertar(sesiones, sesion({ id: 'b', fecha: '2026-07-15' }));
+    expect(r.map((s) => s.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('reinsertar una que ya está no la duplica', () => {
+    const sesiones = [sesion({ id: 'a' })];
+    expect(reinsertar(sesiones, sesion({ id: 'a' }))).toBe(sesiones);
   });
 });

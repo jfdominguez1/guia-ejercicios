@@ -8,6 +8,7 @@ import Base from '../layouts/Base.astro';
   <button class="boton-principal" id="btn-cardio">+ Registrar cardio</button>
   <div id="alta-cardio"></div>
   <h2>Sesiones</h2>
+  <div id="aviso-historial"></div>
   <div id="sesiones"></div>
 </Base>
 
@@ -46,6 +47,9 @@ import Base from '../layouts/Base.astro';
   }
   #sesiones :global(summary) { font-weight: 700; cursor: pointer; }
   #sesiones :global(.meta) { font-size: 13px; color: var(--tinta-suave); }
+  #aviso-historial :global(.deshacer) { display: flex; align-items: center; gap: 10px; }
+  #aviso-historial :global(.deshacer span) { flex: 1; }
+  #aviso-historial :global(.deshacer button) { padding: 8px 14px; font-size: 14px; }
   #sesiones :global(.acciones-sesion) { display: flex; gap: 8px; margin-top: 10px; }
   #sesiones :global(.acciones-sesion button) { flex: 1; font-size: 14px; padding: 9px; }
   #sesiones :global(.panel-editar) { margin-top: 10px; border-top: 1px solid var(--borde); padding-top: 10px; }

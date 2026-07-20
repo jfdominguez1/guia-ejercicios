@@ -88,6 +88,12 @@ export interface ItemSesion {
   ejercicioId: string;
   variante: GrupoEquip;
   series: SerieHecha[];
+  /**
+   * Nombre al momento de registrar. El historial no puede depender de que el
+   * catálogo nunca cambie: si un id desaparece (ya pasó con un dedup), sin
+   * esto la sesión muestra "F0873" en vez del ejercicio.
+   */
+  nombre?: string;
   /** Lo dejaste pasar hoy. Se guarda sin series para poder detectar patrones. */
   salteado?: true;
   /** Reemplazó a otro ejercicio solo por hoy (id del que estaba planificado). */

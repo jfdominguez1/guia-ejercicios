@@ -96,6 +96,37 @@ export function borrarSesion(sesiones: Sesion[], id: string): Sesion[] {
   return sesiones.filter((s) => s.id !== id);
 }
 
+/** Cuántas sesiones borradas se guardan antes de descartar la más vieja. */
+export const MAX_PAPELERA = 10;
+
+/**
+ * Guarda la borrada al frente de la papelera. Es lo que permite ofrecer
+ * "Deshacer" en vez de pedir dos confirmaciones: un undo real protege más que
+ * preguntar dos veces, que solo entrena a decir que sí dos veces.
+ */
+export function enviarAPapelera(papelera: Sesion[], sesion: Sesion): Sesion[] {
+  return [sesion, ...papelera.filter((s) => s.id !== sesion.id)].slice(0, MAX_PAPELERA);
+}
+
+/**
+ * Saca la sesión de la papelera y la devuelve para reinsertarla. Si ya no
+ * está (se pasó del tope), devuelve null y el llamador no hace nada.
+ */
+export function restaurarDePapelera(
+  papelera: Sesion[],
+  id: string,
+): { sesion: Sesion; papelera: Sesion[] } | null {
+  const sesion = papelera.find((s) => s.id === id);
+  if (!sesion) return null;
+  return { sesion, papelera: papelera.filter((s) => s.id !== id) };
+}
+
+/** Reinserta manteniendo el orden por fecha (el listado ordena igual). */
+export function reinsertar(sesiones: Sesion[], sesion: Sesion): Sesion[] {
+  if (sesiones.some((s) => s.id === sesion.id)) return sesiones;
+  return [...sesiones, sesion].sort((a, b) => a.fecha.localeCompare(b.fecha));
+}
+
 /** Busca por id (para confirmar antes de borrar, precargar el form, etc.). */
 export function buscarSesion(sesiones: Sesion[], id: string): Sesion | undefined {
   return sesiones.find((s) => s.id === id);

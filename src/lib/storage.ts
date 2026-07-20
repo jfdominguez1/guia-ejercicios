@@ -6,7 +6,7 @@ import { CONFIG_DEFAULT } from './registro';
 import type { Config, Ejercicio, GrupoGuardado, Perfil, Rutina, Sesion } from './tipos';
 
 const PREFIJO = 'ge:';
-const CLAVES = ['perfil', 'rutina', 'sesiones', 'customs', 'config', 'grupos'] as const;
+const CLAVES = ['perfil', 'rutina', 'sesiones', 'customs', 'config', 'grupos', 'papelera'] as const;
 
 /** Id estable de sesión. `randomUUID` no existe en contextos no seguros ni en browsers viejos. */
 function nuevoId(): string {
@@ -54,6 +54,10 @@ export const storage = {
   agregarSesion(sesion: Sesion): void {
     this.setSesiones([...this.getSesiones(), { ...sesion, id: sesion.id ?? nuevoId() }]);
   },
+
+  /** Sesiones borradas recientemente, para poder deshacer. Entra al backup. */
+  getPapelera: (): Sesion[] => leer<Sesion[]>('papelera', []),
+  setPapelera: (papelera: Sesion[]): void => guardar('papelera', papelera),
 
   getCustoms: (): Ejercicio[] => leer<Ejercicio[]>('customs', []),
   setCustoms: (customs: Ejercicio[]): void => guardar('customs', customs),

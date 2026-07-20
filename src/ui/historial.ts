@@ -7,6 +7,9 @@ import {
   buscarSesion,
   describirSesion,
   editarSesion,
+  enviarAPapelera,
+  reinsertar,
+  restaurarDePapelera,
   validarEdicion,
   type EdicionSesion,
 } from '../lib/historial';
@@ -37,12 +40,15 @@ export function montarHistorial(deps: DepsHistorial): void {
   const cajaCalendario = buscar('#calendario');
   const cajaSesiones = buscar('#sesiones');
   const cajaCardio = buscar('#alta-cardio');
+  const cajaAviso = buscar('#aviso-historial');
 
   let mesVisto = hoy().slice(0, 7); // YYYY-MM
   /** Id de la sesión que se está editando. */
   let editando: string | null = null;
 
   const porId = (id: string) => catalogo.find((e) => e.id === id);
+  /** Catálogo primero (puede haberse renombrado), después lo guardado, y recién ahí el id. */
+  const nombreDe = (item: ItemSesion) => porId(item.ejercicioId)?.nombre_es ?? item.nombre ?? item.ejercicioId;
 
   function sesionesDe(fecha: string): Sesion[] {
     return storage.getSesiones().filter((s) => s.fecha === fecha);
@@ -99,7 +105,7 @@ export function montarHistorial(deps: DepsHistorial): void {
     if (s.rpe !== undefined) lineas.push(`RPE ${s.rpe}/10`);
     if (s.notas) lineas.push(escapar(s.notas));
     for (const item of s.items ?? []) {
-      const nombre = escapar(porId(item.ejercicioId)?.nombre_es ?? item.ejercicioId);
+      const nombre = escapar(nombreDe(item));
       if (item.salteado) {
         lineas.push(`${nombre}: salteado`);
         continue;
@@ -129,7 +135,7 @@ export function montarHistorial(deps: DepsHistorial): void {
           )
           .join('');
         return series
-          ? `<div class="bloque-item"><strong>${escapar(porId(item.ejercicioId)?.nombre_es ?? item.ejercicioId)}</strong>${series}</div>`
+          ? `<div class="bloque-item"><strong>${escapar(nombreDe(item))}</strong>${series}</div>`
           : '';
       })
       .join('');
@@ -267,17 +273,39 @@ export function montarHistorial(deps: DepsHistorial): void {
     pintarSesiones();
   }
 
-  /** Borrar es irreversible y no hay backup automático: se pregunta dos veces. */
+  /**
+   * Una sola confirmación —que muestra QUÉ se borra— y después "Deshacer".
+   * Antes se preguntaba dos veces; preguntar dos veces solo entrena a decir
+   * que sí dos veces. La papelera protege de verdad.
+   */
   function pedirBorrado(id: string) {
     const sesiones = storage.getSesiones();
     const s = buscarSesion(sesiones, id);
     if (!s) return;
     if (!confirmar(`¿Borrar esta sesión?\n\n${describirSesion(s)}`)) return;
-    if (!confirmar('Última: esto no se puede deshacer y no queda backup.\n\n¿La borro igual?')) return;
     storage.setSesiones(borrarSesion(sesiones, id));
+    storage.setPapelera(enviarAPapelera(storage.getPapelera(), s));
     editando = null;
     pintarCalendario();
     pintarSesiones();
+    mostrarDeshacer(s);
+  }
+
+  function mostrarDeshacer(borrada: Sesion) {
+    cajaAviso.innerHTML = `<div class="aviso deshacer">
+      <span>Borrada: ${escapar(describirSesion(borrada))}</span>
+      <button type="button" data-deshacer="${escapar(borrada.id!)}">Deshacer</button>
+    </div>`;
+    cajaAviso.querySelector('[data-deshacer]')!.addEventListener('click', () => {
+      const restaurada = restaurarDePapelera(storage.getPapelera(), borrada.id!);
+      if (restaurada) {
+        storage.setSesiones(reinsertar(storage.getSesiones(), restaurada.sesion));
+        storage.setPapelera(restaurada.papelera);
+      }
+      cajaAviso.innerHTML = '';
+      pintarCalendario();
+      pintarSesiones();
+    });
   }
 
   function pintarAltaCardio() {

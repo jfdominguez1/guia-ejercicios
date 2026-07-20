@@ -7,6 +7,7 @@ import { alternativasDe, sustituirEjercicio } from '../lib/editor';
 import { parsearDiaElegido, resolverDiaDeHoy } from '../lib/dia';
 import { formatearObjetivo, formatearFc } from '../lib/formato';
 import { convertirDiaSinGym } from '../lib/singym';
+import { yaHaySesion } from '../lib/registro';
 import { storage } from '../lib/storage';
 import { ajustarPeso, aKg, desdeKg, equivalente, resumenSeries, type UnidadPeso } from '../lib/unidades';
 import { crearBuscador, etiquetaGrupo, htmlOpciones } from './buscador';
@@ -21,10 +22,12 @@ export interface DepsEntrenar {
   hoy: () => string;
   /** Navegación inyectable: en tests no hay window.location real. */
   navegar: (ruta: string) => void;
+  /** Inyectable: en el browser es window.confirm; en tests se controla. */
+  confirmar: (mensaje: string) => boolean;
 }
 
 export function montarEntrenar(deps: DepsEntrenar): void {
-  const { contenedor: caja, catalogo, perfil, hoy, navegar } = deps;
+  const { contenedor: caja, catalogo, perfil, hoy, navegar, confirmar } = deps;
 
   interface EstadoEj {
     ejercicioId: string;
@@ -115,10 +118,14 @@ export function montarEntrenar(deps: DepsEntrenar): void {
       <button class="boton-principal" id="btn-guardar">Guardar sesión ✓</button>
       <button class="boton-secundario" id="btn-volver-wizard">Volver</button>`;
     caja.querySelector('#btn-guardar')!.addEventListener('click', () => {
+      // Mismo guard que "Hecha ✓" en Hoy: dos registros del mismo día inflan la semana.
+      if (yaHaySesion(storage.getSesiones(), hoy(), 'fuerza')
+        && !confirmar('Ya registraste una sesión de fuerza hoy. ¿Agrego otra igual?')) return;
       const items: ItemSesion[] = draft.ejercicios
         .map((e) => ({
           ejercicioId: e.ejercicioId,
           variante: e.variante,
+          ...(porId(e.ejercicioId)?.nombre_es ? { nombre: porId(e.ejercicioId)!.nombre_es } : {}),
           series: e.series.filter((s) => s.hecha).map(({ reps, pesoKg }) => (pesoKg === undefined ? { reps } : { reps, pesoKg })),
           ...(e.salteado ? { salteado: true as const } : {}),
           ...(e.enLugarDe ? { enLugarDe: e.enLugarDe } : {}),

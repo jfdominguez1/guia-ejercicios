@@ -45,17 +45,23 @@ function rutina(): Rutina {
   };
 }
 
-function montar() {
+function montar(respuestas: boolean[] = []) {
   document.body.innerHTML = '<div id="wizard"></div>';
   const rutas: string[] = [];
+  const preguntas: string[] = [];
+  let i = 0;
   montarEntrenar({
     contenedor: document.querySelector('#wizard') as HTMLElement,
     catalogo: CATALOGO,
     perfil: PERFIL,
     hoy: () => HOY,
     navegar: (ruta) => rutas.push(ruta),
+    confirmar: (mensaje) => {
+      preguntas.push(mensaje);
+      return respuestas[i++] ?? true;
+    },
   });
-  return { rutas };
+  return { rutas, preguntas };
 }
 
 const $ = (sel: string) => document.querySelector(sel) as HTMLElement;
@@ -360,5 +366,41 @@ describe('kg y libras', () => {
     expect(storage.getConfig().unidadEntrada).toBe('lb');
     montar();
     expect($('[data-unidad="lb"]').getAttribute('aria-pressed')).toBe('true');
+  });
+});
+
+describe('sesión duplicada', () => {
+  function terminarYGuardar(respuestas: boolean[] = []) {
+    const r = montar(respuestas);
+    $('#btn-siguiente').click();
+    $('#btn-siguiente').click();
+    $('#btn-guardar').click();
+    return r;
+  }
+
+  it('sin sesión previa guarda sin preguntar', () => {
+    const { preguntas } = terminarYGuardar();
+    expect(preguntas).toHaveLength(0);
+    expect(storage.getSesiones()).toHaveLength(1);
+  });
+
+  it('si ya hay una de fuerza hoy, avisa antes de sumar otra', () => {
+    storage.agregarSesion({ fecha: HOY, tipo: 'fuerza', estado: 'hecha' });
+    const { preguntas } = terminarYGuardar([false]);
+    expect(preguntas[0]).toContain('Ya registraste una sesión de fuerza hoy');
+    expect(storage.getSesiones()).toHaveLength(1); // no sumó la segunda
+  });
+
+  it('si confirmás, la agrega igual', () => {
+    storage.agregarSesion({ fecha: HOY, tipo: 'fuerza', estado: 'hecha' });
+    terminarYGuardar([true]);
+    expect(storage.getSesiones()).toHaveLength(2);
+  });
+
+  it('una de cardio el mismo día no dispara el aviso', () => {
+    storage.agregarSesion({ fecha: HOY, tipo: 'cardio', estado: 'hecha' });
+    const { preguntas } = terminarYGuardar();
+    expect(preguntas).toHaveLength(0);
+    expect(storage.getSesiones()).toHaveLength(2);
   });
 });
