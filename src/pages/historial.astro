@@ -63,7 +63,7 @@ import Base from '../layouts/Base.astro';
 <script>
   import { storage } from '../lib/storage';
   import { registrarOtra, fechaValidaRetro } from '../lib/registro';
-  import { borrarSesion, describirSesion, editarSesion, validarEdicion, type EdicionSesion } from '../lib/historial';
+  import { borrarSesion, buscarSesion, describirSesion, editarSesion, validarEdicion, type EdicionSesion } from '../lib/historial';
   import { cargarCatalogoCompleto, hoyISO, escapar, exigirPerfil } from '../ui/datos';
   import type { Ejercicio, ItemSesion, Sesion, TipoCardio } from '../lib/tipos';
 
@@ -72,8 +72,8 @@ import Base from '../layouts/Base.astro';
 
   let catalogo: Ejercicio[] = [];
   let mesVisto = hoyISO().slice(0, 7); // YYYY-MM
-  /** Índice (en el array real de sesiones) de la que se está editando. */
-  let editando: number | null = null;
+  /** Id de la sesión que se está editando. */
+  let editando: string | null = null;
 
   const NOMBRE_TIPO: Record<string, string> = {
     fuerza: 'Fuerza', cardio: 'Cardio', elongacion: 'Elongación', otro: 'Actividad',
@@ -148,8 +148,8 @@ import Base from '../layouts/Base.astro';
     return lineas.map((l) => `<p class="meta">${l}</p>`).join('') || '<p class="meta">Sin detalle — hecha es hecha.</p>';
   }
 
-  /** Formulario de edición. Se guarda el índice en el array real, no el visible. */
-  function htmlPanelEditar(s: Sesion, idx: number): string {
+  /** Formulario de edición. La sesión se referencia por id, no por posición. */
+  function htmlPanelEditar(s: Sesion, id: string): string {
     const numero = (etiqueta: string, campo: string, valor: number | undefined, extra = '') =>
       `<div style="flex:1"><label>${etiqueta}</label>
         <input type="number" inputmode="numeric" data-campo="${campo}" value="${valor ?? ''}" ${extra} /></div>`;
@@ -171,7 +171,7 @@ import Base from '../layouts/Base.astro';
       })
       .join('');
 
-    return `<div class="panel-editar" data-panel="${idx}">
+    return `<div class="panel-editar" data-panel="${escapar(id)}">
       <label>Fecha</label>
       <input type="date" data-campo="fecha" value="${s.fecha}" max="${hoyISO()}" />
       <div style="display:flex;gap:8px">
@@ -192,31 +192,31 @@ import Base from '../layouts/Base.astro';
       <textarea data-campo="notas" rows="2" maxlength="500">${escapar(s.notas ?? '')}</textarea>
       <p class="error" data-errores role="alert"></p>
       <div class="acciones-sesion">
-        <button class="boton-principal" data-accion="guardar" data-idx="${idx}" style="flex:2">Guardar cambios</button>
+        <button class="boton-principal" data-accion="guardar" data-id="${escapar(id)}" style="flex:2">Guardar cambios</button>
         <button data-accion="cancelar">Cancelar</button>
       </div>
     </div>`;
   }
 
   function pintarSesiones() {
-    // Se ordena para mostrar, pero se conserva el índice real para editar/borrar.
-    const conIndice = storage.getSesiones().map((sesion, idx) => ({ sesion, idx }));
-    const ordenadas = conIndice.sort((a, b) => b.sesion.fecha.localeCompare(a.sesion.fecha));
+    // storage.getSesiones() garantiza que todas tengan id (migra las viejas).
+    const ordenadas = [...storage.getSesiones()].sort((a, b) => b.fecha.localeCompare(a.fecha));
     $('#sesiones').innerHTML = ordenadas.length
       ? ordenadas
           .slice(0, 60)
-          .map(
-            ({ sesion: s, idx }) => `<details${editando === idx ? ' open' : ''}>
+          .map((s) => {
+            const id = s.id!;
+            return `<details${editando === id ? ' open' : ''}>
           <summary>${s.fecha} — ${escapar(s.diaRutina ?? NOMBRE_TIPO[s.tipo] ?? s.tipo)}</summary>
           ${detalleSesion(s)}
-          ${editando === idx
-            ? htmlPanelEditar(s, idx)
+          ${editando === id
+            ? htmlPanelEditar(s, id)
             : `<div class="acciones-sesion">
-                <button data-accion="editar" data-idx="${idx}">✎ Editar</button>
-                <button data-accion="borrar" data-idx="${idx}">Borrar</button>
+                <button data-accion="editar" data-id="${escapar(id)}">✎ Editar</button>
+                <button data-accion="borrar" data-id="${escapar(id)}">Borrar</button>
               </div>`}
-        </details>`,
-          )
+        </details>`;
+          })
           .join('')
       : '<div class="carta"><p>Todavía no hay sesiones. La primera se registra desde Hoy con un tap.</p></div>';
     conectarSesiones();
@@ -267,22 +267,22 @@ import Base from '../layouts/Base.astro';
           pintarSesiones();
           return;
         }
-        const idx = Number(b.dataset.idx);
+        const id = b.dataset.id!;
         if (accion === 'editar') {
-          editando = idx;
+          editando = id;
           pintarSesiones();
           return;
         }
-        if (accion === 'borrar') pedirBorrado(idx);
-        if (accion === 'guardar') guardarEdicion(idx);
+        if (accion === 'borrar') pedirBorrado(id);
+        if (accion === 'guardar') guardarEdicion(id);
       }),
     );
   }
 
-  function guardarEdicion(idx: number) {
+  function guardarEdicion(id: string) {
     const sesiones = storage.getSesiones();
-    const actual = sesiones[idx];
-    const panel = $('#sesiones').querySelector(`[data-panel="${idx}"]`) as HTMLElement | null;
+    const actual = buscarSesion(sesiones, id);
+    const panel = $('#sesiones').querySelector(`[data-panel="${CSS.escape(id)}"]`) as HTMLElement | null;
     if (!actual || !panel) return;
     const edicion = leerEdicion(panel, actual);
     const errores = validarEdicion(edicion, hoyISO());
@@ -292,20 +292,20 @@ import Base from '../layouts/Base.astro';
       return;
     }
     if (!confirm(`¿Guardo los cambios en la sesión del ${edicion.fecha}?`)) return;
-    storage.setSesiones(editarSesion(sesiones, idx, edicion, hoyISO()));
+    storage.setSesiones(editarSesion(sesiones, id, edicion, hoyISO()));
     editando = null;
     pintarCalendario();
     pintarSesiones();
   }
 
   /** Borrar es irreversible y no hay backup automático: se pregunta dos veces. */
-  function pedirBorrado(idx: number) {
+  function pedirBorrado(id: string) {
     const sesiones = storage.getSesiones();
-    const s = sesiones[idx];
+    const s = buscarSesion(sesiones, id);
     if (!s) return;
     if (!confirm(`¿Borrar esta sesión?\n\n${describirSesion(s)}`)) return;
     if (!confirm('Última: esto no se puede deshacer y no queda backup.\n\n¿La borro igual?')) return;
-    storage.setSesiones(borrarSesion(sesiones, idx));
+    storage.setSesiones(borrarSesion(sesiones, id));
     editando = null;
     pintarCalendario();
     pintarSesiones();

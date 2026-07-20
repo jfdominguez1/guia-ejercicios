@@ -47,21 +47,32 @@ export function validarEdicion(edicion: EdicionSesion, hoy: string): string[] {
   return [...new Set(errores)];
 }
 
+/**
+ * Le pone id a las sesiones que no lo tengan (las registradas antes de que
+ * existiera el campo). Devuelve el mismo array si ya estaban todas al día,
+ * para que el llamador sepa si hace falta persistir.
+ */
+export function asegurarIds(sesiones: Sesion[], generarId: () => string): Sesion[] {
+  if (sesiones.every((s) => s.id)) return sesiones;
+  return sesiones.map((s) => (s.id ? s : { ...s, id: generarId() }));
+}
+
 /** Saca las claves en `undefined` para no guardar campos vacíos. */
 function limpiar<T extends object>(objeto: T): T {
   return Object.fromEntries(Object.entries(objeto).filter(([, v]) => v !== undefined)) as T;
 }
 
 /**
- * Aplica la edición a la sesión de esa posición. Devuelve el array original
- * si el índice no existe o si la edición no valida.
+ * Aplica la edición a la sesión con ese id. Devuelve el array original si el
+ * id no existe o si la edición no valida — nunca guarda a medias.
  */
 export function editarSesion(
   sesiones: Sesion[],
-  index: number,
+  id: string,
   edicion: EdicionSesion,
   hoy: string,
 ): Sesion[] {
+  const index = sesiones.findIndex((s) => s.id === id);
   const actual = sesiones[index];
   if (!actual) return sesiones;
   if (validarEdicion(edicion, hoy).length) return sesiones;
@@ -79,10 +90,15 @@ export function editarSesion(
   return sesiones.map((s, i) => (i === index ? editada : s));
 }
 
-/** Saca la sesión de esa posición. */
-export function borrarSesion(sesiones: Sesion[], index: number): Sesion[] {
-  if (!sesiones[index]) return sesiones;
-  return sesiones.filter((_, i) => i !== index);
+/** Saca la sesión con ese id. */
+export function borrarSesion(sesiones: Sesion[], id: string): Sesion[] {
+  if (!sesiones.some((s) => s.id === id)) return sesiones;
+  return sesiones.filter((s) => s.id !== id);
+}
+
+/** Busca por id (para confirmar antes de borrar, precargar el form, etc.). */
+export function buscarSesion(sesiones: Sesion[], id: string): Sesion | undefined {
+  return sesiones.find((s) => s.id === id);
 }
 
 /** Resumen de una línea para confirmar antes de borrar ("qué estoy borrando"). */

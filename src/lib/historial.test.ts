@@ -1,13 +1,13 @@
 // Feature: editar y borrar sesiones del historial. Es el dato que no se puede
 // recuperar, así que se valida todo y nada se pisa sin pasar validación.
 import { describe, it, expect } from 'vitest';
-import { borrarSesion, describirSesion, editarSesion, validarEdicion, type EdicionSesion } from './historial';
+import { asegurarIds, borrarSesion, describirSesion, editarSesion, validarEdicion, type EdicionSesion } from './historial';
 import type { Sesion } from './tipos';
 
 const HOY = '2026-07-20';
 
 function sesion(extra: Partial<Sesion> = {}): Sesion {
-  return { fecha: '2026-07-18', tipo: 'fuerza', estado: 'hecha', diaRutina: 'Día 1', ...extra };
+  return { id: 'a', fecha: '2026-07-18', tipo: 'fuerza', estado: 'hecha', diaRutina: 'Día 1', ...extra };
 }
 
 const BASE: EdicionSesion = { fecha: '2026-07-18' };
@@ -55,8 +55,8 @@ describe('validarEdicion', () => {
 
 describe('editarSesion', () => {
   it('cambia la fecha sin tocar el resto', () => {
-    const sesiones = [sesion(), sesion({ fecha: '2026-07-19' })];
-    const r = editarSesion(sesiones, 0, { fecha: '2026-07-17' }, HOY);
+    const sesiones = [sesion(), sesion({ id: 'b', fecha: '2026-07-19' })];
+    const r = editarSesion(sesiones, 'a', { fecha: '2026-07-17' }, HOY);
     expect(r[0]!.fecha).toBe('2026-07-17');
     expect(r[0]!.diaRutina).toBe('Día 1');
     expect(r[1]).toEqual(sesiones[1]);
@@ -64,39 +64,39 @@ describe('editarSesion', () => {
 
   it('no muta el array original', () => {
     const sesiones = [sesion()];
-    editarSesion(sesiones, 0, { fecha: '2026-07-17' }, HOY);
+    editarSesion(sesiones, 'a', { fecha: '2026-07-17' }, HOY);
     expect(sesiones[0]!.fecha).toBe('2026-07-18');
   });
 
   it('borra los campos que se dejan vacíos', () => {
     const sesiones = [sesion({ rpe: 8, notas: 'pesado' })];
-    const r = editarSesion(sesiones, 0, { fecha: '2026-07-18' }, HOY);
+    const r = editarSesion(sesiones, 'a', { fecha: '2026-07-18' }, HOY);
     expect(r[0]).not.toHaveProperty('rpe');
     expect(r[0]).not.toHaveProperty('notas');
   });
 
   it('actualiza el cardio conservando el tipo', () => {
     const sesiones = [sesion({ tipo: 'cardio', cardio: { tipo: 'cinta', minutos: 30, km: 4 } })];
-    const r = editarSesion(sesiones, 0, { fecha: '2026-07-18', cardio: { minutos: 45 } }, HOY);
+    const r = editarSesion(sesiones, 'a', { fecha: '2026-07-18', cardio: { minutos: 45 } }, HOY);
     expect(r[0]!.cardio).toEqual({ tipo: 'cinta', minutos: 45, km: 4 });
   });
 
   it('rechaza la edición inválida y devuelve todo intacto', () => {
     const sesiones = [sesion()];
-    expect(editarSesion(sesiones, 0, { fecha: '2026-07-30' }, HOY)).toBe(sesiones);
-    expect(editarSesion(sesiones, 0, { fecha: '2026-07-18', rpe: 99 }, HOY)).toBe(sesiones);
+    expect(editarSesion(sesiones, 'a', { fecha: '2026-07-30' }, HOY)).toBe(sesiones);
+    expect(editarSesion(sesiones, 'a', { fecha: '2026-07-18', rpe: 99 }, HOY)).toBe(sesiones);
   });
 
-  it('índice inexistente no hace nada', () => {
+  it('id inexistente no hace nada', () => {
     const sesiones = [sesion()];
-    expect(editarSesion(sesiones, 5, BASE, HOY)).toBe(sesiones);
+    expect(editarSesion(sesiones, 'no-existe', BASE, HOY)).toBe(sesiones);
   });
 
   it('reemplaza las series corregidas', () => {
     const sesiones = [sesion({ items: [{ ejercicioId: 'F1', variante: 'pesas', series: [{ reps: 10, pesoKg: 20 }] }] })];
     const r = editarSesion(
       sesiones,
-      0,
+      'a',
       { fecha: '2026-07-18', items: [{ ejercicioId: 'F1', variante: 'pesas', series: [{ reps: 10, pesoKg: 25 }] }] },
       HOY,
     );
@@ -106,14 +106,14 @@ describe('editarSesion', () => {
 
 describe('borrarSesion', () => {
   it('saca solo la sesión indicada', () => {
-    const sesiones = [sesion(), sesion({ fecha: '2026-07-19' }), sesion({ fecha: '2026-07-20' })];
-    const r = borrarSesion(sesiones, 1);
+    const sesiones = [sesion(), sesion({ id: 'b', fecha: '2026-07-19' }), sesion({ id: 'c', fecha: '2026-07-20' })];
+    const r = borrarSesion(sesiones, 'b');
     expect(r.map((s) => s.fecha)).toEqual(['2026-07-18', '2026-07-20']);
   });
 
-  it('no muta ni rompe con índice inexistente', () => {
+  it('no muta ni rompe con id inexistente', () => {
     const sesiones = [sesion()];
-    expect(borrarSesion(sesiones, 9)).toBe(sesiones);
+    expect(borrarSesion(sesiones, 'no-existe')).toBe(sesiones);
     expect(sesiones).toHaveLength(1);
   });
 });
@@ -125,5 +125,33 @@ describe('describirSesion', () => {
       .toBe('2026-07-18 · cardio · cinta 30 min');
     expect(describirSesion(sesion({ items: [{ ejercicioId: 'F1', variante: 'pesas', series: [{ reps: 8 }, { reps: 8 }] }] })))
       .toBe('2026-07-18 · Día 1 · 2 series');
+  });
+});
+
+describe('asegurarIds', () => {
+  let n = 0;
+  const generar = () => `gen-${++n}`;
+
+  it('le pone id solo a las que no tienen', () => {
+    n = 0;
+    const sesiones = [{ fecha: '2026-07-18', tipo: 'fuerza' } as Sesion, sesion({ id: 'ya-tengo' })];
+    const r = asegurarIds(sesiones, generar);
+    expect(r[0]!.id).toBe('gen-1');
+    expect(r[1]!.id).toBe('ya-tengo');
+  });
+
+  it('devuelve el MISMO array si ya estaban todas (no re-guarda al pedo)', () => {
+    const sesiones = [sesion()];
+    expect(asegurarIds(sesiones, generar)).toBe(sesiones);
+  });
+
+  it('no muta el original', () => {
+    const sesiones = [{ fecha: '2026-07-18', tipo: 'fuerza' } as Sesion];
+    asegurarIds(sesiones, generar);
+    expect(sesiones[0]!.id).toBeUndefined();
+  });
+
+  it('array vacío no rompe', () => {
+    expect(asegurarIds([], generar)).toEqual([]);
   });
 });

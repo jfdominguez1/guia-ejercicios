@@ -1,11 +1,20 @@
 // Acceso tipado a localStorage con prefijo ge:. Nunca tira: ante error
 // devuelve el default (browser en privado, quota llena, JSON corrupto).
 
+import { asegurarIds } from './historial';
 import { CONFIG_DEFAULT } from './registro';
 import type { Config, Ejercicio, GrupoGuardado, Perfil, Rutina, Sesion } from './tipos';
 
 const PREFIJO = 'ge:';
 const CLAVES = ['perfil', 'rutina', 'sesiones', 'customs', 'config', 'grupos'] as const;
+
+/** Id estable de sesión. `randomUUID` no existe en contextos no seguros ni en browsers viejos. */
+function nuevoId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `s-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 function leer<T>(clave: string, porDefecto: T): T {
   try {
@@ -31,10 +40,19 @@ export const storage = {
   getRutina: (): Rutina | null => leer<Rutina | null>('rutina', null),
   setRutina: (rutina: Rutina): void => guardar('rutina', rutina),
 
-  getSesiones: (): Sesion[] => leer<Sesion[]>('sesiones', []),
+  /**
+   * Lee las sesiones garantizando que todas tengan id: las registradas antes
+   * de que el campo existiera se migran acá y se persisten en el momento.
+   */
+  getSesiones(): Sesion[] {
+    const guardadas = leer<Sesion[]>('sesiones', []);
+    const conId = asegurarIds(guardadas, nuevoId);
+    if (conId !== guardadas) guardar('sesiones', conId);
+    return conId;
+  },
   setSesiones: (sesiones: Sesion[]): void => guardar('sesiones', sesiones),
   agregarSesion(sesion: Sesion): void {
-    this.setSesiones([...this.getSesiones(), sesion]);
+    this.setSesiones([...this.getSesiones(), { ...sesion, id: sesion.id ?? nuevoId() }]);
   },
 
   getCustoms: (): Ejercicio[] => leer<Ejercicio[]>('customs', []),

@@ -51,7 +51,20 @@ describe('storage', () => {
     };
     storage.agregarSesion(s1);
     storage.agregarSesion(s2);
-    expect(storage.getSesiones()).toEqual([s1, s2]);
+    const guardadas = storage.getSesiones();
+    expect(guardadas).toMatchObject([s1, s2]);
+    // Cada sesión sale con id propio: es lo que permite editarla/borrarla después.
+    expect(guardadas.every((s) => s.id)).toBe(true);
+    expect(guardadas[0]!.id).not.toBe(guardadas[1]!.id);
+  });
+
+  it('le pone id a las sesiones viejas al leerlas, y lo deja guardado', () => {
+    ls.setItem('ge:sesiones', JSON.stringify([{ fecha: '2026-07-10', tipo: 'fuerza' }]));
+    const primera = storage.getSesiones();
+    expect(primera[0]!.id).toBeTruthy();
+    // El id migrado tiene que persistir: si cambiara en cada lectura, editar y
+    // borrar apuntarían a una sesión distinta cada vez.
+    expect(storage.getSesiones()[0]!.id).toBe(primera[0]!.id);
   });
 
   it('JSON corrupto devuelve default sin tirar', () => {

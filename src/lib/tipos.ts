@@ -100,6 +100,11 @@ export type TipoSesion = 'fuerza' | 'cardio' | 'elongacion' | 'otro';
 export type EstadoSesion = 'hecha' | 'otra';
 
 export interface Sesion {
+  /**
+   * Id estable. Las sesiones viejas no lo tienen: `asegurarIds` se lo asigna
+   * al leerlas. Es lo que permite editar/borrar sin depender de la posición.
+   */
+  id?: string;
   fecha: string;
   tipo: TipoSesion;
   /** Default 'hecha' si falta (sesiones viejas). */
