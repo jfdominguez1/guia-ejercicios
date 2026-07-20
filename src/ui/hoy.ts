@@ -22,13 +22,15 @@ export interface DepsHoy {
   perfil: Perfil;
   hoy: () => string;
   confirmar: (mensaje: string) => boolean;
+  /** Navegación inyectable: en tests no hay window.location real. */
+  navegar: (ruta: string) => void;
 }
 
 /** Día elegido a mano para hoy (pisa la rotación). Vale solo por hoy. */
 const CLAVE_DIA = 'ge:dia';
 
 export function montarHoy(deps: DepsHoy): void {
-  const { contenedor: caja, catalogo, perfil, hoy, confirmar } = deps;
+  const { contenedor: caja, catalogo, perfil, hoy, confirmar, navegar } = deps;
   const $ = <T extends HTMLElement>(sel: string) => caja.querySelector(sel) as T;
   let modoSinGym = sessionStorage.getItem('ge:singym') === hoy();
 
@@ -355,6 +357,7 @@ export function montarHoy(deps: DepsHoy): void {
         <button id="btn-elongacion">+ Elongación</button>
         <button id="btn-singym">${modoSinGym ? 'Con equipo' : 'Hoy sin gym'}</button>
         ${rutina.dias.length > 1 ? '<button id="btn-otro-dia">Hacer otro día ⇄</button>' : ''}
+        <button id="btn-libre">Sesión libre</button>
         <button id="btn-retro">Registrar día pasado</button>
         <a class="boton" style="text-align:center;text-decoration:none" href="${rutaBase}/historial/#cardio">+ Cardio</a>
         <button id="btn-regenerar">Regenerar ↻</button>
@@ -375,6 +378,12 @@ export function montarHoy(deps: DepsHoy): void {
     );
     conectarBloques();
     $('#btn-retro').addEventListener('click', panelRetro);
+    $('#btn-libre').addEventListener('click', () => {
+      // Entrenar sin rutina: el wizard arranca vacío y se van sumando ejercicios.
+      if (!limpiarDraftSiCambiaDia()) return;
+      sessionStorage.setItem('ge:libre', hoy());
+      navegar('/entrenar/');
+    });
     $('#btn-otro-dia')?.addEventListener('click', () => panelElegirDia(rutina, diaSugerido, diaIndex));
     $('#btn-dia-volver')?.addEventListener('click', () => {
       if (!limpiarDraftSiCambiaDia()) return;
@@ -418,6 +427,8 @@ export function montarHoy(deps: DepsHoy): void {
   }
 
   if (sessionStorage.getItem('ge:singym') !== hoy()) sessionStorage.removeItem('ge:singym');
+  // Volver a Hoy sale del modo libre: si no, "Entrenar ahora" seguiría entrando ahí.
+  sessionStorage.removeItem('ge:libre');
   if (sessionStorage.getItem('ge:sinCombinada') !== hoy()) sessionStorage.removeItem('ge:sinCombinada');
   if (sessionStorage.getItem('ge:retomando') !== hoy()) sessionStorage.removeItem('ge:retomando');
   const diasRutina = storage.getRutina()?.dias.length ?? 0;

@@ -3,7 +3,7 @@
 // .astro para poder testearlo con jsdom.
 
 import { resolverSalteo, variantesDe, ultimaVez } from '../lib/motor';
-import { alternativasDe, sustituirEjercicio } from '../lib/editor';
+import { alternativasDe, dosisInicial, sustituirEjercicio } from '../lib/editor';
 import { parsearDiaElegido, resolverDiaDeHoy } from '../lib/dia';
 import { formatearObjetivo, formatearFc } from '../lib/formato';
 import { convertirDiaSinGym } from '../lib/singym';
@@ -26,6 +26,9 @@ export interface DepsEntrenar {
   confirmar: (mensaje: string) => boolean;
 }
 
+/** Nombre del día de una sesión libre. Es también cómo se la reconoce en el draft. */
+const NOMBRE_LIBRE = 'Sesión libre';
+
 export function montarEntrenar(deps: DepsEntrenar): void {
   const { contenedor: caja, catalogo, perfil, hoy, navegar, confirmar } = deps;
 
@@ -42,7 +45,8 @@ export function montarEntrenar(deps: DepsEntrenar): void {
   }
   interface Draft {
     fecha: string;
-    diaIndex: number;
+    /** Undefined en sesión libre: no hay día de rutina y la rotación no se corre. */
+    diaIndex?: number;
     nombreDia: string;
     indice: number;
     ejercicios: EstadoEj[];
@@ -51,6 +55,8 @@ export function montarEntrenar(deps: DepsEntrenar): void {
   let dia: DiaRutina;
   let draft: Draft;
   let sinGym = false;
+  /** Sesión libre: sin rutina, se van eligiendo los ejercicios sobre la marcha. */
+  let libre = false;
 
   const porId = (id: string) => catalogo.find((e) => e.id === id);
   const unidadEntrada = (): UnidadPeso => storage.getConfig().unidadEntrada ?? 'kg';
@@ -70,6 +76,40 @@ export function montarEntrenar(deps: DepsEntrenar): void {
       return { reps: anterior?.reps ?? e.repsMin, pesoKg: anterior?.pesoKg, hecha: false };
     });
     return { ejercicioId: e.ejercicioId, variante, series, plan: e };
+  }
+
+  /** Agrega un ejercicio a la sesión libre con la dosis inicial de su tipo. */
+  function agregarASesion(ejercicio: Ejercicio) {
+    const plan: EjercicioRutina = {
+      movimiento: ejercicio.movimiento,
+      ejercicioId: ejercicio.id,
+      ...dosisInicial(ejercicio.tipo),
+    };
+    draft.ejercicios = [...draft.ejercicios, armarEstado(plan)];
+    draft.indice = draft.ejercicios.length - 1;
+    guardarDraft();
+    pintar();
+  }
+
+  /** Pantalla para sumar un ejercicio: el mismo buscador que el resto de la app. */
+  function pintarAgregar() {
+    const primero = draft.ejercicios.length === 0;
+    caja.innerHTML = `
+      <h1>${primero ? 'Sesión libre' : 'Agregar ejercicio'}</h1>
+      <p class="ayuda">${primero
+        ? 'Elegí lo que vayas a hacer. Podés sumar más en cualquier momento.'
+        : `Van ${draft.ejercicios.length} en esta sesión.`}</p>
+      <div class="carta" id="caja-buscador"></div>
+      ${primero
+        ? `<a class="boton-silencioso" style="display:block;text-align:center" href="${rutaBase}/">Salir</a>`
+        : '<button class="boton-secundario" id="btn-volver-sesion">Volver a la sesión</button>'}`;
+    caja.querySelector('#caja-buscador')!.appendChild(
+      crearBuscador({ catalogo, alElegir: agregarASesion, etiqueta: 'Buscar en el catálogo' }),
+    );
+    caja.querySelector('#btn-volver-sesion')?.addEventListener('click', () => {
+      draft.indice = Math.min(draft.indice, draft.ejercicios.length - 1);
+      pintar();
+    });
   }
 
   /** Recalcula las series precargando lo que levantaste la última vez con ese ejercicio. */
@@ -136,11 +176,14 @@ export function montarEntrenar(deps: DepsEntrenar): void {
         fecha: hoy(),
         tipo: 'fuerza',
         estado: 'hecha',
-        diaIndex: draft.diaIndex,
+        // Sin diaIndex en sesión libre: no es un día de la rutina, así que no
+        // corre la rotación (resolverSalteo solo mira las que sí lo tienen).
+        ...(draft.diaIndex === undefined ? {} : { diaIndex: draft.diaIndex }),
         diaRutina: draft.nombreDia,
         ...(items.length ? { items } : {}),
       });
       localStorage.removeItem('ge:draft');
+      sessionStorage.removeItem('ge:libre');
       navegar('/');
     });
     caja.querySelector('#btn-volver-wizard')!.addEventListener('click', () => {
@@ -180,7 +223,7 @@ export function montarEntrenar(deps: DepsEntrenar): void {
     const estado = draft.ejercicios[draft.indice]!;
     const anterior = porId(estado.ejercicioId);
     // En modo sin gym el día se reconstruye y los índices no mapean a la rutina.
-    const puedeFijar = !sinGym;
+    const puedeFijar = !sinGym && !libre;
     caja.innerHTML = `
       <h1>${escapar(nuevo.nombre_es)}</h1>
       <p class="ayuda">Reemplaza a ${escapar(anterior?.nombre_es ?? estado.ejercicioId)}</p>
@@ -208,6 +251,10 @@ export function montarEntrenar(deps: DepsEntrenar): void {
   }
 
   function pintar() {
+    if (libre && draft.ejercicios.length === 0) {
+      pintarAgregar();
+      return;
+    }
     if (draft.indice >= draft.ejercicios.length) {
       pintarResumen();
       guardarDraft();
@@ -271,8 +318,11 @@ export function montarEntrenar(deps: DepsEntrenar): void {
       </div>
       <div class="acciones-ej">
         <button id="btn-cambiar">Cambiar ejercicio ⇄</button>
-        <button id="btn-saltear">${estado.salteado ? 'Salteado — deshacer' : 'Hoy no lo hago'}</button>
+        ${libre
+          ? '<button id="btn-quitar-libre">Sacar de la sesión</button>'
+          : `<button id="btn-saltear">${estado.salteado ? 'Salteado — deshacer' : 'Hoy no lo hago'}</button>`}
       </div>
+      ${libre ? '<button class="boton-secundario" id="btn-sumar">+ Agregar otro ejercicio</button>' : ''}
       <div class="nav">
         <button id="btn-anterior" ${draft.indice === 0 ? 'disabled' : ''}>‹ Anterior</button>
         <button id="btn-siguiente" class="boton-principal" style="width:auto;flex:2">${draft.indice + 1 === draft.ejercicios.length ? 'Terminar' : 'Siguiente ›'}</button>
@@ -329,7 +379,14 @@ export function montarEntrenar(deps: DepsEntrenar): void {
       }),
     );
     caja.querySelector('#btn-cambiar')!.addEventListener('click', pintarCambiar);
-    caja.querySelector('#btn-saltear')!.addEventListener('click', () => {
+    caja.querySelector('#btn-sumar')?.addEventListener('click', pintarAgregar);
+    caja.querySelector('#btn-quitar-libre')?.addEventListener('click', () => {
+      draft.ejercicios = draft.ejercicios.filter((_, i) => i !== draft.indice);
+      draft.indice = Math.max(0, Math.min(draft.indice, draft.ejercicios.length - 1));
+      guardarDraft();
+      pintar();
+    });
+    caja.querySelector('#btn-saltear')?.addEventListener('click', () => {
       estado.salteado = !estado.salteado;
       if (estado.salteado) {
         estado.series = estado.series.map((s) => ({ ...s, hecha: false }));
@@ -350,7 +407,45 @@ export function montarEntrenar(deps: DepsEntrenar): void {
     });
   }
 
+  /** Draft crudo, sin validar: para saber qué tipo de sesión hay en curso. */
+  function leerDraftCrudo(): Draft | null {
+    try {
+      return JSON.parse(localStorage.getItem('ge:draft') ?? 'null') as Draft | null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Draft de hoy si sigue sirviendo. En sesión libre el largo es libre; en una
+   * sesión de rutina tiene que coincidir con el día (si se editó a mitad de
+   * camino, el draft viejo ya no representa lo que hay).
+   */
+  function retomarDraft(diaActual: DiaRutina): Draft | null {
+    const previo = leerDraftCrudo();
+    if (!previo?.ejercicios) return null;
+    // `plan` faltante = draft de una versión anterior de la app: se descarta.
+    const compatible = previo.ejercicios.every((e) => e.plan);
+    const largoOk = libre || previo.ejercicios.length === diaActual.ejercicios.length;
+    if (previo.fecha === hoy() && previo.nombreDia === diaActual.nombre && compatible && largoOk) {
+      return previo;
+    }
+    return null;
+  }
+
   function iniciar() {
+    // El flag alcanza para entrar, pero el draft manda: si volviste a Hoy (que
+    // limpia el flag) y seguís con una sesión libre a medias, se retoma igual.
+    const enCurso = leerDraftCrudo();
+    libre =
+      sessionStorage.getItem('ge:libre') === hoy() ||
+      (enCurso?.fecha === hoy() && enCurso?.nombreDia === NOMBRE_LIBRE);
+    if (libre) {
+      dia = { nombre: NOMBRE_LIBRE, enfoque: 'lo que salga', ejercicios: [] };
+      draft = retomarDraft(dia) ?? { fecha: hoy(), nombreDia: NOMBRE_LIBRE, indice: 0, ejercicios: [] };
+      pintar();
+      return;
+    }
     const rutina = storage.getRutina();
     if (!rutina) {
       navegar('/perfil/');
@@ -362,19 +457,11 @@ export function montarEntrenar(deps: DepsEntrenar): void {
     sinGym = sessionStorage.getItem('ge:singym') === hoy();
     dia = sinGym ? convertirDiaSinGym(diaPlan, catalogo, storage.getCustoms(), perfil).dia : diaPlan;
 
-    const guardado = localStorage.getItem('ge:draft');
-    if (guardado) {
-      try {
-        const previo = JSON.parse(guardado) as Draft;
-        // El largo debe coincidir: si se editó la rutina a mitad de día, el draft viejo no sirve.
-        // `plan` faltante = draft de una versión anterior de la app: se descarta.
-        const compatible = previo.ejercicios.every((e) => e.plan);
-        if (previo.fecha === hoy() && previo.nombreDia === dia.nombre && compatible && previo.ejercicios.length === dia.ejercicios.length) {
-          draft = previo;
-          pintar();
-          return;
-        }
-      } catch { /* draft roto: se arranca de cero */ }
+    const previo = retomarDraft(dia);
+    if (previo) {
+      draft = previo;
+      pintar();
+      return;
     }
     draft = {
       fecha: hoy(),

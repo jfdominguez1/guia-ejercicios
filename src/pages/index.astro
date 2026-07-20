@@ -62,7 +62,7 @@ import Base from '../layouts/Base.astro';
 
 <script>
   import { montarHoy } from '../ui/hoy';
-  import { cargarCatalogoCompleto, exigirPerfil, hoyISO } from '../ui/datos';
+  import { cargarCatalogoCompleto, exigirPerfil, hoyISO, rutaBase } from '../ui/datos';
 
   const perfil = exigirPerfil();
   if (perfil) {
@@ -73,6 +73,7 @@ import Base from '../layouts/Base.astro';
         perfil,
         hoy: hoyISO,
         confirmar: (mensaje) => window.confirm(mensaje),
+        navegar: (ruta) => { window.location.href = `${rutaBase}${ruta}`; },
       });
     });
   }

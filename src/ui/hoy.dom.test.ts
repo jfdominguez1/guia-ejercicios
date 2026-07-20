@@ -52,6 +52,7 @@ function rutina(): Rutina {
 function montar(respuestas: boolean[] = []) {
   document.body.innerHTML = '<div id="hoy"></div>';
   const preguntas: string[] = [];
+  const rutas: string[] = [];
   let i = 0;
   montarHoy({
     contenedor: document.querySelector('#hoy') as HTMLElement,
@@ -62,8 +63,9 @@ function montar(respuestas: boolean[] = []) {
       preguntas.push(mensaje);
       return respuestas[i++] ?? true;
     },
+    navegar: (ruta) => rutas.push(ruta),
   });
-  return { preguntas };
+  return { preguntas, rutas };
 }
 
 const $ = (sel: string) => document.querySelector(sel) as HTMLElement;
@@ -271,5 +273,29 @@ describe('bloques guardados', () => {
     $('[data-quitar-bloque="0"]').click();
     expect(preguntas[0]).toContain('Bloque X');
     expect(storage.getGrupos()).toHaveLength(0);
+  });
+});
+
+describe('sesión libre', () => {
+  it('el botón marca el modo y lleva al wizard', () => {
+    const { rutas } = montar();
+    $('#btn-libre').click();
+    expect(sessionStorage.getItem('ge:libre')).toBe(HOY);
+    expect(rutas).toEqual(['/entrenar/']);
+  });
+
+  it('con un entrenamiento a medias avisa antes', () => {
+    localStorage.setItem('ge:draft', JSON.stringify({ fecha: HOY, ejercicios: [] }));
+    const { preguntas, rutas } = montar([false]);
+    $('#btn-libre').click();
+    expect(preguntas[0]).toContain('entrenamiento a medias');
+    expect(rutas).toEqual([]);
+    expect(sessionStorage.getItem('ge:libre')).toBeNull();
+  });
+
+  it('volver a Hoy sale del modo libre', () => {
+    sessionStorage.setItem('ge:libre', HOY);
+    montar();
+    expect(sessionStorage.getItem('ge:libre')).toBeNull();
   });
 });

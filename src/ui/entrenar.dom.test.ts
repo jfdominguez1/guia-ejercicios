@@ -404,3 +404,128 @@ describe('sesión duplicada', () => {
     expect(storage.getSesiones()).toHaveLength(2);
   });
 });
+
+describe('sesión libre', () => {
+  function montarLibre(respuestas: boolean[] = []) {
+    sessionStorage.setItem('ge:libre', HOY);
+    return montar(respuestas);
+  }
+  const buscarYElegir = (texto: string, id: string) => {
+    const buscador = $('#buscar-ej') as HTMLInputElement;
+    buscador.value = texto;
+    buscador.dispatchEvent(new Event('input'));
+    $(`[data-elegir="${id}"]`).click();
+  };
+
+  it('arranca vacía, pidiendo el primer ejercicio', () => {
+    montarLibre();
+    expect(texto()).toContain('Sesión libre');
+    expect(texto()).toContain('Elegí lo que vayas a hacer');
+    expect($('#buscar-ej')).not.toBeNull();
+  });
+
+  it('elegir un ejercicio lo pone en el wizard con su dosis inicial', () => {
+    montarLibre();
+    buscarYElegir('press banca', 'F1');
+    expect(texto()).toContain('Press banca');
+    expect($$('.serie')).toHaveLength(3); // dosisInicial de fuerza
+  });
+
+  it('se pueden sumar varios y navegar entre ellos', () => {
+    montarLibre();
+    buscarYElegir('press banca', 'F1');
+    $('#btn-sumar').click();
+    expect(texto()).toContain('Van 1 en esta sesión');
+    buscarYElegir('remo', 'F4');
+    expect(texto()).toContain('Remo');
+    expect(texto()).toContain('2/2');
+    $('#btn-anterior').click();
+    expect(texto()).toContain('Press banca');
+  });
+
+  it('se puede sacar un ejercicio de la sesión', () => {
+    montarLibre();
+    buscarYElegir('press banca', 'F1');
+    $('#btn-sumar').click();
+    buscarYElegir('remo', 'F4');
+    $('#btn-quitar-libre').click();
+    expect(texto()).toContain('Press banca');
+    expect(texto()).toContain('1/1');
+  });
+
+  it('no ofrece saltear: en libre se saca y listo', () => {
+    montarLibre();
+    buscarYElegir('press banca', 'F1');
+    expect($('#btn-saltear')).toBeNull();
+    expect($('#btn-quitar-libre')).not.toBeNull();
+  });
+
+  it('no ofrece fijar el cambio en la rutina', () => {
+    montarLibre();
+    buscarYElegir('press banca', 'F1');
+    $('#btn-cambiar').click();
+    $('[data-elegir="F2"]').click();
+    expect($('[data-alcance="hoy"]')).not.toBeNull();
+    expect($('[data-alcance="siempre"]')).toBeNull();
+  });
+
+  it('guarda la sesión SIN diaIndex, así no corre la rotación', () => {
+    const { rutas } = montarLibre();
+    buscarYElegir('press banca', 'F1');
+    $$('.serie .check')[0]!.click();
+    $('#btn-siguiente').click();
+    $('#btn-guardar').click();
+    const s = storage.getSesiones()[0]!;
+    expect(s.diaRutina).toBe('Sesión libre');
+    expect(s.diaIndex).toBeUndefined();
+    expect(s.items![0]).toMatchObject({ ejercicioId: 'F1' });
+    expect(rutas).toEqual(['/']);
+  });
+
+  it('al guardar sale del modo libre', () => {
+    montarLibre();
+    buscarYElegir('press banca', 'F1');
+    $('#btn-siguiente').click();
+    $('#btn-guardar').click();
+    expect(sessionStorage.getItem('ge:libre')).toBeNull();
+  });
+
+  it('una sesión libre no adelanta el día que toca en la rutina', () => {
+    montarLibre();
+    buscarYElegir('press banca', 'F1');
+    $('#btn-siguiente').click();
+    $('#btn-guardar').click();
+    // Sin sesiones con diaIndex, el motor sigue proponiendo el primer día.
+    sessionStorage.removeItem('ge:libre');
+    montar();
+    expect(texto()).toContain('Día 1 — Empuje');
+  });
+
+  it('retoma el draft libre al volver a entrar', () => {
+    montarLibre();
+    buscarYElegir('press banca', 'F1');
+    $$('.serie .check')[0]!.click();
+    montarLibre(); // simula recargar
+    expect(texto()).toContain('Press banca');
+    expect(leerDraft().ejercicios[0].series[0].hecha).toBe(true);
+  });
+});
+
+describe('sesión libre — volver a Hoy y seguir', () => {
+  it('se retoma aunque el flag ya no esté (el draft manda)', () => {
+    sessionStorage.setItem('ge:libre', HOY);
+    montar();
+    const buscador = $('#buscar-ej') as HTMLInputElement;
+    buscador.value = 'press banca';
+    buscador.dispatchEvent(new Event('input'));
+    $('[data-elegir="F1"]').click();
+    $$('.serie .check')[0]!.click();
+
+    // Pasar por Hoy limpia el flag; la sesión a medias no se tiene que perder.
+    sessionStorage.removeItem('ge:libre');
+    montar();
+    expect(texto()).toContain('Press banca');
+    expect(texto()).toContain('Sesión libre');
+    expect(leerDraft().ejercicios[0].series[0].hecha).toBe(true);
+  });
+});
