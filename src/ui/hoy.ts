@@ -10,6 +10,7 @@ import { estadoHome, type ResultadoRetomar } from '../lib/retomar';
 import { registrarHecha, registrarOtra, registrarGrupo, fechaValidaRetro, resumenSemanal, yaHaySesion, type TipoRapido } from '../lib/registro';
 import { convertirDiaSinGym } from '../lib/singym';
 import { formatearObjetivo, formatearFc, etiquetaDescanso } from '../lib/formato';
+import { calcularRacha, fechaLarga, fraseRacha } from '../lib/racha';
 import { resumenSeries } from '../lib/unidades';
 import { storage } from '../lib/storage';
 import { crearPanelEjercicio } from './panel-ejercicio';
@@ -49,15 +50,26 @@ export function montarHoy(deps: DepsHoy): void {
 
   function htmlSemana(): string {
     const config = storage.getConfig();
-    const r = resumenSemanal(storage.getSesiones(), hoy(), config.objetivoSemanal);
+    const sesiones = storage.getSesiones();
+    const r = resumenSemanal(sesiones, hoy(), config.objetivoSemanal);
+    const racha = calcularRacha(sesiones, hoy(), config.objetivoSemanal);
     const discos = Array.from(
       { length: Math.max(r.objetivo, Math.min(r.hechas, 7)) },
       (_, i) => `<div class="disco${i < r.hechas ? ' lleno' : ''}"></div>`,
     ).join('');
+    // La racha solo aparece cuando existe: un "0 semanas" sería un reproche.
+    const insignia = racha.semanas >= 2
+      ? `<span class="insignia" title="Semanas seguidas cumpliendo el objetivo">🔥 ${racha.semanas}</span>`
+      : '';
     return `<div class="carta semana">
-      <span class="eyebrow">Esta semana</span>
-      <div class="numero">${r.hechas} de ${r.objetivo}</div>
+      <div class="semana-top">
+        <span class="eyebrow">${escapar(fechaLarga(hoy()))}</span>
+        ${insignia}
+      </div>
+      <div class="numero">${r.hechas} <span class="de">de ${r.objetivo}</span></div>
+      <span class="eyebrow">esta semana</span>
       <div class="discos">${discos}</div>
+      <p class="frase">${escapar(fraseRacha(racha, r.hechas, r.objetivo))}</p>
     </div>`;
   }
 
@@ -351,17 +363,20 @@ export function montarHoy(deps: DepsHoy): void {
       ${modoSinGym ? `<div class="aviso">Modo sin gym: variantes con tu cuerpo y banda por hoy. <button class="boton-silencioso" id="btn-singym-off">Volver</button></div>` : ''}
       ${htmlSesion(mostrado.dia, mostrado.avisos, editable)}
       <button class="boton-principal" id="btn-hecha">Hecha ✓</button>
+      <a class="boton boton-entrenar" href="${rutaBase}/entrenar/">${hayDraftHoy() ? 'Continuar entrenamiento ▸' : 'Entrenar ahora ▸'}</a>
       <button class="boton-secundario" id="btn-otra">Hice otra cosa</button>
-      <div class="acciones-extra">
-        <a class="boton" style="text-align:center;text-decoration:none" href="${rutaBase}/entrenar/">${hayDraftHoy() ? 'Continuar entrenamiento ▸' : 'Entrenar ahora'}</a>
-        <button id="btn-elongacion">+ Elongación</button>
-        <button id="btn-singym">${modoSinGym ? 'Con equipo' : 'Hoy sin gym'}</button>
-        ${rutina.dias.length > 1 ? '<button id="btn-otro-dia">Hacer otro día ⇄</button>' : ''}
-        <button id="btn-libre">Sesión libre</button>
-        <button id="btn-retro">Registrar día pasado</button>
-        <a class="boton" style="text-align:center;text-decoration:none" href="${rutaBase}/historial/#cardio">+ Cardio</a>
-        <button id="btn-regenerar">Regenerar ↻</button>
-      </div>
+      <details class="mas-opciones">
+        <summary>Más opciones</summary>
+        <div class="acciones-extra">
+          <button id="btn-elongacion">+ Elongación</button>
+          <button id="btn-singym">${modoSinGym ? 'Con equipo' : 'Hoy sin gym'}</button>
+          ${rutina.dias.length > 1 ? '<button id="btn-otro-dia">Hacer otro día ⇄</button>' : ''}
+          <button id="btn-libre">Sesión libre</button>
+          <button id="btn-retro">Registrar día pasado</button>
+          <a class="boton" href="${rutaBase}/historial/#cardio">+ Cardio</a>
+          <button id="btn-regenerar">Regenerar ↻</button>
+        </div>
+      </details>
       ${htmlBloques()}`;
 
     $('#btn-hecha').addEventListener('click', () => {

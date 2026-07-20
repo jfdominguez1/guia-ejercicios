@@ -5,12 +5,14 @@ interface Props {
 }
 const { titulo = 'Guía de Ejercicios', activa } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+// El ícono no es decoración: a 12px el texto solo obliga a leer para navegar.
+// Con figura + palabra la pestaña se reconoce de un vistazo y sudado.
 const tabs = [
-  { id: 'hoy', label: 'Hoy', href: `${base}/` },
-  { id: 'rutina', label: 'Rutina', href: `${base}/rutina/` },
-  { id: 'historial', label: 'Historial', href: `${base}/historial/` },
-  { id: 'catalogo', label: 'Catálogo', href: `${base}/catalogo/` },
-  { id: 'perfil', label: 'Perfil', href: `${base}/perfil/` },
+  { id: 'hoy', label: 'Hoy', href: `${base}/`, icono: '<circle cx="12" cy="12" r="9"/><path d="M8.2 12.4l2.6 2.6 4.9-5.4"/>' },
+  { id: 'rutina', label: 'Rutina', href: `${base}/rutina/`, icono: '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.6" cy="6" r="1.4"/><circle cx="4.6" cy="12" r="1.4"/><circle cx="4.6" cy="18" r="1.4"/>' },
+  { id: 'historial', label: 'Historial', href: `${base}/historial/`, icono: '<path d="M5 20v-7M12 20V5M19 20v-4"/>' },
+  { id: 'catalogo', label: 'Catálogo', href: `${base}/catalogo/`, icono: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/>' },
+  { id: 'perfil', label: 'Perfil', href: `${base}/perfil/`, icono: '<circle cx="12" cy="8" r="3.6"/><path d="M4.8 20c0-4 3.2-6.2 7.2-6.2s7.2 2.2 7.2 6.2"/>' },
 ];
 ---
 
@@ -80,7 +82,8 @@ const tabs = [
     <nav class="tabs" aria-label="Navegación principal">
       {tabs.map((t) => (
         <a href={t.href} class:list={['tab', { activa: activa === t.id }]} aria-current={activa === t.id ? 'page' : undefined}>
-          {t.label}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={t.icono} />
+          <span>{t.label}</span>
         </a>
       ))}
     </nav>
@@ -130,7 +133,7 @@ const tabs = [
   main {
     max-width: 480px;
     margin: 0 auto;
-    padding: 16px 16px calc(76px + env(safe-area-inset-bottom));
+    padding: 16px 16px calc(88px + env(safe-area-inset-bottom));
   }
   h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; margin: 8px 0 12px; }
   h2 { font-size: 15px; font-weight: 700; margin: 20px 0 8px; }
@@ -158,6 +161,8 @@ const tabs = [
 
   button, .boton {
     font: inherit;
+    /* 44px es el piso para que un dedo acierte sin apuntar. */
+    min-height: 44px;
     border: 1px solid var(--borde);
     background: var(--carta);
     color: var(--tinta);
@@ -221,28 +226,46 @@ const tabs = [
     border-color: var(--tinta);
   }
 
+  /* Barra inferior: cada pestaña es un blanco de 56px de alto y 1/5 del ancho.
+     Antes el área tocable eran ~33px de alto (texto de 12px + padding), por
+     debajo del mínimo de 48px que necesita un dedo. */
   .tabs {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
+    z-index: 10;
     display: flex;
-    justify-content: space-around;
+    gap: 2px;
     background: var(--carta);
     border-top: 1px solid var(--borde);
-    padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+    padding: 5px 5px calc(5px + env(safe-area-inset-bottom));
   }
   .tab {
+    flex: 1;
+    min-width: 0;
+    min-height: 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 2px;
+    border-radius: 12px;
     text-decoration: none;
     color: var(--tinta-suave);
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    padding: 10px 8px 6px;
-    border-top: 3px solid transparent;
+    -webkit-tap-highlight-color: transparent;
   }
-  .tab.activa { color: var(--tinta); border-top-color: var(--accion); }
+  .tab svg { width: 24px; height: 24px; flex: none; }
+  .tab span { line-height: 1.1; }
+  .tab.activa {
+    color: var(--tinta);
+    background: color-mix(in srgb, var(--accion) 22%, transparent);
+  }
+  .tab.activa svg { color: color-mix(in srgb, var(--accion) 80%, var(--tinta)); }
+  .tab:active { background: color-mix(in srgb, var(--tinta) 8%, transparent); }
 
   .aviso {
     background: color-mix(in srgb, var(--accion) 18%, var(--carta));
@@ -281,7 +304,7 @@ const tabs = [
     position: fixed;
     left: 8px;
     right: 8px;
-    bottom: calc(70px + env(safe-area-inset-bottom));
+    bottom: calc(80px + env(safe-area-inset-bottom));
     z-index: 20;
     display: flex;
     align-items: center;

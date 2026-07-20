@@ -80,7 +80,7 @@ export function fechaValidaRetro(
 }
 
 /** Lunes de la semana de una fecha (semana lunes-domingo). */
-function lunesDe(fechaISO: string): number {
+export function lunesDe(fechaISO: string): number {
   const fecha = new Date(`${fechaISO}T00:00:00Z`);
   const diaSemana = (fecha.getUTCDay() + 6) % 7; // lunes=0 ... domingo=6
   return fecha.getTime() - diaSemana * MS_POR_DIA;

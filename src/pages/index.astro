@@ -8,15 +8,49 @@ import Base from '../layouts/Base.astro';
 
 <style>
   /* La métrica de la semana es EL número de la app: discos de barra. */
-  #hoy :global(.semana) { text-align: center; padding: 18px 14px; }
-  #hoy :global(.semana .numero) {
-    font-size: 44px;
-    font-weight: 900;
-    letter-spacing: -0.03em;
-    font-variant-numeric: tabular-nums;
-    line-height: 1.1;
+  #hoy :global(.semana) {
+    text-align: center;
+    padding: 16px 14px 18px;
+    background: linear-gradient(160deg, color-mix(in srgb, var(--accion) 12%, var(--carta)), var(--carta) 65%);
   }
-  #hoy :global(.discos) { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
+  #hoy :global(.semana-top) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 24px;
+  }
+  #hoy :global(.semana-top .eyebrow) { text-align: left; }
+  #hoy :global(.insignia) {
+    font-size: 13px;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accion) 30%, var(--carta));
+    border: 1px solid color-mix(in srgb, var(--accion) 55%, var(--borde));
+    white-space: nowrap;
+  }
+  #hoy :global(.semana .numero) {
+    font-size: 56px;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.05;
+    margin-top: 4px;
+  }
+  #hoy :global(.semana .numero .de) {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--tinta-suave);
+    letter-spacing: -0.01em;
+  }
+  #hoy :global(.semana .frase) {
+    margin: 12px 0 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tinta-suave);
+  }
+  #hoy :global(.discos) { display: flex; justify-content: center; gap: 10px; margin-top: 12px; }
   #hoy :global(.disco) {
     width: 34px;
     height: 34px;
@@ -24,7 +58,11 @@ import Base from '../layouts/Base.astro';
     border: 3px solid var(--tinta-suave);
     background: transparent;
   }
-  #hoy :global(.disco.lleno) { background: var(--accion); border-color: var(--accion); }
+  #hoy :global(.disco.lleno) {
+    background: var(--accion);
+    border-color: var(--accion);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accion) 45%, transparent);
+  }
 
   #hoy :global(.ejercicio) {
     padding: 10px 0;
@@ -34,8 +72,47 @@ import Base from '../layouts/Base.astro';
   #hoy :global(.ejercicio a) { color: inherit; text-decoration: none; font-weight: 700; }
   #hoy :global(.dosis) { font-size: 14px; color: var(--tinta-suave); }
   #hoy :global(.ultima) { font-size: 13px; color: var(--tinta-suave); }
-  #hoy :global(.acciones-extra) { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-  #hoy :global(.acciones-extra button) { flex: 1 1 40%; font-size: 14px; padding: 10px; }
+  /* Los 8 atajos ocupaban tanto como la sesión del día y competían entre sí.
+     Ahora viven detrás de un tap; los tres caminos reales quedan a la vista. */
+  #hoy :global(.boton-entrenar) {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 16px;
+    padding: 14px;
+    border: 2px solid var(--accion);
+  }
+  #hoy :global(.mas-opciones) { margin-top: 14px; }
+  #hoy :global(.mas-opciones summary) {
+    list-style: none;
+    cursor: pointer;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--tinta-suave);
+  }
+  #hoy :global(.mas-opciones summary::-webkit-details-marker) { display: none; }
+  #hoy :global(.mas-opciones summary::after) { content: '▾'; }
+  #hoy :global(.mas-opciones[open] summary::after) { content: '▴'; }
+  #hoy :global(.acciones-extra) { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  #hoy :global(.acciones-extra button),
+  #hoy :global(.acciones-extra .boton) {
+    flex: 1 1 45%;
+    min-height: 52px;
+    font-size: 15px;
+    padding: 10px;
+    text-align: center;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
   #hoy :global(.retomar) { text-align: center; padding: 28px 16px; }
   #hoy :global(.retomar p) { font-size: 16px; }
   #hoy :global(.rpe-chips) { margin-top: 10px; }

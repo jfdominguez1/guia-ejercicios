@@ -93,6 +93,34 @@ describe('la sesión de hoy', () => {
     expect($('.semana .numero').textContent).toContain('0 de 3');
   });
 
+  it('encabeza con la fecha de hoy y una frase de contexto', () => {
+    montar();
+    expect(texto()).toContain('Lunes 20 de julio');
+    expect($('.semana .frase').textContent).toBeTruthy();
+  });
+
+  it('la insignia de racha aparece recién con 2 semanas cumplidas', () => {
+    montar();
+    expect($('.insignia')).toBeNull();
+
+    for (const fecha of ['2026-07-06', '2026-07-08', '2026-07-10', '2026-07-13', '2026-07-15', '2026-07-17']) {
+      storage.agregarSesion({ fecha, tipo: 'fuerza', estado: 'hecha' });
+    }
+    montar();
+    expect($('.insignia').textContent).toContain('2');
+  });
+
+  it('deja a la vista los tres caminos y guarda el resto en Más opciones', () => {
+    montar();
+    const detalle = $('.mas-opciones') as HTMLDetailsElement;
+    expect(detalle.open).toBe(false);
+    // Registrar y entrenar no pueden costar un tap extra.
+    for (const sel of ['#btn-hecha', '#btn-otra', '.boton-entrenar']) {
+      expect($(sel).closest('.mas-opciones')).toBeNull();
+    }
+    expect($('#btn-regenerar').closest('.mas-opciones')).toBe(detalle);
+  });
+
   it('sin rutina ofrece armarla', () => {
     localStorage.removeItem('ge:rutina');
     montar();
