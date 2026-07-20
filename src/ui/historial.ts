@@ -153,6 +153,7 @@ export function montarHistorial(deps: DepsHistorial): void {
       const original = item.enLugarDe ? porId(item.enLugarDe) : undefined;
       const cambio = original ? ` <span class="meta">(en lugar de ${escapar(original.nombre_es)})</span>` : '';
       lineas.push(`${nombre} (${item.variante}): ${series}${cambio}`);
+      if (item.nota) lineas.push(`📝 ${escapar(item.nota)}`);
     }
     return lineas.map((l) => `<p class="meta">${l}</p>`).join('') || '<p class="meta">Sin detalle — hecha es hecha.</p>';
   }
@@ -174,7 +175,8 @@ export function montarHistorial(deps: DepsHistorial): void {
           )
           .join('');
         return series
-          ? `<div class="bloque-item"><strong>${escapar(nombreDe(item))}</strong>${series}</div>`
+          ? `<div class="bloque-item"><strong>${escapar(nombreDe(item))}</strong>${series}
+              <input type="text" class="nota-item" data-item-nota="${i}" maxlength="200" placeholder="Nota (opcional)" value="${escapar(item.nota ?? '')}" aria-label="Nota de ${escapar(nombreDe(item))}" /></div>`
           : '';
       })
       .join('');
@@ -262,18 +264,23 @@ export function montarHistorial(deps: DepsHistorial): void {
       const crudo = texto(campo).trim();
       return crudo === '' ? undefined : Number(crudo);
     };
-    const items: ItemSesion[] = (s.items ?? []).map((item, i) => ({
-      ...item,
-      series: item.series.map((_, j) => {
-        const leer = (campo: string) =>
-          (panel.querySelector(`[data-item="${i}"][data-serie="${j}"][data-serie-campo="${campo}"]`) as HTMLInputElement | null)?.value ?? '';
-        const peso = leer('peso').trim();
-        return {
-          reps: Number(leer('reps')) || 0,
-          ...(peso === '' ? {} : { pesoKg: Number(peso) }),
-        };
-      }),
-    }));
+    const items: ItemSesion[] = (s.items ?? []).map((item, i) => {
+      const nota = (panel.querySelector(`[data-item-nota="${i}"]`) as HTMLInputElement | null)?.value.trim();
+      const { nota: _viejo, ...resto } = item;
+      return {
+        ...resto,
+        series: item.series.map((_, j) => {
+          const leer = (campo: string) =>
+            (panel.querySelector(`[data-item="${i}"][data-serie="${j}"][data-serie-campo="${campo}"]`) as HTMLInputElement | null)?.value ?? '';
+          const peso = leer('peso').trim();
+          return {
+            reps: Number(leer('reps')) || 0,
+            ...(peso === '' ? {} : { pesoKg: Number(peso) }),
+          };
+        }),
+        ...(nota ? { nota } : {}),
+      };
+    });
     const sensacion = texto('cardioSensacion').trim();
     return {
       fecha: texto('fecha'),

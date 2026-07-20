@@ -57,6 +57,14 @@ import Base from '../layouts/Base.astro';
     font-weight: 800;
     font-variant-numeric: tabular-nums;
   }
+  #wizard :global(.sugerencia) {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--borde);
+  }
+  #wizard :global(.sugerencia .eyebrow) { color: var(--accion); }
+  #wizard :global(.dato-sugerencia) { margin: 4px 0 8px; font-size: 15px; font-weight: 600; }
+  #wizard :global(.sugerencia button) { width: 100%; }
   #wizard :global(.serie .check) {
     width: 40px;
     height: 40px;

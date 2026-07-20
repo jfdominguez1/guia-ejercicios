@@ -17,6 +17,7 @@ export interface EdicionSesion {
 
 const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_NOTAS = 500;
+const MAX_NOTA_ITEM = 200;
 
 function enRango(valor: number | undefined, min: number, max: number): boolean {
   return valor === undefined || (Number.isFinite(valor) && valor >= min && valor <= max);
@@ -43,6 +44,7 @@ export function validarEdicion(edicion: EdicionSesion, hoy: string): string[] {
       if (!enRango(serie.reps, 0, 1000)) errores.push('Las repeticiones van de 0 a 1000.');
       if (!enRango(serie.pesoKg, 0, 1000)) errores.push('El peso va de 0 a 1000 kg.');
     }
+    if ((item.nota?.length ?? 0) > MAX_NOTA_ITEM) errores.push(`Las notas por ejercicio no pueden pasar de ${MAX_NOTA_ITEM} caracteres.`);
   }
   return [...new Set(errores)];
 }

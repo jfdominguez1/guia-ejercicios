@@ -131,6 +131,31 @@ describe('editar', () => {
     expect($('[data-panel]')).toBeNull();
     expect(storage.getSesiones()).toHaveLength(1);
   });
+
+  it('muestra la nota del ejercicio y la deja editar (mejora 8)', () => {
+    const s = sesionFuerza();
+    s.items![0]!.nota = 'hombro molestó';
+    storage.setSesiones([s]);
+    montar();
+    expect($('#sesiones').textContent).toContain('hombro molestó');
+    botonAccion('editar').click();
+    const nota = $('[data-item-nota="0"]') as HTMLInputElement;
+    expect(nota.value).toBe('hombro molestó');
+    nota.value = 'ya no molesta';
+    botonAccion('guardar').click();
+    expect(storage.getSesiones()[0]!.items![0]!.nota).toBe('ya no molesta');
+  });
+
+  it('borrar la nota la saca del item', () => {
+    const s = sesionFuerza();
+    s.items![0]!.nota = 'algo';
+    storage.setSesiones([s]);
+    montar();
+    botonAccion('editar').click();
+    ($('[data-item-nota="0"]') as HTMLInputElement).value = '';
+    botonAccion('guardar').click();
+    expect(storage.getSesiones()[0]!.items![0]!.nota).toBeUndefined();
+  });
 });
 
 describe('borrar y deshacer', () => {

@@ -104,6 +104,8 @@ export interface ItemSesion {
   salteado?: true;
   /** Reemplazó a otro ejercicio solo por hoy (id del que estaba planificado). */
   enLugarDe?: string;
+  /** Nota puntual de este ejercicio en esta sesión (ej. "el hombro molestó"). */
+  nota?: string;
 }
 
 export type TipoCardio = 'corrida' | 'caminata' | 'bicicleta' | 'eliptica' | 'cinta';

@@ -337,7 +337,7 @@ describe('validarImport — peso inicial sugerido por la IA', () => {
   });
 
   it('el prompt le explica el campo a la IA', () => {
-    const pedido = generarExport(PERFIL, RUTINA, [], CAT, [], [], '2026-07-12');
+    const pedido = generarExport(PERFIL, RUTINA, [], CAT, [], undefined, '2026-07-12');
     expect(pedido).toContain('pesoInicialKg');
   });
 });

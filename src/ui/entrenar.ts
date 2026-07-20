@@ -3,6 +3,7 @@
 // .astro para poder testearlo con jsdom.
 
 import { resolverSalteo, variantesDe, ultimaVez } from '../lib/motor';
+import { sugerirProgresion } from '../lib/progreso';
 import { alternativasDe, dosisInicial, sustituirEjercicio } from '../lib/editor';
 import { parsearDiaElegido, resolverDiaDeHoy } from '../lib/dia';
 import { formatearObjetivo, formatearFc } from '../lib/formato';
@@ -42,6 +43,8 @@ export function montarEntrenar(deps: DepsEntrenar): void {
     salteado?: boolean;
     /** Id del ejercicio que estaba planificado, si lo cambiaste solo por hoy. */
     enLugarDe?: string;
+    /** Nota puntual de hoy para este ejercicio. */
+    nota?: string;
   }
   interface Draft {
     fecha: string;
@@ -139,7 +142,7 @@ export function montarEntrenar(deps: DepsEntrenar): void {
   /** Reemplaza el ejercicio de este paso. `enRutina` lo deja fijo; si no, vale solo hoy. */
   function cambiarEjercicio(estado: EstadoEj, nuevo: Ejercicio, enRutina: boolean) {
     if (!estado.enLugarDe && estado.ejercicioId !== nuevo.id) estado.enLugarDe = estado.ejercicioId;
-    if (enRutina) {
+    if (enRutina && draft.diaIndex !== undefined) {
       const rutina = storage.getRutina();
       if (rutina) storage.setRutina(sustituirEjercicio(rutina, draft.diaIndex, draft.indice, nuevo));
       estado.enLugarDe = undefined;
@@ -174,6 +177,7 @@ export function montarEntrenar(deps: DepsEntrenar): void {
           series: e.series.filter((s) => s.hecha).map(({ reps, pesoKg }) => (pesoKg === undefined ? { reps } : { reps, pesoKg })),
           ...(e.salteado ? { salteado: true as const } : {}),
           ...(e.enLugarDe ? { enLugarDe: e.enLugarDe } : {}),
+          ...(e.nota?.trim() ? { nota: e.nota.trim() } : {}),
         }))
         // Los salteados se guardan igual (sin series) para detectar los que esquivás siempre.
         .filter((i) => i.series.length > 0 || i.salteado);
@@ -275,9 +279,9 @@ export function montarEntrenar(deps: DepsEntrenar): void {
     const unidad = unidadEntrada();
     const previa = ultimaVez(storage.getSesiones(), estado.ejercicioId, estado.variante);
     const referencia = previa ? resumenSeries(previa.series) : '';
-    const sugerido = !previa && planificado.pesoInicialKg !== undefined
-      ? formatearPeso(planificado.pesoInicialKg)
-      : '';
+    // Qué hacer HOY: doble progresión sobre lo de la última vez (mejora 1).
+    const sugerencia = info ? sugerirProgresion(previa?.series ?? null, planificado, info) : null;
+    const sugConPeso = sugerencia && sugerencia.tipo !== 'sin-datos' ? sugerencia : null;
 
     caja.innerHTML = `
       <div class="progreso">
@@ -296,13 +300,17 @@ export function montarEntrenar(deps: DepsEntrenar): void {
         </div>
       </div>
       <div class="carta referencia">
-        <span class="eyebrow">${referencia ? 'La última vez' : sugerido ? 'Peso sugerido para arrancar' : 'La última vez'}</span>
+        <span class="eyebrow">${referencia ? 'La última vez' : 'Para arrancar'}</span>
         <p class="dato-referencia">${referencia
           ? escapar(referencia)
-          : sugerido
-            ? escapar(sugerido)
+          : sugerencia && sugerencia.tipo === 'sin-datos'
+            ? escapar(sugerencia.texto)
             : 'Nunca lo hiciste — arrancá cómodo.'}</p>
-        ${!referencia && sugerido ? '<p class="ayuda">Lo propuso tu IA. Ajustalo si te queda corto o largo.</p>' : ''}
+        ${sugConPeso ? `<div class="sugerencia">
+          <span class="eyebrow">Hoy probá</span>
+          <p class="dato-sugerencia">${escapar(sugConPeso.texto)}</p>
+          <button class="boton-secundario" id="btn-usar-sugerencia">Cargar ${escapar(formatearPeso(sugConPeso.pesoKg))} × ${sugConPeso.reps}</button>
+        </div>` : ''}
       </div>
       <div class="carta">
         <div class="cabecera-series">
@@ -328,6 +336,10 @@ export function montarEntrenar(deps: DepsEntrenar): void {
           </div>`;
           })
           .join('')}
+      </div>
+      <div class="carta">
+        <label style="margin-top:0">Nota de hoy <span class="eyebrow">(opcional)</span></label>
+        <textarea id="nota-ej" rows="2" maxlength="200" placeholder="Ej: el hombro molestó en la última serie">${escapar(estado.nota ?? '')}</textarea>
       </div>
       <div class="acciones-ej">
         <button id="btn-cambiar">Cambiar ejercicio ⇄</button>
@@ -391,6 +403,18 @@ export function montarEntrenar(deps: DepsEntrenar): void {
         pintar();
       }),
     );
+    caja.querySelector('#btn-usar-sugerencia')?.addEventListener('click', () => {
+      if (!sugConPeso) return;
+      // Precarga todas las series con lo sugerido; después ajustás a mano si querés.
+      estado.series = estado.series.map(() => ({ reps: sugConPeso.reps, pesoKg: sugConPeso.pesoKg, hecha: false }));
+      guardarDraft();
+      pintar();
+    });
+    const notaEl = caja.querySelector('#nota-ej') as HTMLTextAreaElement | null;
+    notaEl?.addEventListener('input', () => {
+      estado.nota = notaEl.value;
+      guardarDraft();
+    });
     caja.querySelector('#btn-cambiar')!.addEventListener('click', pintarCambiar);
     caja.querySelector('#btn-sumar')?.addEventListener('click', pintarAgregar);
     caja.querySelector('#btn-quitar-libre')?.addEventListener('click', () => {

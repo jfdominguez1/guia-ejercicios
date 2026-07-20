@@ -305,10 +305,10 @@ describe('kg y libras', () => {
     expect($('.dato-referencia').textContent).toBe('2×10 · 20 kg · 44,1 lb');
   });
 
-  it('si nunca lo hiciste lo dice sin culpa', () => {
+  it('si nunca lo hiciste invita a arrancar cómodo (sin culpa)', () => {
     montar();
     $('#btn-siguiente').click(); // Remo: sin historial y sin peso sugerido
-    expect($('.dato-referencia').textContent).toContain('Nunca lo hiciste');
+    expect($('.dato-referencia').textContent).toMatch(/arrancá cómodo/i);
   });
 
   it('en kg guarda lo tipeado tal cual', () => {
@@ -542,9 +542,10 @@ describe('peso inicial sugerido por la IA', () => {
 
   it('lo muestra como sugerido, no como "la última vez"', () => {
     montar();
-    expect(texto()).toContain('Peso sugerido para arrancar');
+    expect(texto()).toContain('Para arrancar');
     expect(texto()).toContain('25 kg · 55,1 lb');
-    expect(texto()).toContain('Lo propuso tu IA');
+    expect(texto()).toMatch(/arrancá con/i);
+    expect(texto()).not.toContain('La última vez');
   });
 
   it('en cuanto hay un registro real, manda lo que levantaste', () => {
@@ -558,11 +559,11 @@ describe('peso inicial sugerido por la IA', () => {
     expect(texto()).not.toContain('Peso sugerido');
   });
 
-  it('sin sugerido y sin historial el campo queda vacío, como antes', () => {
+  it('sin sugerido y sin historial el campo de peso queda vacío', () => {
     montar();
     $('#btn-siguiente').click(); // Remo no tiene pesoInicialKg
     expect(peso()).toBe('');
-    expect(texto()).toContain('Nunca lo hiciste');
+    expect(texto()).toMatch(/arrancá cómodo/i);
   });
 
   it('el sugerido entra al draft y se guarda si marcás la serie', () => {
@@ -572,5 +573,58 @@ describe('peso inicial sugerido por la IA', () => {
     $('#btn-siguiente').click();
     $('#btn-guardar').click();
     expect(storage.getSesiones()[0]!.items![0]!.series[0]!.pesoKg).toBe(25);
+  });
+});
+
+describe('sugerencia de progresión (mejora 1)', () => {
+  it('cerraste el tope del rango la última vez → propone subir el peso', () => {
+    storage.agregarSesion({
+      fecha: '2026-07-18', tipo: 'fuerza', estado: 'hecha',
+      items: [{ ejercicioId: 'F1', variante: 'pesas', series: [{ reps: 12, pesoKg: 20 }, { reps: 12, pesoKg: 20 }] }],
+    });
+    montar();
+    expect(texto()).toContain('Hoy probá');
+    expect($('#btn-usar-sugerencia')).not.toBeNull();
+  });
+
+  it('"Usar sugerencia" precarga todas las series con el peso y reps propuestos', () => {
+    storage.agregarSesion({
+      fecha: '2026-07-18', tipo: 'fuerza', estado: 'hecha',
+      items: [{ ejercicioId: 'F1', variante: 'pesas', series: [{ reps: 12, pesoKg: 20 }, { reps: 12, pesoKg: 20 }] }],
+    });
+    montar();
+    $('#btn-usar-sugerencia').click();
+    const pesos = $$('.serie [data-campo="peso"]').map((i) => (i as HTMLInputElement).value);
+    const reps = $$('.serie [data-campo="reps"]').map((i) => (i as HTMLInputElement).value);
+    expect(pesos).toEqual(['22.5', '22.5']); // 20 + paso 2,5
+    expect(reps).toEqual(['8', '8']); // vuelve al piso del rango
+  });
+
+  it('sin historial no hay botón de sugerencia (nada que progresar)', () => {
+    montar();
+    expect($('#btn-usar-sugerencia')).toBeNull();
+  });
+});
+
+describe('nota por ejercicio (mejora 8)', () => {
+  it('la nota tipeada se guarda en el item de la sesión', () => {
+    montar();
+    const nota = $('#nota-ej') as HTMLTextAreaElement;
+    nota.value = 'el hombro molestó';
+    nota.dispatchEvent(new Event('input'));
+    $$('.serie .check')[0]!.click(); // marca una serie para que el item se conserve
+    $('#btn-siguiente').click();
+    $('#btn-siguiente').click();
+    $('#btn-guardar').click();
+    expect(storage.getSesiones()[0]!.items![0]!.nota).toBe('el hombro molestó');
+  });
+
+  it('sin nota no agrega el campo', () => {
+    montar();
+    $$('.serie .check')[0]!.click();
+    $('#btn-siguiente').click();
+    $('#btn-siguiente').click();
+    $('#btn-guardar').click();
+    expect(storage.getSesiones()[0]!.items![0]!.nota).toBeUndefined();
   });
 });
