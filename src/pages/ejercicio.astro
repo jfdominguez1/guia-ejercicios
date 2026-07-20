@@ -18,10 +18,24 @@ import Base from '../layouts/Base.astro';
   #detalle :global(ol) { padding-left: 20px; }
   #detalle :global(li) { margin: 6px 0; }
   #detalle :global(.variante-grupo) { margin: 6px 0; font-size: 14px; }
+  #detalle :global(.progreso) { color: var(--accion); }
+  #detalle :global(.progreso .eyebrow) { color: var(--tinta-suave); }
+  #detalle :global(.spark) {
+    display: block;
+    width: 100%;
+    height: 56px;
+    margin: 8px 0 4px;
+    overflow: visible;
+  }
+  #detalle :global(.progreso p) { color: var(--tinta); font-weight: 600; margin: 2px 0; }
+  #detalle :global(.progreso .ayuda) { color: var(--tinta-suave); font-weight: 400; }
 </style>
 
 <script>
   import { variantesDe, ultimaVez } from '../lib/motor';
+  import { historialMovimiento, tendencia } from '../lib/progreso';
+  import { sparkline } from '../lib/sparkline';
+  import { formatearPeso } from '../lib/unidades';
   import { storage } from '../lib/storage';
   import { cargarCatalogoCompleto, urlGif, urlImg, escapar, rutaBase, hoyISO, haceDias } from '../ui/datos';
   import type { Ejercicio, GrupoEquip } from '../lib/tipos';
@@ -37,6 +51,32 @@ import Base from '../layouts/Base.astro';
     const peso = mejor?.pesoKg !== undefined ? ` · ${mejor.pesoKg} kg` : '';
     const rpe = registro.rpe !== undefined ? ` · RPE ${registro.rpe}` : '';
     return `${haceDias(registro.fecha, hoyISO())} · ${registro.series.length}×${mejor?.reps ?? '?'}${peso}${rpe}`;
+  }
+
+  /** Carta con la curva de progreso del ejercicio. Vacía con menos de 2 sesiones. */
+  function cartaProgreso(e: Ejercicio, catalogo: Ejercicio[]): string {
+    const puntos = historialMovimiento(storage.getSesiones(), e.movimiento, e.grupo, catalogo);
+    const t = tendencia(puntos);
+    if (!t) return '';
+    // La curva usa e1RM si hay peso; a peso corporal, las reps de la serie tope.
+    const conPeso = puntos.some((p) => p.pesoTope > 0);
+    const valores = puntos.map((p) => (conPeso ? p.e1rm : p.repsTope));
+    const spark = sparkline(valores);
+    const semanas = Math.max(1, Math.round((Date.parse(t.ultimo.fecha) - Date.parse(t.primero.fecha)) / 604800000));
+    const desdeHasta = conPeso
+      ? `de ${formatearPeso(t.primero.pesoTope)} a ${formatearPeso(t.ultimo.pesoTope)}`
+      : `de ${t.primero.repsTope} a ${t.ultimo.repsTope} reps`;
+    const delta = conPeso && t.deltaPesoPct !== 0 ? ` · ${t.deltaPesoPct > 0 ? '+' : ''}${t.deltaPesoPct}%` : '';
+    return `
+      <div class="carta progreso">
+        <span class="eyebrow">Tu progreso</span>
+        <svg class="spark" viewBox="0 0 ${spark.ancho} ${spark.alto}" preserveAspectRatio="none" aria-hidden="true">
+          <path d="${spark.d}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+          ${spark.ultimo ? `<circle cx="${spark.ultimo.x}" cy="${spark.ultimo.y}" r="3.5" fill="currentColor" />` : ''}
+        </svg>
+        <p>${desdeHasta} · ${puntos.length} sesiones · ${semanas} ${semanas === 1 ? 'semana' : 'semanas'}${delta}</p>
+        ${conPeso ? '<p class="ayuda">La curva es tu fuerza estimada (reps + peso). El peso mostrado es el real.</p>' : ''}
+      </div>`;
   }
 
   async function pintar() {
@@ -80,6 +120,7 @@ import Base from '../layouts/Base.astro';
         <span class="eyebrow">Última vez (${LABEL_GRUPO[e.grupo]})</span>
         <p>${lineaUltimaVez(e)}</p>
       </div>
+      ${cartaProgreso(e, catalogo)}
       ${e.pasos.length ? `<h2>Cómo se hace</h2><ol>${e.pasos.map((p) => `<li>${escapar(p)}</li>`).join('')}</ol>` : ''}
       ${listaVariantes ? `<h2>El mismo movimiento con otro equipo</h2>${listaVariantes}` : ''}
     `;
