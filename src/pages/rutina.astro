@@ -45,6 +45,7 @@ import Base from '../layouts/Base.astro';
     sustituirEjercicio,
   } from '../lib/editor';
   import { resolverSalteo, ultimaVezMovimiento } from '../lib/motor';
+  import { ejerciciosEsquivados } from '../lib/registro';
   import { formatearObjetivo, formatearFc, etiquetaDescanso } from '../lib/formato';
   import { storage } from '../lib/storage';
   import { cargarCatalogoCompleto, exigirPerfil, hoyISO, haceDias, escapar, rutaBase } from '../ui/datos';
@@ -205,6 +206,16 @@ import Base from '../layouts/Base.astro';
     );
   }
 
+  /** Si venís salteando siempre el mismo ejercicio, conviene cambiarlo de la rutina. */
+  function htmlEsquivados(): string {
+    const esquivados = ejerciciosEsquivados(storage.getSesiones()).slice(0, 3);
+    if (!esquivados.length) return '';
+    const lista = esquivados
+      .map((e) => `${escapar(porId(e.ejercicioId)?.nombre_es ?? e.ejercicioId)} (${e.veces}×)`)
+      .join(', ');
+    return `<div class="aviso">Venís salteando: ${lista}. Si no te copa, cambiálo acá con ✎ y listo.</div>`;
+  }
+
   function pintar() {
     const rutina = storage.getRutina();
     if (!rutina) {
@@ -215,6 +226,7 @@ import Base from '../layouts/Base.astro';
     const salteo = resolverSalteo(rutina, storage.getSesiones(), hoyISO());
     caja.innerHTML = `
       <p class="ayuda">Tocá ✎ para ajustar series, reps o sustituir un ejercicio. Los cambios quedan guardados para las próximas semanas.</p>
+      ${htmlEsquivados()}
       ${rutina.dias.map((_, i) => htmlDia(rutina, i, salteo.diaIndex)).join('')}`;
 
     caja.querySelectorAll('[data-editar]').forEach((boton) =>

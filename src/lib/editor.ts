@@ -1,7 +1,7 @@
 // Edición manual de la rutina: ajustar dosis, sustituir, quitar y agregar
 // ejercicios día por día. Funciones puras e inmutables — sin DOM ni storage.
 
-import type { Ejercicio, EjercicioRutina, Rutina, TipoEjercicio, UnidadEjercicio } from './tipos';
+import type { Ejercicio, EjercicioRutina, GrupoEquip, Rutina, TipoEjercicio, UnidadEjercicio } from './tipos';
 
 const SERIES_MIN = 1;
 const SERIES_MAX = 6;
@@ -102,6 +102,39 @@ export function agregarEjercicio(rutina: Rutina, diaIndex: number, ejercicio: Ej
     ...ejercicios,
     { movimiento: ejercicio.movimiento, ejercicioId: ejercicio.id, ...dosisInicial(ejercicio.tipo) },
   ]);
+}
+
+/** Alternativas para reemplazar un ejercicio, ordenadas de más a menos parecidas. */
+export interface Alternativas {
+  /** Mismo movimiento, otro implemento: el cambio más seguro. */
+  equivalentes: Ejercicio[];
+  /** Mismo músculo pero otro movimiento: cuando no querés ese patrón hoy. */
+  mismoMusculo: Ejercicio[];
+}
+
+function tieneEquipo(e: Ejercicio, equipamiento: GrupoEquip[]): boolean {
+  return e.grupo === 'cuerpo' || equipamiento.includes(e.grupo);
+}
+
+/**
+ * Qué puede reemplazar al ejercicio actual, limitado al equipamiento que
+ * tenés y al mismo tipo (no ofrece cardio para reemplazar fuerza).
+ */
+export function alternativasDe(
+  catalogo: Ejercicio[],
+  actual: Ejercicio,
+  equipamiento: GrupoEquip[],
+  limite = 12,
+): Alternativas {
+  const candidatos = catalogo.filter(
+    (c) => c.id !== actual.id && c.tipo === actual.tipo && tieneEquipo(c, equipamiento),
+  );
+  return {
+    equivalentes: candidatos.filter((c) => c.movimiento === actual.movimiento).slice(0, limite),
+    mismoMusculo: candidatos
+      .filter((c) => c.movimiento !== actual.movimiento && c.musculo === actual.musculo)
+      .slice(0, limite),
+  };
 }
 
 function normalizar(texto: string): string {

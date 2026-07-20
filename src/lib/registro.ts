@@ -107,3 +107,25 @@ export function resumenSemanal(
   );
   return { hechas: diasActivos.size, objetivo };
 }
+
+/**
+ * Ejercicios que venís esquivando: aparecen salteados en la mayoría de las
+ * últimas veces que los tuviste planificados. Señal para cambiarlos de la
+ * rutina en vez de pelearlos cada sesión.
+ */
+export function ejerciciosEsquivados(
+  sesiones: Sesion[],
+  minVeces = 2,
+): Array<{ ejercicioId: string; veces: number }> {
+  const conteo = new Map<string, number>();
+  for (const sesion of sesiones) {
+    for (const item of sesion.items ?? []) {
+      if (!item.salteado) continue;
+      conteo.set(item.ejercicioId, (conteo.get(item.ejercicioId) ?? 0) + 1);
+    }
+  }
+  return [...conteo.entries()]
+    .filter(([, veces]) => veces >= minVeces)
+    .map(([ejercicioId, veces]) => ({ ejercicioId, veces }))
+    .sort((a, b) => b.veces - a.veces);
+}

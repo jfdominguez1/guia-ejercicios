@@ -35,15 +35,29 @@ import Base from '../layouts/Base.astro';
   #wizard :global(.serie.hecha .check) { background: var(--accion); border-color: var(--accion); color: var(--accion-tinta); }
   #wizard :global(.nav) { display: flex; gap: 8px; margin-top: 12px; }
   #wizard :global(.nav button) { flex: 1; }
+  #wizard :global(.acciones-ej) { display: flex; gap: 8px; margin-top: 12px; }
+  #wizard :global(.acciones-ej button) { flex: 1; font-size: 14px; padding: 10px; }
+  #wizard :global(.opcion-ej) {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    text-align: left;
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+  }
 </style>
 
 <script>
   import { resolverSalteo, variantesDe, ultimaVez } from '../lib/motor';
+  import { alternativasDe, buscarEjercicios, sustituirEjercicio } from '../lib/editor';
+  import { parsearDiaElegido, resolverDiaDeHoy } from '../lib/dia';
   import { formatearObjetivo, formatearFc } from '../lib/formato';
   import { convertirDiaSinGym } from '../lib/singym';
   import { storage } from '../lib/storage';
   import { cargarCatalogoCompleto, exigirPerfil, hoyISO, urlGif, urlImg, escapar, rutaBase } from '../ui/datos';
-  import type { DiaRutina, Ejercicio, GrupoEquip, ItemSesion, SerieHecha } from '../lib/tipos';
+  import type { DiaRutina, Ejercicio, EjercicioRutina, GrupoEquip, ItemSesion, SerieHecha } from '../lib/tipos';
 
   const caja = document.querySelector('#wizard') as HTMLElement;
   const perfil = exigirPerfil();
@@ -55,6 +69,12 @@ import Base from '../layouts/Base.astro';
     ejercicioId: string;
     variante: GrupoEquip;
     series: Array<SerieHecha & { hecha: boolean }>;
+    /** Dosis y movimiento con los que se está trabajando hoy (puede diferir de la rutina). */
+    plan: EjercicioRutina;
+    /** Lo dejaste pasar hoy. */
+    salteado?: boolean;
+    /** Id del ejercicio que estaba planificado, si lo cambiaste solo por hoy. */
+    enLugarDe?: string;
   }
   interface Draft {
     fecha: string;
@@ -67,6 +87,7 @@ import Base from '../layouts/Base.astro';
   let catalogo: Ejercicio[] = [];
   let dia: DiaRutina;
   let draft: Draft;
+  let sinGym = false;
 
   const porId = (id: string) => catalogo.find((e) => e.id === id);
 
@@ -84,17 +105,12 @@ import Base from '../layouts/Base.astro';
       const anterior = previa?.series[i];
       return { reps: anterior?.reps ?? e.repsMin, pesoKg: anterior?.pesoKg, hecha: false };
     });
-    return { ejercicioId: e.ejercicioId, variante, series };
+    return { ejercicioId: e.ejercicioId, variante, series, plan: e };
   }
 
-  function cambiarVariante(estado: EstadoEj, grupo: GrupoEquip) {
-    const planificado = dia.ejercicios[draft.indice]!;
-    const opciones = variantesDe(catalogo, planificado.movimiento)[grupo];
-    const elegido = opciones[0];
-    if (!elegido) return;
-    estado.ejercicioId = elegido.id;
-    estado.variante = grupo;
-    const previa = ultimaVez(storage.getSesiones(), elegido.id, grupo);
+  /** Recalcula las series precargando lo que levantaste la última vez con ese ejercicio. */
+  function recargarSeries(estado: EstadoEj, ejercicioId: string, variante: GrupoEquip) {
+    const previa = ultimaVez(storage.getSesiones(), ejercicioId, variante);
     estado.series = estado.series.map((s, i) => ({
       reps: previa?.series[i]?.reps ?? s.reps,
       pesoKg: previa?.series[i]?.pesoKg,
@@ -102,12 +118,38 @@ import Base from '../layouts/Base.astro';
     }));
   }
 
+  function cambiarVariante(estado: EstadoEj, grupo: GrupoEquip) {
+    const opciones = variantesDe(catalogo, estado.plan.movimiento)[grupo];
+    const elegido = opciones[0];
+    if (!elegido) return;
+    estado.ejercicioId = elegido.id;
+    estado.variante = grupo;
+    recargarSeries(estado, elegido.id, grupo);
+  }
+
+  /** Reemplaza el ejercicio de este paso. `enRutina` lo deja fijo; si no, vale solo hoy. */
+  function cambiarEjercicio(estado: EstadoEj, nuevo: Ejercicio, enRutina: boolean) {
+    if (!estado.enLugarDe && estado.ejercicioId !== nuevo.id) estado.enLugarDe = estado.ejercicioId;
+    if (enRutina) {
+      const rutina = storage.getRutina();
+      if (rutina) storage.setRutina(sustituirEjercicio(rutina, draft.diaIndex, draft.indice, nuevo));
+      estado.enLugarDe = undefined;
+    }
+    estado.ejercicioId = nuevo.id;
+    estado.variante = nuevo.grupo;
+    estado.salteado = false;
+    estado.plan = { ...estado.plan, ejercicioId: nuevo.id, movimiento: nuevo.movimiento };
+    recargarSeries(estado, nuevo.id, nuevo.grupo);
+  }
+
   function pintarResumen() {
     const hechos = draft.ejercicios.filter((e) => e.series.some((s) => s.hecha));
+    const salteados = draft.ejercicios.filter((e) => e.salteado);
     caja.innerHTML = `<h1>¡Terminaste!</h1>
       <div class="carta">
         <span class="eyebrow">${escapar(draft.nombreDia)}</span>
         <p><strong>${hechos.length}</strong> de ${draft.ejercicios.length} ejercicios con series marcadas.</p>
+        ${salteados.length ? `<p class="ayuda">${salteados.length} salteado${salteados.length > 1 ? 's' : ''}: ${escapar(salteados.map((e) => porId(e.ejercicioId)?.nombre_es ?? e.ejercicioId).join(', '))}. Queda anotado, sin drama.</p>` : ''}
       </div>
       <button class="boton-principal" id="btn-guardar">Guardar sesión ✓</button>
       <button class="boton-secundario" id="btn-volver-wizard">Volver</button>`;
@@ -117,8 +159,11 @@ import Base from '../layouts/Base.astro';
           ejercicioId: e.ejercicioId,
           variante: e.variante,
           series: e.series.filter((s) => s.hecha).map(({ reps, pesoKg }) => (pesoKg === undefined ? { reps } : { reps, pesoKg })),
+          ...(e.salteado ? { salteado: true as const } : {}),
+          ...(e.enLugarDe ? { enLugarDe: e.enLugarDe } : {}),
         }))
-        .filter((i) => i.series.length > 0);
+        // Los salteados se guardan igual (sin series) para detectar los que esquivás siempre.
+        .filter((i) => i.series.length > 0 || i.salteado);
       storage.agregarSesion({
         fecha: hoyISO(),
         tipo: 'fuerza',
@@ -136,6 +181,90 @@ import Base from '../layouts/Base.astro';
     });
   }
 
+  function htmlOpciones(lista: Ejercicio[]): string {
+    return lista
+      .map(
+        (e) => `<button class="opcion-ej" data-elegir="${escapar(e.id)}">
+          <strong>${escapar(e.nombre_es)}</strong>
+          <span class="ayuda">${escapar(e.musculo)} · ${escapar(LABEL_GRUPO[e.grupo] ?? e.grupo)}</span>
+        </button>`,
+      )
+      .join('');
+  }
+
+  /** Elegir otro ejercicio para este paso: equivalentes, mismo músculo o todo el catálogo. */
+  function pintarCambiar(filtro: string) {
+    const estado = draft.ejercicios[draft.indice]!;
+    const info = porId(estado.ejercicioId);
+    const alt = info
+      ? alternativasDe(catalogo, info, perfil!.equipamiento)
+      : { equivalentes: [], mismoMusculo: [] };
+    const resultados = filtro.trim().length >= 2 ? buscarEjercicios(catalogo, filtro, 20) : [];
+
+    caja.innerHTML = `
+      <h1>Cambiar ejercicio</h1>
+      <p class="ayuda">En lugar de <strong>${escapar(info?.nombre_es ?? estado.ejercicioId)}</strong></p>
+      <div class="carta">
+        <label for="buscar-ej">Buscar en el catálogo</label>
+        <input id="buscar-ej" type="search" placeholder="nombre o músculo…" value="${escapar(filtro)}" />
+      </div>
+      ${filtro.trim().length >= 2
+        ? `<div class="carta"><span class="eyebrow">Resultados</span>
+            ${resultados.length ? htmlOpciones(resultados) : '<p class="ayuda">Nada con ese nombre.</p>'}</div>`
+        : `${alt.equivalentes.length ? `<div class="carta"><span class="eyebrow">Lo mismo, con otro implemento</span>${htmlOpciones(alt.equivalentes)}</div>` : ''}
+           ${alt.mismoMusculo.length ? `<div class="carta"><span class="eyebrow">Otro ejercicio para el mismo músculo</span>${htmlOpciones(alt.mismoMusculo)}</div>` : ''}
+           ${!alt.equivalentes.length && !alt.mismoMusculo.length ? '<p class="ayuda">No hay alternativas directas — buscá en el catálogo.</p>' : ''}`}
+      <button class="boton-secundario" id="btn-cancelar-cambio">Volver sin cambiar</button>`;
+
+    const input = caja.querySelector('#buscar-ej') as HTMLInputElement;
+    // Re-render por input pierde el foco: se repone y se manda el cursor al final.
+    input.addEventListener('input', () => {
+      pintarCambiar(input.value);
+      const nuevo = caja.querySelector('#buscar-ej') as HTMLInputElement;
+      nuevo.focus();
+      nuevo.setSelectionRange(nuevo.value.length, nuevo.value.length);
+    });
+    caja.querySelectorAll('[data-elegir]').forEach((boton) =>
+      boton.addEventListener('click', () => {
+        const elegido = porId((boton as HTMLElement).dataset.elegir!);
+        if (elegido) pintarConfirmarCambio(elegido);
+      }),
+    );
+    caja.querySelector('#btn-cancelar-cambio')!.addEventListener('click', pintar);
+  }
+
+  /** Solo hoy o para siempre: la pregunta se hace acá, no se asume. */
+  function pintarConfirmarCambio(nuevo: Ejercicio) {
+    const estado = draft.ejercicios[draft.indice]!;
+    const anterior = porId(estado.ejercicioId);
+    // En modo sin gym el día se reconstruye y los índices no mapean a la rutina.
+    const puedeFijar = !sinGym;
+    caja.innerHTML = `
+      <h1>${escapar(nuevo.nombre_es)}</h1>
+      <p class="ayuda">Reemplaza a ${escapar(anterior?.nombre_es ?? estado.ejercicioId)}</p>
+      ${!nuevo.custom ? `<img class="gif" src="${nuevo.media === 'img' ? urlImg(nuevo.id) : urlGif(nuevo.id)}" alt="" onerror="this.onerror=null;this.src='${urlImg(nuevo.id)}'" />` : ''}
+      <div class="carta">
+        <span class="eyebrow">¿Hasta cuándo?</span>
+        <button class="boton-principal" data-alcance="hoy" style="margin-top:8px">Solo por hoy</button>
+        <p class="ayuda">Tu rutina queda como está.</p>
+        ${puedeFijar ? `<button data-alcance="siempre" style="width:100%;margin-top:10px">Cambiarlo en la rutina</button>
+        <p class="ayuda">Reemplaza el ejercicio en este día, de acá en adelante.</p>` : ''}
+      </div>
+      <button class="boton-secundario" data-alcance="volver">Volver</button>`;
+    caja.querySelectorAll('[data-alcance]').forEach((boton) =>
+      boton.addEventListener('click', () => {
+        const alcance = (boton as HTMLElement).dataset.alcance;
+        if (alcance === 'volver') {
+          pintarCambiar('');
+          return;
+        }
+        cambiarEjercicio(estado, nuevo, alcance === 'siempre');
+        guardarDraft();
+        pintar();
+      }),
+    );
+  }
+
   function pintar() {
     if (draft.indice >= draft.ejercicios.length) {
       pintarResumen();
@@ -143,8 +272,9 @@ import Base from '../layouts/Base.astro';
       return;
     }
     const estado = draft.ejercicios[draft.indice]!;
-    const planificado = dia.ejercicios[draft.indice]!;
+    const planificado = estado.plan;
     const info = porId(estado.ejercicioId);
+    const original = estado.enLugarDe ? porId(estado.enLugarDe) : undefined;
     const variantes = variantesDe(catalogo, planificado.movimiento);
     const gruposDisponibles = (Object.keys(variantes) as GrupoEquip[]).filter((g) => variantes[g].length > 0);
     const fc = formatearFc(planificado);
@@ -155,6 +285,7 @@ import Base from '../layouts/Base.astro';
         <strong>${draft.indice + 1}/${draft.ejercicios.length}</strong>
       </div>
       <h1>${escapar(info?.nombre_es ?? estado.ejercicioId)}</h1>
+      ${original ? `<p class="ayuda">Cambiado por hoy · en lugar de ${escapar(original.nombre_es)}</p>` : ''}
       <p class="ayuda">Objetivo: ${planificado.series}× ${formatearObjetivo(planificado, info?.tipo ?? 'fuerza')}${fc ? ` · ${fc}` : ''}</p>
       ${info && !info.custom ? `<img class="gif" src="${info.media === 'img' ? urlImg(info.id) : urlGif(info.id)}" alt="" onerror="this.onerror=null;this.src='${urlImg(info.id)}'" />` : ''}
       ${info?.pasos.length ? `<details class="carta"><summary style="font-weight:700;cursor:pointer">Cómo se hace</summary><ol style="padding-left:20px">${info.pasos.map((p) => `<li>${escapar(p)}</li>`).join('')}</ol></details>` : ''}
@@ -175,6 +306,10 @@ import Base from '../layouts/Base.astro';
           </div>`,
           )
           .join('')}
+      </div>
+      <div class="acciones-ej">
+        <button id="btn-cambiar">Cambiar ejercicio ⇄</button>
+        <button id="btn-saltear">${estado.salteado ? 'Salteado — deshacer' : 'Hoy no lo hago'}</button>
       </div>
       <div class="nav">
         <button id="btn-anterior" ${draft.indice === 0 ? 'disabled' : ''}>‹ Anterior</button>
@@ -205,6 +340,16 @@ import Base from '../layouts/Base.astro';
         }),
       );
     });
+    caja.querySelector('#btn-cambiar')!.addEventListener('click', () => pintarCambiar(''));
+    caja.querySelector('#btn-saltear')!.addEventListener('click', () => {
+      estado.salteado = !estado.salteado;
+      if (estado.salteado) {
+        estado.series = estado.series.map((s) => ({ ...s, hecha: false }));
+        draft.indice += 1;
+      }
+      guardarDraft();
+      pintar();
+    });
     caja.querySelector('#btn-anterior')?.addEventListener('click', () => {
       draft.indice -= 1;
       guardarDraft();
@@ -226,18 +371,19 @@ import Base from '../layouts/Base.astro';
       return;
     }
     const salteo = resolverSalteo(rutina, storage.getSesiones(), hoyISO());
-    let diaBase = rutina.dias[salteo.diaIndex] ?? rutina.dias[0]!;
-    if (sessionStorage.getItem('ge:singym') === hoyISO()) {
-      diaBase = convertirDiaSinGym(diaBase, catalogo, storage.getCustoms(), perfil).dia;
-    }
-    dia = diaBase;
+    const diaElegido = parsearDiaElegido(sessionStorage.getItem('ge:dia'), hoyISO(), rutina.dias.length);
+    const { diaIndex, dia: diaPlan } = resolverDiaDeHoy(rutina, salteo.diaIndex, diaElegido);
+    sinGym = sessionStorage.getItem('ge:singym') === hoyISO();
+    dia = sinGym ? convertirDiaSinGym(diaPlan, catalogo, storage.getCustoms(), perfil).dia : diaPlan;
 
     const guardado = localStorage.getItem('ge:draft');
     if (guardado) {
       try {
         const previo = JSON.parse(guardado) as Draft;
         // El largo debe coincidir: si se editó la rutina a mitad de día, el draft viejo no sirve.
-        if (previo.fecha === hoyISO() && previo.nombreDia === dia.nombre && previo.ejercicios.length === dia.ejercicios.length) {
+        // `plan` faltante = draft de una versión anterior de la app: se descarta.
+        const compatible = previo.ejercicios.every((e) => e.plan);
+        if (previo.fecha === hoyISO() && previo.nombreDia === dia.nombre && compatible && previo.ejercicios.length === dia.ejercicios.length) {
           draft = previo;
           pintar();
           return;
@@ -246,7 +392,7 @@ import Base from '../layouts/Base.astro';
     }
     draft = {
       fecha: hoyISO(),
-      diaIndex: salteo.diaIndex,
+      diaIndex,
       nombreDia: dia.nombre,
       indice: 0,
       ejercicios: dia.ejercicios.map(armarEstado),

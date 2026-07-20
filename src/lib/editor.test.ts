@@ -4,6 +4,7 @@ import { describe, it, expect } from 'vitest';
 import {
   actualizarDosis,
   agregarEjercicio,
+  alternativasDe,
   buscarEjercicios,
   dosisInicial,
   quitarEjercicio,
@@ -177,5 +178,48 @@ describe('buscarEjercicios', () => {
     expect(buscarEjercicios(CATALOGO, 'p')).toEqual([]);
     const muchos = Array.from({ length: 30 }, (_, i) => ej(`X${i}`, 'fuerza', 'm', `Press ${i}`));
     expect(buscarEjercicios(muchos, 'press', 5)).toHaveLength(5);
+  });
+});
+
+describe('alternativasDe', () => {
+  function conGrupo(base: Ejercicio, grupo: Ejercicio['grupo'], musculo = base.musculo): Ejercicio {
+    return { ...base, grupo, musculo };
+  }
+
+  const PRESS_MAQ = conGrupo({ ...PRESS, id: 'F1b', nombre_es: 'Press en máquina' }, 'maquina');
+  const PRESS_CUERPO = conGrupo({ ...PRESS, id: 'F1c', nombre_es: 'Flexiones' }, 'cuerpo');
+  const APERTURA = { ...ej('F3', 'fuerza', 'apertura-pectorales', 'Aperturas'), grupo: 'pesas' as const };
+  const SENTADILLA = { ...ej('F4', 'fuerza', 'sentadilla-cuadriceps', 'Sentadilla'), musculo: 'cuadriceps' };
+  const CATALOGO_ALT = [PRESS, PRESS_MAQ, PRESS_CUERPO, APERTURA, SENTADILLA, CINTA];
+
+  it('separa el mismo movimiento del mismo músculo', () => {
+    const r = alternativasDe(CATALOGO_ALT, PRESS, ['pesas', 'maquina']);
+    expect(r.equivalentes.map((e) => e.id)).toEqual(['F1b', 'F1c']);
+    expect(r.mismoMusculo.map((e) => e.id)).toEqual(['F3']);
+  });
+
+  it('nunca se ofrece a sí mismo', () => {
+    const r = alternativasDe(CATALOGO_ALT, PRESS, ['pesas', 'maquina']);
+    expect([...r.equivalentes, ...r.mismoMusculo].map((e) => e.id)).not.toContain('F1');
+  });
+
+  it('respeta el equipamiento, pero el peso corporal siempre entra', () => {
+    const r = alternativasDe(CATALOGO_ALT, PRESS, []);
+    expect(r.equivalentes.map((e) => e.id)).toEqual(['F1c']);
+  });
+
+  it('no mezcla tipos: no ofrece cardio para reemplazar fuerza', () => {
+    const r = alternativasDe(CATALOGO_ALT, PRESS, ['pesas', 'maquina']);
+    expect([...r.equivalentes, ...r.mismoMusculo].map((e) => e.id)).not.toContain('C1');
+  });
+
+  it('no propone otro músculo distinto', () => {
+    const r = alternativasDe(CATALOGO_ALT, PRESS, ['pesas', 'maquina']);
+    expect(r.mismoMusculo.map((e) => e.id)).not.toContain('F4');
+  });
+
+  it('corta por el límite pedido', () => {
+    const muchos = Array.from({ length: 20 }, (_, i) => ({ ...PRESS, id: `M${i}`, grupo: 'cuerpo' as const }));
+    expect(alternativasDe(muchos, PRESS, [], 5).equivalentes).toHaveLength(5);
   });
 });

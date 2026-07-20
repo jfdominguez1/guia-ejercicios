@@ -5,6 +5,7 @@ import {
   registrarOtra,
   fechaValidaRetro,
   resumenSemanal,
+  ejerciciosEsquivados,
   CONFIG_DEFAULT,
 } from './registro';
 import type { Ejercicio, Rutina, Sesion } from './tipos';
@@ -124,5 +125,39 @@ describe('resumenSemanal — EL número de la home', () => {
 
   it('config default: objetivo 3, umbral de pausa 7', () => {
     expect(CONFIG_DEFAULT).toEqual({ objetivoSemanal: 3, umbralPausaDias: 7 });
+  });
+});
+
+describe('ejerciciosEsquivados', () => {
+  function sesionCon(items: Sesion['items']): Sesion {
+    return { fecha: '2026-07-20', tipo: 'fuerza', estado: 'hecha', items };
+  }
+
+  it('cuenta los salteados y ordena por frecuencia', () => {
+    const sesiones = [
+      sesionCon([{ ejercicioId: 'F1', variante: 'pesas', series: [], salteado: true }]),
+      sesionCon([
+        { ejercicioId: 'F1', variante: 'pesas', series: [], salteado: true },
+        { ejercicioId: 'F2', variante: 'pesas', series: [], salteado: true },
+      ]),
+      sesionCon([{ ejercicioId: 'F2', variante: 'pesas', series: [], salteado: true }]),
+      sesionCon([{ ejercicioId: 'F2', variante: 'pesas', series: [], salteado: true }]),
+    ];
+    expect(ejerciciosEsquivados(sesiones)).toEqual([
+      { ejercicioId: 'F2', veces: 3 },
+      { ejercicioId: 'F1', veces: 2 },
+    ]);
+  });
+
+  it('ignora los que hiciste y los que salteaste una sola vez', () => {
+    const sesiones = [
+      sesionCon([{ ejercicioId: 'F1', variante: 'pesas', series: [{ reps: 10 }] }]),
+      sesionCon([{ ejercicioId: 'F3', variante: 'pesas', series: [], salteado: true }]),
+    ];
+    expect(ejerciciosEsquivados(sesiones)).toEqual([]);
+  });
+
+  it('tolera sesiones sin items', () => {
+    expect(ejerciciosEsquivados([{ fecha: '2026-07-20', tipo: 'fuerza' }])).toEqual([]);
   });
 });

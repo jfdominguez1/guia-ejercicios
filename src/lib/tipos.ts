@@ -88,6 +88,10 @@ export interface ItemSesion {
   ejercicioId: string;
   variante: GrupoEquip;
   series: SerieHecha[];
+  /** Lo dejaste pasar hoy. Se guarda sin series para poder detectar patrones. */
+  salteado?: true;
+  /** Reemplazó a otro ejercicio solo por hoy (id del que estaba planificado). */
+  enLugarDe?: string;
 }
 
 export type TipoCardio = 'corrida' | 'caminata' | 'bicicleta' | 'eliptica' | 'cinta';
