@@ -82,14 +82,17 @@ guardados aparte de la rutina (calentamientos, movilidad, mini-sesiones
 de viaje). Podés mandar solo grupos, sin rutina, si eso es lo pedido.
 Reglas: cada "ejercicioId" existe en el banco o en "nuevos_ejercicios"
 (prefijo CUSTOM-). "unidad" define qué son repsMin/repsMax: en ejercicios
-"pesoInicialKg" es el peso sugerido para la PRIMERA vez (solo fuerza, en kg,
-omitilo en ejercicios de peso corporal): la app lo usa para precargar el input
-y no tener que adivinar, y deja de usarlo apenas haya un registro real.
 cardio usá unidad "min" y opcionalmente "fcObjetivo" (zona de frecuencia
 cardíaca en ppm); en elongación usá unidad "seg"; en fuerza omitila o usá
 "reps". En cardio con series > 1, "descansoSeg" es la recuperación activa
 entre bloques. "nuevos_ejercicios" puede ir vacío: []. No agregues texto
-después del bloque JSON.`;
+después del bloque JSON.
+
+"pesoInicialKg" es el peso sugerido para la PRIMERA vez que haga ese ejercicio
+(solo fuerza, en kg; omitilo en ejercicios de peso corporal). La app lo usa para
+precargar el campo y no tener que adivinar frente a la máquina, y lo deja de
+usar apenas haya un registro real. Sé conservador: mejor quedarse corto y subir
+que lesionarse en la primera serie.`;
 
 function bancoCompacto(catalogo: Ejercicio[], customs: Ejercicio[]): string {
   const items = [...catalogo, ...customs].map((e) =>
