@@ -6,6 +6,10 @@ import {
   borrarSesion,
   describirSesion,
   editarSesion,
+  filtrarSesiones,
+  FILTRO_VACIO,
+  mesesConSesiones,
+  tiposDelDia,
   enviarAPapelera,
   MAX_PAPELERA,
   reinsertar,
@@ -206,5 +210,57 @@ describe('papelera', () => {
   it('reinsertar una que ya está no la duplica', () => {
     const sesiones = [sesion({ id: 'a' })];
     expect(reinsertar(sesiones, sesion({ id: 'a' }))).toBe(sesiones);
+  });
+});
+
+describe('filtros del historial', () => {
+  const s = (id: string, fecha: string, tipo: Sesion['tipo']): Sesion => ({ id, fecha, tipo, estado: 'hecha' });
+  const TODAS = [
+    s('a', '2026-07-20', 'fuerza'),
+    s('b', '2026-07-18', 'cardio'),
+    s('c', '2026-06-30', 'fuerza'),
+    s('d', '2026-06-15', 'elongacion'),
+  ];
+
+  it('sin filtro devuelve todo, de lo más nuevo a lo más viejo', () => {
+    expect(filtrarSesiones(TODAS, FILTRO_VACIO).map((x) => x.id)).toEqual(['a', 'b', 'c', 'd']);
+  });
+
+  it('filtra por tipo', () => {
+    expect(filtrarSesiones(TODAS, { ...FILTRO_VACIO, tipo: 'fuerza' }).map((x) => x.id)).toEqual(['a', 'c']);
+  });
+
+  it('filtra por mes', () => {
+    expect(filtrarSesiones(TODAS, { ...FILTRO_VACIO, mes: '2026-06' }).map((x) => x.id)).toEqual(['c', 'd']);
+  });
+
+  it('combina tipo y mes', () => {
+    expect(filtrarSesiones(TODAS, { tipo: 'fuerza', mes: '2026-06' }).map((x) => x.id)).toEqual(['c']);
+  });
+
+  it('un filtro sin resultados devuelve vacío, no rompe', () => {
+    expect(filtrarSesiones(TODAS, { tipo: 'cardio', mes: '2026-06' })).toEqual([]);
+  });
+
+  it('lista los meses con sesiones, del más nuevo al más viejo', () => {
+    expect(mesesConSesiones(TODAS)).toEqual(['2026-07', '2026-06']);
+  });
+});
+
+describe('tiposDelDia', () => {
+  const s = (fecha: string, tipo: Sesion['tipo']): Sesion => ({ fecha, tipo, estado: 'hecha' });
+
+  it('devuelve los tipos distintos de ese día', () => {
+    const sesiones = [s('2026-07-20', 'fuerza'), s('2026-07-20', 'cardio'), s('2026-07-19', 'fuerza')];
+    expect(tiposDelDia(sesiones, '2026-07-20')).toEqual(['fuerza', 'cardio']);
+  });
+
+  it('no repite si hay dos del mismo tipo', () => {
+    const sesiones = [s('2026-07-20', 'fuerza'), s('2026-07-20', 'fuerza')];
+    expect(tiposDelDia(sesiones, '2026-07-20')).toEqual(['fuerza']);
+  });
+
+  it('un día sin sesiones no tiene tipos', () => {
+    expect(tiposDelDia([], '2026-07-20')).toEqual([]);
   });
 });

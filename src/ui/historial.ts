@@ -8,6 +8,11 @@ import {
   describirSesion,
   editarSesion,
   enviarAPapelera,
+  filtrarSesiones,
+  FILTRO_VACIO,
+  mesesConSesiones,
+  tiposDelDia,
+  type FiltroHistorial,
   reinsertar,
   restaurarDePapelera,
   validarEdicion,
@@ -17,7 +22,7 @@ import { fechaValidaRetro, registrarOtra } from '../lib/registro';
 import { resumenSeries } from '../lib/unidades';
 import { storage } from '../lib/storage';
 import { escapar } from './datos';
-import type { Ejercicio, ItemSesion, Sesion, TipoCardio } from '../lib/tipos';
+import type { Ejercicio, ItemSesion, Sesion, TipoCardio, TipoSesion } from '../lib/tipos';
 
 export interface DepsHistorial {
   /** Contenedor con #calendario, #sesiones, #alta-cardio y #btn-cardio. */
@@ -32,7 +37,36 @@ const NOMBRE_TIPO: Record<string, string> = {
   fuerza: 'Fuerza', cardio: 'Cardio', elongacion: 'Elongación', otro: 'Actividad',
 };
 
-const MAX_SESIONES_VISIBLES = 60;
+const POR_PAGINA = 20;
+
+const COLOR_TIPO: Record<TipoSesion, string> = {
+  fuerza: 'var(--fuerza)',
+  cardio: 'var(--cardio)',
+  elongacion: 'var(--elongacion)',
+  otro: 'var(--accion)',
+};
+
+const NOMBRE_FILTRO: Array<{ v: TipoSesion | 'todas'; l: string }> = [
+  { v: 'todas', l: 'Todas' },
+  { v: 'fuerza', l: 'Fuerza' },
+  { v: 'cardio', l: 'Cardio' },
+  { v: 'elongacion', l: 'Elongación' },
+  { v: 'otro', l: 'Otra' },
+];
+
+/** Reparte el círculo del día entre los tipos que hubo, en partes iguales. */
+function degradado(tipos: TipoSesion[]): string {
+  const paso = 100 / tipos.length;
+  const tramos = tipos.map((t, i) => `${COLOR_TIPO[t]} ${i * paso}% ${(i + 1) * paso}%`);
+  return `linear-gradient(135deg, ${tramos.join(', ')})`;
+}
+
+function nombreMes(mes: string): string {
+  const [anio, m] = mes.split('-').map(Number) as [number, number];
+  return new Date(Date.UTC(anio, m - 1, 1)).toLocaleDateString('es-AR', {
+    month: 'long', year: 'numeric', timeZone: 'UTC',
+  });
+}
 
 export function montarHistorial(deps: DepsHistorial): void {
   const { raiz, catalogo, hoy, confirmar } = deps;
@@ -45,6 +79,8 @@ export function montarHistorial(deps: DepsHistorial): void {
   let mesVisto = hoy().slice(0, 7); // YYYY-MM
   /** Id de la sesión que se está editando. */
   let editando: string | null = null;
+  let filtro: FiltroHistorial = { ...FILTRO_VACIO };
+  let visibles = POR_PAGINA;
 
   const porId = (id: string) => catalogo.find((e) => e.id === id);
   /** Catálogo primero (puede haberse renombrado), después lo guardado, y recién ahí el id. */
@@ -65,9 +101,12 @@ export function montarHistorial(deps: DepsHistorial): void {
     for (let i = 0; i < offset; i++) celdas.push('<div></div>');
     for (let d = 1; d <= diasEnMes; d++) {
       const fecha = `${mesVisto}-${String(d).padStart(2, '0')}`;
-      const del = sesionesDe(fecha);
-      const clase = del[0] ? ` ${del[0].tipo}` : '';
-      celdas.push(`<div class="dia${clase}${fecha === hoy() ? ' hoy' : ''}">${d}</div>`);
+      const tipos = tiposDelDia(storage.getSesiones(), fecha);
+      // Un día puede tener fuerza Y cardio: antes solo se veía el primero.
+      const clase = tipos.length === 1 ? ` ${tipos[0]}` : tipos.length > 1 ? ' multi' : '';
+      const estilo = tipos.length > 1 ? ` style="background:${degradado(tipos)}"` : '';
+      const titulo = tipos.length ? ` title="${tipos.join(' + ')}"` : '';
+      celdas.push(`<div class="dia${clase}${fecha === hoy() ? ' hoy' : ''}"${estilo}${titulo}>${d}</div>`);
     }
     cajaCalendario.innerHTML = `
       <div class="cabecera">
@@ -167,12 +206,30 @@ export function montarHistorial(deps: DepsHistorial): void {
     </div>`;
   }
 
+  function htmlFiltros(sesiones: Sesion[], mostradas: number, total: number): string {
+    const meses = mesesConSesiones(sesiones);
+    return `<div class="filtros">
+      <div class="chips">${NOMBRE_FILTRO.map(
+        (f) => `<button class="chip" data-filtro-tipo="${f.v}" aria-pressed="${filtro.tipo === f.v}">${f.l}</button>`,
+      ).join('')}</div>
+      ${meses.length > 1
+        ? `<select data-filtro-mes aria-label="Filtrar por mes">
+            <option value="todos">Todos los meses</option>
+            ${meses.map((m) => `<option value="${m}"${filtro.mes === m ? ' selected' : ''}>${escapar(nombreMes(m))}</option>`).join('')}
+          </select>`
+        : ''}
+      <p class="ayuda conteo">${total ? `${mostradas} de ${total}` : 'Nada con ese filtro'}</p>
+    </div>`;
+  }
+
   function pintarSesiones() {
     // storage.getSesiones() garantiza que todas tengan id (migra las viejas).
-    const ordenadas = [...storage.getSesiones()].sort((a, b) => b.fecha.localeCompare(a.fecha));
-    cajaSesiones.innerHTML = ordenadas.length
-      ? ordenadas
-          .slice(0, MAX_SESIONES_VISIBLES)
+    const todas = storage.getSesiones();
+    const filtradas = filtrarSesiones(todas, filtro);
+    const enPantalla = filtradas.slice(0, visibles);
+    cajaSesiones.innerHTML = (todas.length ? htmlFiltros(todas, enPantalla.length, filtradas.length) : '')
+      + (filtradas.length
+      ? enPantalla
           .map((s) => {
             const id = s.id!;
             return `<details${editando === id ? ' open' : ''}>
@@ -187,7 +244,13 @@ export function montarHistorial(deps: DepsHistorial): void {
         </details>`;
           })
           .join('')
-      : '<div class="carta"><p>Todavía no hay sesiones. La primera se registra desde Hoy con un tap.</p></div>';
+          + (filtradas.length > visibles
+            ? `<button class="boton-secundario" data-ver-mas>Ver ${Math.min(POR_PAGINA, filtradas.length - visibles)} más</button>`
+            : '')
+      : todas.length
+        ? ''
+        : '<div class="carta"><p>Todavía no hay sesiones. La primera se registra desde Hoy con un tap.</p></div>');
+    conectarFiltros();
     conectarSesiones();
   }
 
@@ -223,6 +286,25 @@ export function montarHistorial(deps: DepsHistorial): void {
         : {}),
       ...(s.items ? { items } : {}),
     };
+  }
+
+  function conectarFiltros() {
+    cajaSesiones.querySelectorAll('[data-filtro-tipo]').forEach((chip) =>
+      chip.addEventListener('click', () => {
+        filtro = { ...filtro, tipo: (chip as HTMLElement).dataset.filtroTipo as FiltroHistorial['tipo'] };
+        visibles = POR_PAGINA; // cambiar el filtro reinicia el "ver más"
+        pintarSesiones();
+      }),
+    );
+    (cajaSesiones.querySelector('[data-filtro-mes]') as HTMLSelectElement | null)?.addEventListener('change', (ev) => {
+      filtro = { ...filtro, mes: (ev.target as HTMLSelectElement).value };
+      visibles = POR_PAGINA;
+      pintarSesiones();
+    });
+    cajaSesiones.querySelector('[data-ver-mas]')?.addEventListener('click', () => {
+      visibles += POR_PAGINA;
+      pintarSesiones();
+    });
   }
 
   function conectarSesiones() {

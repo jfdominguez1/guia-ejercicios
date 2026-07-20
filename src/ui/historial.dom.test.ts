@@ -245,3 +245,96 @@ describe('alta de cardio', () => {
     expect(storage.getSesiones()).toHaveLength(0);
   });
 });
+
+describe('calendario', () => {
+  it('un día con fuerza y cardio muestra los dos, no solo el primero', () => {
+    storage.setSesiones([
+      sesionFuerza({ id: 'a', fecha: '2026-07-18' }),
+      { id: 'b', fecha: '2026-07-18', tipo: 'cardio', estado: 'hecha', cardio: { tipo: 'cinta', minutos: 20 } },
+    ]);
+    montar();
+    const dia = [...document.querySelectorAll('#calendario .dia')].find((d) => d.textContent === '18')!;
+    expect(dia.className).toContain('multi');
+    expect(dia.getAttribute('style')).toContain('linear-gradient');
+    expect(dia.getAttribute('title')).toBe('fuerza + cardio');
+  });
+
+  it('un día con un solo tipo mantiene su color plano', () => {
+    storage.setSesiones([sesionFuerza({ fecha: '2026-07-18' })]);
+    montar();
+    const dia = [...document.querySelectorAll('#calendario .dia')].find((d) => d.textContent === '18')!;
+    expect(dia.className).toContain('fuerza');
+    expect(dia.className).not.toContain('multi');
+  });
+});
+
+describe('filtros y paginación', () => {
+  function muchas(n: number) {
+    return Array.from({ length: n }, (_, i) =>
+      sesionFuerza({ id: `s${i}`, fecha: `2026-07-${String((i % 28) + 1).padStart(2, '0')}` }),
+    );
+  }
+
+  it('muestra de a 20 y ofrece ver más', () => {
+    storage.setSesiones(muchas(25));
+    montar();
+    expect($$('#sesiones details')).toHaveLength(20);
+    expect($('[data-ver-mas]').textContent).toContain('Ver 5 más');
+    $('[data-ver-mas]').click();
+    expect($$('#sesiones details')).toHaveLength(25);
+    expect($('[data-ver-mas]')).toBeNull();
+  });
+
+  it('filtra por tipo', () => {
+    storage.setSesiones([
+      sesionFuerza({ id: 'a' }),
+      { id: 'b', fecha: '2026-07-19', tipo: 'cardio', estado: 'hecha', cardio: { tipo: 'cinta', minutos: 20 } },
+    ]);
+    montar();
+    expect($$('#sesiones details')).toHaveLength(2);
+    $('[data-filtro-tipo="cardio"]').click();
+    expect($$('#sesiones details')).toHaveLength(1);
+    expect($('#sesiones').textContent).toContain('Cardio');
+  });
+
+  it('filtra por mes', () => {
+    storage.setSesiones([
+      sesionFuerza({ id: 'a', fecha: '2026-07-18' }),
+      sesionFuerza({ id: 'b', fecha: '2026-06-10' }),
+    ]);
+    montar();
+    const select = $('[data-filtro-mes]') as HTMLSelectElement;
+    select.value = '2026-06';
+    select.dispatchEvent(new Event('change'));
+    expect($$('#sesiones details')).toHaveLength(1);
+    expect($('#sesiones').textContent).toContain('2026-06-10');
+  });
+
+  it('cambiar el filtro reinicia el "ver más"', () => {
+    storage.setSesiones(muchas(25));
+    montar();
+    $('[data-ver-mas]').click();
+    expect($$('#sesiones details')).toHaveLength(25);
+    $('[data-filtro-tipo="fuerza"]').click();
+    expect($$('#sesiones details')).toHaveLength(20);
+  });
+
+  it('un filtro sin resultados lo dice en vez de quedar en blanco', () => {
+    storage.setSesiones([sesionFuerza()]);
+    montar();
+    $('[data-filtro-tipo="cardio"]').click();
+    expect($('#sesiones').textContent).toContain('Nada con ese filtro');
+  });
+
+  it('sin ninguna sesión no muestra filtros, muestra el mensaje inicial', () => {
+    montar();
+    expect($('[data-filtro-tipo="todas"]')).toBeNull();
+    expect($('#sesiones').textContent).toContain('Todavía no hay sesiones');
+  });
+
+  it('el conteo dice cuántas se ven de cuántas', () => {
+    storage.setSesiones(muchas(25));
+    montar();
+    expect($('.conteo').textContent).toBe('20 de 25');
+  });
+});

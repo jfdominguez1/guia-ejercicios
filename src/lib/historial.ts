@@ -2,7 +2,7 @@
 // la app (no se puede recuperar), así que todo pasa por validación explícita.
 // Funciones puras e inmutables — sin DOM ni storage.
 
-import type { ItemSesion, Sesion } from './tipos';
+import type { ItemSesion, Sesion, TipoSesion } from './tipos';
 
 /** Campos editables de una sesión. `undefined` = se borra el campo. */
 export interface EdicionSesion {
@@ -141,4 +141,31 @@ export function describirSesion(sesion: Sesion): string {
   const series = (sesion.items ?? []).reduce((total, i) => total + i.series.length, 0);
   if (series) partes.push(`${series} series`);
   return partes.join(' · ');
+}
+
+export interface FiltroHistorial {
+  /** 'todas' o un tipo puntual. */
+  tipo: TipoSesion | 'todas';
+  /** 'todos' o un mes 'YYYY-MM'. */
+  mes: string;
+}
+
+export const FILTRO_VACIO: FiltroHistorial = { tipo: 'todas', mes: 'todos' };
+
+/** Meses con al menos una sesión, del más nuevo al más viejo. */
+export function mesesConSesiones(sesiones: Sesion[]): string[] {
+  return [...new Set(sesiones.map((s) => s.fecha.slice(0, 7)))].sort((a, b) => b.localeCompare(a));
+}
+
+/** Aplica el filtro y ordena de la más nueva a la más vieja. */
+export function filtrarSesiones(sesiones: Sesion[], filtro: FiltroHistorial): Sesion[] {
+  return sesiones
+    .filter((s) => filtro.tipo === 'todas' || s.tipo === filtro.tipo)
+    .filter((s) => filtro.mes === 'todos' || s.fecha.startsWith(filtro.mes))
+    .sort((a, b) => b.fecha.localeCompare(a.fecha));
+}
+
+/** Tipos distintos registrados ese día — un día puede tener fuerza Y cardio. */
+export function tiposDelDia(sesiones: Sesion[], fecha: string): TipoSesion[] {
+  return [...new Set(sesiones.filter((s) => s.fecha === fecha).map((s) => s.tipo))];
 }

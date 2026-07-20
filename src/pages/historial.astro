@@ -35,6 +35,8 @@ import Base from '../layouts/Base.astro';
   #calendario :global(.dia.elongacion) { background: var(--elongacion); color: #fff; font-weight: 700; }
   #calendario :global(.dia.otro) { background: var(--accion); color: var(--accion-tinta); font-weight: 700; }
   #calendario :global(.dia.hoy) { outline: 2px solid var(--tinta); }
+  /* Día con más de un tipo de sesión: el círculo se reparte entre los colores. */
+  #calendario :global(.dia.multi) { color: #fff; font-weight: 700; }
   #calendario :global(.leyenda) { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--tinta-suave); }
   #calendario :global(.punto) { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
 
@@ -50,6 +52,11 @@ import Base from '../layouts/Base.astro';
   #aviso-historial :global(.deshacer) { display: flex; align-items: center; gap: 10px; }
   #aviso-historial :global(.deshacer span) { flex: 1; }
   #aviso-historial :global(.deshacer button) { padding: 8px 14px; font-size: 14px; }
+  #sesiones :global(.filtros) { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 12px; }
+  #sesiones :global(.filtros .chip) { padding: 6px 12px; font-size: 13px; }
+  #sesiones :global(.filtros select) { width: auto; flex: 1 1 160px; padding: 8px 10px; font-size: 14px; }
+  #sesiones :global(.filtros .conteo) { width: 100%; margin: 0; font-variant-numeric: tabular-nums; }
+  #sesiones :global([data-ver-mas]) { margin-top: 10px; }
   #sesiones :global(.acciones-sesion) { display: flex; gap: 8px; margin-top: 10px; }
   #sesiones :global(.acciones-sesion button) { flex: 1; font-size: 14px; padding: 9px; }
   #sesiones :global(.panel-editar) { margin-top: 10px; border-top: 1px solid var(--borde); padding-top: 10px; }
