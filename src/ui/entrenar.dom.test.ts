@@ -36,7 +36,7 @@ function rutina(): Rutina {
         nombre: 'Día 1 — Empuje',
         enfoque: 'pecho y hombros',
         ejercicios: [
-          { movimiento: 'empuje-pectorales', ejercicioId: 'F1', series: 2, repsMin: 8, repsMax: 12, descansoSeg: 90 },
+          { movimiento: 'empuje-pectorales', ejercicioId: 'F1', series: 2, repsMin: 8, repsMax: 12, descansoSeg: 90, pesoInicialKg: 25 },
           { movimiento: 'traccion-dorsales', ejercicioId: 'F4', series: 2, repsMin: 8, repsMax: 12, descansoSeg: 90 },
         ],
       },
@@ -307,6 +307,7 @@ describe('kg y libras', () => {
 
   it('si nunca lo hiciste lo dice sin culpa', () => {
     montar();
+    $('#btn-siguiente').click(); // Remo: sin historial y sin peso sugerido
     expect($('.dato-referencia').textContent).toContain('Nunca lo hiciste');
   });
 
@@ -356,8 +357,9 @@ describe('kg y libras', () => {
 
   it('el botón − no baja de cero', () => {
     montar();
+    $('#btn-siguiente').click(); // Remo arranca sin peso
     $('[data-paso="-1"]').click();
-    expect(leerDraft().ejercicios[0].series[0].pesoKg).toBeUndefined();
+    expect(leerDraft().ejercicios[1].series[0].pesoKg).toBeUndefined();
   });
 
   it('la unidad elegida se recuerda entre sesiones', () => {
@@ -527,5 +529,48 @@ describe('sesión libre — volver a Hoy y seguir', () => {
     expect(texto()).toContain('Press banca');
     expect(texto()).toContain('Sesión libre');
     expect(leerDraft().ejercicios[0].series[0].hecha).toBe(true);
+  });
+});
+
+describe('peso inicial sugerido por la IA', () => {
+  const peso = () => ($$('.serie [data-campo="peso"]')[0] as HTMLInputElement).value;
+
+  it('precarga el peso sugerido la primera vez', () => {
+    montar();
+    expect(peso()).toBe('25');
+  });
+
+  it('lo muestra como sugerido, no como "la última vez"', () => {
+    montar();
+    expect(texto()).toContain('Peso sugerido para arrancar');
+    expect(texto()).toContain('25 kg · 55,1 lb');
+    expect(texto()).toContain('Lo propuso tu IA');
+  });
+
+  it('en cuanto hay un registro real, manda lo que levantaste', () => {
+    storage.agregarSesion({
+      fecha: '2026-07-18', tipo: 'fuerza', estado: 'hecha',
+      items: [{ ejercicioId: 'F1', variante: 'pesas', series: [{ reps: 10, pesoKg: 30 }, { reps: 10, pesoKg: 30 }] }],
+    });
+    montar();
+    expect(peso()).toBe('30');
+    expect(texto()).toContain('La última vez');
+    expect(texto()).not.toContain('Peso sugerido');
+  });
+
+  it('sin sugerido y sin historial el campo queda vacío, como antes', () => {
+    montar();
+    $('#btn-siguiente').click(); // Remo no tiene pesoInicialKg
+    expect(peso()).toBe('');
+    expect(texto()).toContain('Nunca lo hiciste');
+  });
+
+  it('el sugerido entra al draft y se guarda si marcás la serie', () => {
+    montar();
+    $$('.serie .check')[0]!.click();
+    $('#btn-siguiente').click();
+    $('#btn-siguiente').click();
+    $('#btn-guardar').click();
+    expect(storage.getSesiones()[0]!.items![0]!.series[0]!.pesoKg).toBe(25);
   });
 });

@@ -50,7 +50,8 @@ Devolvé UN SOLO bloque \`\`\`json al final con esta estructura exacta:
             "repsMax": <número>,
             "unidad": "<reps|seg|min — opcional, default reps>",
             "fcObjetivo": { "min": <ppm>, "max": <ppm> },
-            "descansoSeg": <segundos entre series>
+            "descansoSeg": <segundos entre series>,
+            "pesoInicialKg": <kg con los que arrancar — opcional, solo fuerza>
           }
         ]
       }
@@ -81,6 +82,9 @@ guardados aparte de la rutina (calentamientos, movilidad, mini-sesiones
 de viaje). Podés mandar solo grupos, sin rutina, si eso es lo pedido.
 Reglas: cada "ejercicioId" existe en el banco o en "nuevos_ejercicios"
 (prefijo CUSTOM-). "unidad" define qué son repsMin/repsMax: en ejercicios
+"pesoInicialKg" es el peso sugerido para la PRIMERA vez (solo fuerza, en kg,
+omitilo en ejercicios de peso corporal): la app lo usa para precargar el input
+y no tener que adivinar, y deja de usarlo apenas haya un registro real.
 cardio usá unidad "min" y opcionalmente "fcObjetivo" (zona de frecuencia
 cardíaca en ppm); en elongación usá unidad "seg"; en fuerza omitila o usá
 "reps". En cardio con series > 1, "descansoSeg" es la recuperación activa
@@ -260,6 +264,7 @@ function esNumeroEn(valor: unknown, min: number, max: number): boolean {
 }
 
 const UNIDADES_VALIDAS: UnidadEjercicio[] = ['reps', 'seg', 'min'];
+const PESO_MAX_KG = 500;
 const FC_MIN_PPM = 40;
 const FC_MAX_PPM = 220;
 
@@ -372,6 +377,18 @@ function validarEjercicios(
     if (!esNumeroEn(e.repsMin, 1, maxValor) || !esNumeroEn(e.repsMax, 1, maxValor)) {
       errores.push(`${etiqueta}, "${id}": ${efectiva} fuera de rango (1-${maxValor}).`);
     }
+    // El peso inicial es opcional: si viene, tiene que ser un número sano.
+    const pesoCrudo = e.pesoInicialKg;
+    let pesoInicialKg: number | undefined;
+    if (pesoCrudo !== undefined && pesoCrudo !== null) {
+      if (!esNumeroEn(pesoCrudo, 0, PESO_MAX_KG)) {
+        errores.push(`${etiqueta}, "${id}": pesoInicialKg fuera de rango (0-${PESO_MAX_KG} kg).`);
+      } else if (tipo !== 'fuerza') {
+        errores.push(`${etiqueta}, "${id}": pesoInicialKg solo tiene sentido en ejercicios de fuerza.`);
+      } else {
+        pesoInicialKg = Number(pesoCrudo);
+      }
+    }
     ejercicios.push({
       movimiento: String(e.movimiento ?? ''),
       ejercicioId: id,
@@ -381,6 +398,7 @@ function validarEjercicios(
       ...(unidad ? { unidad } : {}),
       ...(fcObjetivo ? { fcObjetivo } : {}),
       descansoSeg: Number(e.descansoSeg ?? 60),
+      ...(pesoInicialKg === undefined ? {} : { pesoInicialKg }),
     });
   }
   return ejercicios;

@@ -302,3 +302,54 @@ describe('validarImport', () => {
     expect(validarImport(fuerzaLoca, CAT, RUTINA).ok).toBe(false);
   });
 });
+
+describe('validarImport — peso inicial sugerido por la IA', () => {
+  const conPeso = (valor: string) =>
+    respuestaValida().replace(
+      '"descansoSeg": 90 },',
+      `"descansoSeg": 90, "pesoInicialKg": ${valor} },`,
+    );
+
+  it('acepta el peso sugerido y lo guarda en la rutina', () => {
+    const r = validarImport(conPeso('22.5'), CAT, RUTINA);
+    expect(r.ok).toBe(true);
+    expect(r.rutina?.dias[0]?.ejercicios[0]?.pesoInicialKg).toBe(22.5);
+  });
+
+  it('sigue siendo opcional: sin el campo importa igual', () => {
+    const r = validarImport(respuestaValida(), CAT, RUTINA);
+    expect(r.ok).toBe(true);
+    expect(r.rutina?.dias[0]?.ejercicios[0]?.pesoInicialKg).toBeUndefined();
+  });
+
+  it('un peso disparatado se rechaza con mensaje claro', () => {
+    const r = validarImport(conPeso('9000'), CAT, RUTINA);
+    expect(r.ok).toBe(false);
+    expect(r.errores.join(' ')).toContain('pesoInicialKg');
+  });
+
+  it('un peso negativo se rechaza', () => {
+    expect(validarImport(conPeso('-5'), CAT, RUTINA).ok).toBe(false);
+  });
+
+  it('texto en vez de número se rechaza', () => {
+    expect(validarImport(conPeso('"pesado"'), CAT, RUTINA).ok).toBe(false);
+  });
+
+  it('el prompt le explica el campo a la IA', () => {
+    const pedido = generarExport(PERFIL, RUTINA, [], CAT, [], [], '2026-07-12');
+    expect(pedido).toContain('pesoInicialKg');
+  });
+});
+
+describe('validarImport — peso inicial solo en fuerza', () => {
+  it('rechaza el peso en un ejercicio de elongación', () => {
+    const texto = respuestaValida().replace(
+      '{ "movimiento": "traccion-dorsales", "ejercicioId": "0002", "series": 3, "repsMin": 8, "repsMax": 12, "descansoSeg": 90 }',
+      '{ "movimiento": "elongacion-isquiotibiales", "ejercicioId": "0003", "series": 1, "repsMin": 20, "repsMax": 30, "unidad": "seg", "descansoSeg": 10, "pesoInicialKg": 10 }',
+    );
+    const r = validarImport(texto, CAT, RUTINA);
+    expect(r.ok).toBe(false);
+    expect(r.errores.join(' ')).toContain('solo tiene sentido en ejercicios de fuerza');
+  });
+});

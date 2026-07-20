@@ -104,7 +104,8 @@ Devolvé UN SOLO bloque ```json al final con esta estructura exacta:
             "repsMax": <número>,
             "unidad": "<reps|seg|min — opcional, default reps>",
             "fcObjetivo": {{ "min": <ppm>, "max": <ppm> }},
-            "descansoSeg": <segundos de descanso entre series>
+            "descansoSeg": <segundos de descanso entre series>,
+            "pesoInicialKg": <kg para la primera vez — opcional, solo fuerza>
           }}
         ]
       }}
@@ -148,6 +149,11 @@ Reglas del formato:
   usá "reps".
 - En cardio con "series" > 1, "descansoSeg" es la recuperación activa entre
   bloques (ej: 6 bloques de 2 min de trote con 180 seg caminando).
+- "pesoInicialKg" es el peso sugerido para la PRIMERA vez que se hace ese
+  ejercicio (solo fuerza, en kg; omitilo en ejercicios de peso corporal).
+  La app lo usa para precargar el input y no tener que adivinar en el gimnasio,
+  y lo deja de usar apenas haya un registro real. Sé conservador: es mejor
+  quedarse corto y subir que lesionarse en la primera serie.
 - "nuevos_ejercicios" puede ir vacío: [].
 - No agregues texto después del bloque JSON.
 """

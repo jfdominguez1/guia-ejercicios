@@ -57,6 +57,12 @@ export interface EjercicioRutina {
   fcObjetivo?: { min: number; max: number };
   /** En cardio con series > 1 es recuperación activa entre bloques. */
   descansoSeg: number;
+  /**
+   * Peso con el que arrancar, en kg. Solo se usa mientras NO haya un registro
+   * previo del ejercicio: en cuanto lo hacés una vez, manda lo que levantaste.
+   * Lo propone la IA al generar la rutina.
+   */
+  pesoInicialKg?: number;
 }
 
 export interface DiaRutina {

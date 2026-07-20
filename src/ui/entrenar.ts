@@ -9,7 +9,7 @@ import { formatearObjetivo, formatearFc } from '../lib/formato';
 import { convertirDiaSinGym } from '../lib/singym';
 import { yaHaySesion } from '../lib/registro';
 import { storage } from '../lib/storage';
-import { ajustarPeso, aKg, desdeKg, equivalente, resumenSeries, type UnidadPeso } from '../lib/unidades';
+import { ajustarPeso, aKg, desdeKg, equivalente, formatearPeso, resumenSeries, type UnidadPeso } from '../lib/unidades';
 import { crearBuscador, etiquetaGrupo, htmlOpciones } from './buscador';
 import { urlGif, urlImg, escapar, rutaBase } from './datos';
 import type { DiaRutina, Ejercicio, EjercicioRutina, GrupoEquip, ItemSesion, Perfil, SerieHecha } from '../lib/tipos';
@@ -73,7 +73,12 @@ export function montarEntrenar(deps: DepsEntrenar): void {
     const previa = ultimaVez(storage.getSesiones(), e.ejercicioId, variante);
     const series = Array.from({ length: e.series }, (_, i) => {
       const anterior = previa?.series[i];
-      return { reps: anterior?.reps ?? e.repsMin, pesoKg: anterior?.pesoKg, hecha: false };
+      return {
+        reps: anterior?.reps ?? e.repsMin,
+        // Lo que levantaste manda; el peso sugerido solo cubre la primera vez.
+        pesoKg: anterior?.pesoKg ?? e.pesoInicialKg,
+        hecha: false,
+      };
     });
     return { ejercicioId: e.ejercicioId, variante, series, plan: e };
   }
@@ -270,6 +275,9 @@ export function montarEntrenar(deps: DepsEntrenar): void {
     const unidad = unidadEntrada();
     const previa = ultimaVez(storage.getSesiones(), estado.ejercicioId, estado.variante);
     const referencia = previa ? resumenSeries(previa.series) : '';
+    const sugerido = !previa && planificado.pesoInicialKg !== undefined
+      ? formatearPeso(planificado.pesoInicialKg)
+      : '';
 
     caja.innerHTML = `
       <div class="progreso">
@@ -288,8 +296,13 @@ export function montarEntrenar(deps: DepsEntrenar): void {
         </div>
       </div>
       <div class="carta referencia">
-        <span class="eyebrow">La última vez</span>
-        <p class="dato-referencia">${referencia ? escapar(referencia) : 'Nunca lo hiciste — arrancá cómodo.'}</p>
+        <span class="eyebrow">${referencia ? 'La última vez' : sugerido ? 'Peso sugerido para arrancar' : 'La última vez'}</span>
+        <p class="dato-referencia">${referencia
+          ? escapar(referencia)
+          : sugerido
+            ? escapar(sugerido)
+            : 'Nunca lo hiciste — arrancá cómodo.'}</p>
+        ${!referencia && sugerido ? '<p class="ayuda">Lo propuso tu IA. Ajustalo si te queda corto o largo.</p>' : ''}
       </div>
       <div class="carta">
         <div class="cabecera-series">
