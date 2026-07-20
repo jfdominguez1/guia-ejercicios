@@ -34,222 +34,28 @@ import Base from '../layouts/Base.astro';
   #rutina :global(.resultado .eyebrow) { display: block; }
   #rutina :global(.acciones) { display: flex; gap: 8px; margin-top: 10px; }
   #rutina :global(.acciones .boton-principal) { flex: 2; width: auto; padding: 12px; font-size: 16px; }
+  #rutina :global(.panel-ejercicio) { margin-bottom: 0; }
+  #rutina :global(.dosis-campos) { display: flex; gap: 8px; }
+  #rutina :global(.dosis-campos > div) { flex: 1; }
+  #rutina :global(.reemplazo) { display: flex; align-items: center; gap: 8px; }
+  #rutina :global(.reemplazo span) { flex: 1; }
+
 </style>
 
 <script>
-  import {
-    actualizarDosis,
-    agregarEjercicio,
-    buscarEjercicios,
-    quitarEjercicio,
-    sustituirEjercicio,
-  } from '../lib/editor';
-  import { resolverSalteo, ultimaVezMovimiento } from '../lib/motor';
-  import { ejerciciosEsquivados } from '../lib/registro';
-  import { formatearObjetivo, formatearFc, etiquetaDescanso } from '../lib/formato';
-  import { resumenSeries } from '../lib/unidades';
-  import { storage } from '../lib/storage';
-  import { cargarCatalogoCompleto, exigirPerfil, hoyISO, haceDias, escapar, rutaBase } from '../ui/datos';
-  import type { Ejercicio, EjercicioRutina, Rutina } from '../lib/tipos';
+  import { montarRutina } from '../ui/rutina';
+  import { cargarCatalogoCompleto, exigirPerfil, hoyISO } from '../ui/datos';
 
-  const caja = document.querySelector('#rutina') as HTMLElement;
   const perfil = exigirPerfil();
-  let catalogo: Ejercicio[] = [];
-
-  /** Panel abierto: edición de un ejercicio o alta en un día. */
-  let abierto: { modo: 'editar' | 'agregar'; dia: number; idx: number } | null = null;
-
-  const porId = (id: string) => catalogo.find((e) => e.id === id);
-
-  function htmlEjercicio(e: EjercicioRutina, dia: number, idx: number): string {
-    const info = porId(e.ejercicioId);
-    const tipo = info?.tipo ?? 'fuerza';
-    const fc = formatearFc(e);
-    const registro = info
-      ? ultimaVezMovimiento(storage.getSesiones(), e.movimiento, info.grupo, catalogo)
-      : null;
-    let ultima = '';
-    if (registro) {
-      ultima = `<div class="ultima">${haceDias(registro.fecha, hoyISO())} · ${resumenSeries(registro.series)}</div>`;
-    }
-    return `<div class="ejercicio">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
-        <a href="${rutaBase}/ejercicio/?id=${encodeURIComponent(e.ejercicioId)}">${escapar(info?.nombre_es ?? e.ejercicioId)}</a>
-        <button class="boton-silencioso" data-editar data-dia="${dia}" data-idx="${idx}" aria-label="Editar ejercicio">✎</button>
-      </div>
-      <div class="dosis">${e.series}× ${formatearObjetivo(e, tipo)} · ${etiquetaDescanso(e, tipo)} ${e.descansoSeg}s${fc ? ` · ${fc}` : ''}</div>
-      ${ultima}
-      ${abierto?.modo === 'editar' && abierto.dia === dia && abierto.idx === idx ? htmlPanelEditar(e) : ''}
-    </div>`;
-  }
-
-  function htmlPanelEditar(e: EjercicioRutina): string {
-    const equivalentes = catalogo.filter(
-      (c) =>
-        c.movimiento === e.movimiento &&
-        c.id !== e.ejercicioId &&
-        (c.grupo === 'cuerpo' || perfil!.equipamiento.includes(c.grupo)),
-    );
-    return `<div class="carta" id="panel" style="margin-bottom:0">
-      ${equivalentes.length ? `<label>Reemplazar por (mismo movimiento)</label>
-        <select id="equivalente"><option value="">— dejar como está —</option>${equivalentes
-          .slice(0, 30)
-          .map((c) => `<option value="${c.id}">${escapar(c.nombre_es)} (${c.grupo})</option>`)
-          .join('')}</select>` : ''}
-      <label>…o buscá otro ejercicio (lo sustituye)</label>
-      <input type="text" id="buscar" placeholder="Nombre o músculo" autocomplete="off" />
-      <div id="resultados"></div>
-      <div style="display:flex;gap:8px">
-        <div style="flex:1"><label>Series</label><input type="number" inputmode="numeric" data-campo="series" value="${e.series}" min="1" max="6" /></div>
-        <div style="flex:1"><label>Desde</label><input type="number" inputmode="numeric" data-campo="repsMin" value="${e.repsMin}" min="1" /></div>
-        <div style="flex:1"><label>Hasta</label><input type="number" inputmode="numeric" data-campo="repsMax" value="${e.repsMax}" min="1" /></div>
-        <div style="flex:1"><label>Desc. s</label><input type="number" inputmode="numeric" data-campo="descansoSeg" value="${e.descansoSeg}" min="0" max="600" /></div>
-      </div>
-      <div class="acciones">
-        <button class="boton-principal" data-accion="guardar">Guardar</button>
-        <button data-accion="quitar">Quitar</button>
-        <button data-accion="cerrar">Cancelar</button>
-      </div>
-    </div>`;
-  }
-
-  function htmlPanelAgregar(): string {
-    return `<div class="carta" id="panel" style="margin-bottom:0">
-      <label>Buscar ejercicio para agregar</label>
-      <input type="text" id="buscar" placeholder="Nombre o músculo" autocomplete="off" />
-      <div id="resultados"></div>
-      <div class="acciones"><button data-accion="cerrar" style="flex:1">Cancelar</button></div>
-    </div>`;
-  }
-
-  function htmlDia(rutina: Rutina, dia: number, diaHoy: number): string {
-    const d = rutina.dias[dia]!;
-    const agregando = abierto?.modo === 'agregar' && abierto.dia === dia;
-    return `<div class="carta">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-        <span class="eyebrow">${escapar(d.enfoque)}</span>
-        ${dia === diaHoy ? '<span class="hoy-chip">Te toca hoy</span>' : ''}
-      </div>
-      <h2 style="margin-top:2px">${escapar(d.nombre)}</h2>
-      ${d.ejercicios.map((e, i) => htmlEjercicio(e, dia, i)).join('')}
-      ${d.ejercicios.length ? '' : '<p class="ayuda">Día vacío — agregale ejercicios o quedará como descanso.</p>'}
-      ${agregando ? htmlPanelAgregar() : `<button class="boton-secundario" data-agregar data-dia="${dia}">+ Agregar ejercicio</button>`}
-    </div>`;
-  }
-
-  function pintarResultados() {
-    const input = caja.querySelector('#buscar') as HTMLInputElement | null;
-    const contenedor = caja.querySelector('#resultados');
-    if (!input || !contenedor) return;
-    const encontrados = buscarEjercicios(catalogo, input.value, 8);
-    contenedor.innerHTML = encontrados
-      .map(
-        (e) => `<button class="resultado" data-elegido="${e.id}">
-          ${escapar(e.nombre_es)}<span class="eyebrow">${e.grupo} · ${e.tipo} · ${escapar(e.musculo)}</span>
-        </button>`,
-      )
-      .join('');
-    contenedor.querySelectorAll('[data-elegido]').forEach((boton) =>
-      boton.addEventListener('click', () => {
-        const elegido = porId((boton as HTMLElement).dataset.elegido!);
-        const rutina = storage.getRutina();
-        if (!elegido || !rutina || !abierto) return;
-        const nueva =
-          abierto.modo === 'agregar'
-            ? agregarEjercicio(rutina, abierto.dia, elegido)
-            : sustituirEjercicio(rutina, abierto.dia, abierto.idx, elegido);
-        storage.setRutina(nueva);
-        abierto = null;
-        pintar();
-      }),
-    );
-  }
-
-  function conectarPanel() {
-    const panel = caja.querySelector('#panel');
-    if (!panel || !abierto) return;
-    (panel.querySelector('#buscar') as HTMLInputElement | null)?.addEventListener('input', () => pintarResultados());
-    panel.querySelectorAll('[data-accion]').forEach((boton) =>
-      boton.addEventListener('click', () => {
-        const accion = (boton as HTMLElement).dataset.accion;
-        const rutina = storage.getRutina();
-        if (!rutina || !abierto) return;
-        if (accion === 'cerrar') {
-          abierto = null;
-          pintar();
-          return;
-        }
-        if (accion === 'quitar') {
-          if (!confirm('¿Saco este ejercicio del día?')) return;
-          storage.setRutina(quitarEjercicio(rutina, abierto.dia, abierto.idx));
-          abierto = null;
-          pintar();
-          return;
-        }
-        // guardar: equivalente elegido (si hay) + dosis
-        const leer = (campo: string) =>
-          Number((panel.querySelector(`[data-campo="${campo}"]`) as HTMLInputElement).value);
-        const idNuevo = (panel.querySelector('#equivalente') as HTMLSelectElement | null)?.value;
-        const equivalente = idNuevo ? porId(idNuevo) : undefined;
-        let nueva = equivalente ? sustituirEjercicio(rutina, abierto.dia, abierto.idx, equivalente) : rutina;
-        nueva = actualizarDosis(nueva, abierto.dia, abierto.idx, {
-          series: leer('series') || 1,
-          repsMin: leer('repsMin') || 1,
-          repsMax: leer('repsMax') || 1,
-          descansoSeg: leer('descansoSeg') || 0,
-        });
-        storage.setRutina(nueva);
-        abierto = null;
-        pintar();
-      }),
-    );
-  }
-
-  /** Si venís salteando siempre el mismo ejercicio, conviene cambiarlo de la rutina. */
-  function htmlEsquivados(): string {
-    const esquivados = ejerciciosEsquivados(storage.getSesiones()).slice(0, 3);
-    if (!esquivados.length) return '';
-    const lista = esquivados
-      .map((e) => `${escapar(porId(e.ejercicioId)?.nombre_es ?? e.ejercicioId)} (${e.veces}×)`)
-      .join(', ');
-    return `<div class="aviso">Venís salteando: ${lista}. Si no te copa, cambiálo acá con ✎ y listo.</div>`;
-  }
-
-  function pintar() {
-    const rutina = storage.getRutina();
-    if (!rutina) {
-      caja.innerHTML = `<div class="carta"><p>Todavía no hay rutina.</p>
-        <a class="boton-principal" style="display:block;text-align:center;text-decoration:none" href="${rutaBase}/perfil/">Armar mi rutina</a></div>`;
-      return;
-    }
-    const salteo = resolverSalteo(rutina, storage.getSesiones(), hoyISO());
-    caja.innerHTML = `
-      <p class="ayuda">Tocá ✎ para ajustar series, reps o sustituir un ejercicio. Los cambios quedan guardados para las próximas semanas.</p>
-      ${htmlEsquivados()}
-      ${rutina.dias.map((_, i) => htmlDia(rutina, i, salteo.diaIndex)).join('')}`;
-
-    caja.querySelectorAll('[data-editar]').forEach((boton) =>
-      boton.addEventListener('click', () => {
-        const b = boton as HTMLElement;
-        abierto = { modo: 'editar', dia: Number(b.dataset.dia), idx: Number(b.dataset.idx) };
-        pintar();
-        caja.querySelector('#panel')?.scrollIntoView({ block: 'center' });
-      }),
-    );
-    caja.querySelectorAll('[data-agregar]').forEach((boton) =>
-      boton.addEventListener('click', () => {
-        abierto = { modo: 'agregar', dia: Number((boton as HTMLElement).dataset.dia), idx: -1 };
-        pintar();
-        (caja.querySelector('#buscar') as HTMLInputElement | null)?.focus();
-      }),
-    );
-    conectarPanel();
-  }
-
   if (perfil) {
-    cargarCatalogoCompleto().then((cat) => {
-      catalogo = cat;
-      pintar();
+    cargarCatalogoCompleto().then((catalogo) => {
+      montarRutina({
+        contenedor: document.querySelector('#rutina') as HTMLElement,
+        catalogo,
+        perfil,
+        hoy: hoyISO,
+        confirmar: (mensaje) => window.confirm(mensaje),
+      });
     });
   }
 </script>
