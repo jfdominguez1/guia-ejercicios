@@ -46,19 +46,34 @@ import Base from '../layouts/Base.astro';
   }
   #sesiones :global(summary) { font-weight: 700; cursor: pointer; }
   #sesiones :global(.meta) { font-size: 13px; color: var(--tinta-suave); }
+  #sesiones :global(.acciones-sesion) { display: flex; gap: 8px; margin-top: 10px; }
+  #sesiones :global(.acciones-sesion button) { flex: 1; font-size: 14px; padding: 9px; }
+  #sesiones :global(.panel-editar) { margin-top: 10px; border-top: 1px solid var(--borde); padding-top: 10px; }
+  #sesiones :global(.panel-editar textarea) { width: 100%; }
+  #sesiones :global(.bloque-item) { margin: 8px 0; }
+  #sesiones :global(.serie-edit) {
+    display: grid;
+    grid-template-columns: 64px 1fr 1fr;
+    gap: 8px;
+    align-items: center;
+    margin: 6px 0;
+  }
 </style>
 
 <script>
   import { storage } from '../lib/storage';
   import { registrarOtra, fechaValidaRetro } from '../lib/registro';
+  import { borrarSesion, describirSesion, editarSesion, validarEdicion, type EdicionSesion } from '../lib/historial';
   import { cargarCatalogoCompleto, hoyISO, escapar, exigirPerfil } from '../ui/datos';
-  import type { Ejercicio, Sesion, TipoCardio } from '../lib/tipos';
+  import type { Ejercicio, ItemSesion, Sesion, TipoCardio } from '../lib/tipos';
 
   const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T;
   exigirPerfil();
 
   let catalogo: Ejercicio[] = [];
   let mesVisto = hoyISO().slice(0, 7); // YYYY-MM
+  /** Índice (en el array real de sesiones) de la que se está editando. */
+  let editando: number | null = null;
 
   const NOMBRE_TIPO: Record<string, string> = {
     fuerza: 'Fuerza', cardio: 'Cardio', elongacion: 'Elongación', otro: 'Actividad',
@@ -120,25 +135,180 @@ import Base from '../layouts/Base.astro';
     if (s.notas) lineas.push(escapar(s.notas));
     for (const item of s.items ?? []) {
       const info = catalogo.find((e) => e.id === item.ejercicioId);
+      const nombre = escapar(info?.nombre_es ?? item.ejercicioId);
+      if (item.salteado) {
+        lineas.push(`${nombre}: salteado`);
+        continue;
+      }
       const series = item.series.map((x) => `${x.reps}${x.pesoKg !== undefined ? `×${x.pesoKg}kg` : ''}`).join(' · ');
-      lineas.push(`${escapar(info?.nombre_es ?? item.ejercicioId)} (${item.variante}): ${series}`);
+      const enLugarDe = item.enLugarDe ? catalogo.find((e) => e.id === item.enLugarDe) : undefined;
+      const cambio = enLugarDe ? ` <span class="meta">(en lugar de ${escapar(enLugarDe.nombre_es)})</span>` : '';
+      lineas.push(`${nombre} (${item.variante}): ${series}${cambio}`);
     }
     return lineas.map((l) => `<p class="meta">${l}</p>`).join('') || '<p class="meta">Sin detalle — hecha es hecha.</p>';
   }
 
+  /** Formulario de edición. Se guarda el índice en el array real, no el visible. */
+  function htmlPanelEditar(s: Sesion, idx: number): string {
+    const numero = (etiqueta: string, campo: string, valor: number | undefined, extra = '') =>
+      `<div style="flex:1"><label>${etiqueta}</label>
+        <input type="number" inputmode="numeric" data-campo="${campo}" value="${valor ?? ''}" ${extra} /></div>`;
+    const items = (s.items ?? [])
+      .map((item, i) => {
+        const info = catalogo.find((e) => e.id === item.ejercicioId);
+        const series = item.series
+          .map(
+            (serie, j) => `<div class="serie-edit">
+              <span class="meta">Serie ${j + 1}</span>
+              <input type="number" inputmode="numeric" data-item="${i}" data-serie="${j}" data-serie-campo="reps" value="${serie.reps}" aria-label="Repeticiones serie ${j + 1}" />
+              <input type="number" inputmode="decimal" step="0.5" data-item="${i}" data-serie="${j}" data-serie-campo="peso" value="${serie.pesoKg ?? ''}" placeholder="kg" aria-label="Peso serie ${j + 1}" />
+            </div>`,
+          )
+          .join('');
+        return series
+          ? `<div class="bloque-item"><strong>${escapar(info?.nombre_es ?? item.ejercicioId)}</strong>${series}</div>`
+          : '';
+      })
+      .join('');
+
+    return `<div class="panel-editar" data-panel="${idx}">
+      <label>Fecha</label>
+      <input type="date" data-campo="fecha" value="${s.fecha}" max="${hoyISO()}" />
+      <div style="display:flex;gap:8px">
+        ${numero('RPE (1-10)', 'rpe', s.rpe, 'min="1" max="10"')}
+        ${numero('FC prom.', 'fcPromedio', s.fcPromedio, 'min="40" max="220"')}
+        ${s.estado === 'otra' ? numero('Minutos', 'duracionMin', s.duracionMin, 'min="1" max="600"') : ''}
+      </div>
+      ${s.cardio
+        ? `<div style="display:flex;gap:8px">
+            ${numero('Min. cardio', 'cardioMin', s.cardio.minutos, 'min="1" max="600"')}
+            ${numero('Km', 'cardioKm', s.cardio.km, 'min="0" step="0.1"')}
+          </div>
+          <label>¿Cómo te sentiste?</label>
+          <input type="text" data-campo="cardioSensacion" maxlength="80" value="${escapar(s.cardio.sensacion ?? '')}" />`
+        : ''}
+      ${items ? `<span class="eyebrow" style="display:block;margin-top:10px">Series</span>${items}` : ''}
+      <label>Notas</label>
+      <textarea data-campo="notas" rows="2" maxlength="500">${escapar(s.notas ?? '')}</textarea>
+      <p class="error" data-errores role="alert"></p>
+      <div class="acciones-sesion">
+        <button class="boton-principal" data-accion="guardar" data-idx="${idx}" style="flex:2">Guardar cambios</button>
+        <button data-accion="cancelar">Cancelar</button>
+      </div>
+    </div>`;
+  }
+
   function pintarSesiones() {
-    const sesiones = [...storage.getSesiones()].sort((a, b) => b.fecha.localeCompare(a.fecha));
-    $('#sesiones').innerHTML = sesiones.length
-      ? sesiones
+    // Se ordena para mostrar, pero se conserva el índice real para editar/borrar.
+    const conIndice = storage.getSesiones().map((sesion, idx) => ({ sesion, idx }));
+    const ordenadas = conIndice.sort((a, b) => b.sesion.fecha.localeCompare(a.sesion.fecha));
+    $('#sesiones').innerHTML = ordenadas.length
+      ? ordenadas
           .slice(0, 60)
           .map(
-            (s) => `<details>
+            ({ sesion: s, idx }) => `<details${editando === idx ? ' open' : ''}>
           <summary>${s.fecha} — ${escapar(s.diaRutina ?? NOMBRE_TIPO[s.tipo] ?? s.tipo)}</summary>
           ${detalleSesion(s)}
+          ${editando === idx
+            ? htmlPanelEditar(s, idx)
+            : `<div class="acciones-sesion">
+                <button data-accion="editar" data-idx="${idx}">✎ Editar</button>
+                <button data-accion="borrar" data-idx="${idx}">Borrar</button>
+              </div>`}
         </details>`,
           )
           .join('')
       : '<div class="carta"><p>Todavía no hay sesiones. La primera se registra desde Hoy con un tap.</p></div>';
+    conectarSesiones();
+  }
+
+  /** Lee el formulario y arma la edición. Los vacíos quedan en undefined (= borrar campo). */
+  function leerEdicion(panel: HTMLElement, s: Sesion): EdicionSesion {
+    const texto = (campo: string) =>
+      (panel.querySelector(`[data-campo="${campo}"]`) as HTMLInputElement | HTMLTextAreaElement | null)?.value ?? '';
+    const numero = (campo: string) => {
+      const crudo = texto(campo).trim();
+      return crudo === '' ? undefined : Number(crudo);
+    };
+    const items: ItemSesion[] = (s.items ?? []).map((item, i) => ({
+      ...item,
+      series: item.series.map((serie, j) => {
+        const leer = (campo: string) =>
+          (panel.querySelector(`[data-item="${i}"][data-serie="${j}"][data-serie-campo="${campo}"]`) as HTMLInputElement | null)?.value ?? '';
+        const peso = leer('peso').trim();
+        return {
+          reps: Number(leer('reps')) || 0,
+          ...(peso === '' ? {} : { pesoKg: Number(peso) }),
+        };
+      }),
+    }));
+    const sensacion = texto('cardioSensacion').trim();
+    return {
+      fecha: texto('fecha'),
+      rpe: numero('rpe'),
+      fcPromedio: numero('fcPromedio'),
+      duracionMin: numero('duracionMin'),
+      notas: texto('notas').trim() || undefined,
+      ...(s.cardio
+        ? { cardio: { minutos: numero('cardioMin') ?? s.cardio.minutos, km: numero('cardioKm'), sensacion: sensacion || undefined } }
+        : {}),
+      ...(s.items ? { items } : {}),
+    };
+  }
+
+  function conectarSesiones() {
+    $('#sesiones').querySelectorAll('[data-accion]').forEach((boton) =>
+      boton.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        const b = boton as HTMLElement;
+        const accion = b.dataset.accion;
+        if (accion === 'cancelar') {
+          editando = null;
+          pintarSesiones();
+          return;
+        }
+        const idx = Number(b.dataset.idx);
+        if (accion === 'editar') {
+          editando = idx;
+          pintarSesiones();
+          return;
+        }
+        if (accion === 'borrar') pedirBorrado(idx);
+        if (accion === 'guardar') guardarEdicion(idx);
+      }),
+    );
+  }
+
+  function guardarEdicion(idx: number) {
+    const sesiones = storage.getSesiones();
+    const actual = sesiones[idx];
+    const panel = $('#sesiones').querySelector(`[data-panel="${idx}"]`) as HTMLElement | null;
+    if (!actual || !panel) return;
+    const edicion = leerEdicion(panel, actual);
+    const errores = validarEdicion(edicion, hoyISO());
+    const caja = panel.querySelector('[data-errores]') as HTMLElement;
+    if (errores.length) {
+      caja.textContent = errores.join(' ');
+      return;
+    }
+    if (!confirm(`¿Guardo los cambios en la sesión del ${edicion.fecha}?`)) return;
+    storage.setSesiones(editarSesion(sesiones, idx, edicion, hoyISO()));
+    editando = null;
+    pintarCalendario();
+    pintarSesiones();
+  }
+
+  /** Borrar es irreversible y no hay backup automático: se pregunta dos veces. */
+  function pedirBorrado(idx: number) {
+    const sesiones = storage.getSesiones();
+    const s = sesiones[idx];
+    if (!s) return;
+    if (!confirm(`¿Borrar esta sesión?\n\n${describirSesion(s)}`)) return;
+    if (!confirm('Última: esto no se puede deshacer y no queda backup.\n\n¿La borro igual?')) return;
+    storage.setSesiones(borrarSesion(sesiones, idx));
+    editando = null;
+    pintarCalendario();
+    pintarSesiones();
   }
 
   function pintarAltaCardio() {
