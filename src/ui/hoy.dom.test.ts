@@ -49,11 +49,13 @@ function rutina(): Rutina {
   };
 }
 
-function montar(respuestas: boolean[] = []) {
+function montar(respuestas: boolean[] = [], respaldos: Array<'compartido' | 'descargado' | 'cancelado'> = []) {
   document.body.innerHTML = '<div id="hoy"></div>';
   const preguntas: string[] = [];
   const rutas: string[] = [];
+  const respaldadas: string[] = [];
   let i = 0;
+  let r = 0;
   montarHoy({
     contenedor: document.querySelector('#hoy') as HTMLElement,
     catalogo: CATALOGO,
@@ -64,8 +66,12 @@ function montar(respuestas: boolean[] = []) {
       return respuestas[i++] ?? true;
     },
     navegar: (ruta) => rutas.push(ruta),
+    respaldar: async (h) => {
+      respaldadas.push(h);
+      return respaldos[r++] ?? 'compartido';
+    },
   });
-  return { preguntas, rutas };
+  return { preguntas, rutas, respaldadas };
 }
 
 const $ = (sel: string) => document.querySelector(sel) as HTMLElement;
@@ -108,6 +114,55 @@ describe('la sesión de hoy', () => {
     }
     montar();
     expect($('.insignia').textContent).toContain('2');
+  });
+
+  it('recién con rutina y sin respaldo previo aparece el recordatorio', () => {
+    montar();
+    expect($('#aviso-respaldo')).not.toBeNull();
+    expect(texto()).toMatch(/este teléfono/i);
+  });
+
+  it('no molesta si respaldaste hace poco', () => {
+    localStorage.setItem('ge:ultimoBackup', HOY);
+    montar();
+    expect($('#aviso-respaldo')).toBeNull();
+  });
+
+  it('avisa recién pasado el umbral de días', () => {
+    localStorage.setItem('ge:ultimoBackup', '2026-07-17'); // 3 días
+    montar();
+    expect($('#aviso-respaldo')).toBeNull();
+    localStorage.setItem('ge:ultimoBackup', '2026-07-10'); // 10 días
+    montar();
+    expect($('#aviso-respaldo')).not.toBeNull();
+  });
+
+  it('respaldar corta el aviso y confirma', async () => {
+    const { respaldadas } = montar();
+    $('#btn-respaldar').click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(respaldadas).toEqual([HOY]);
+    expect($('#aviso-respaldo')?.className).toContain('ok');
+    expect(texto()).toMatch(/copia enviada/i);
+  });
+
+  it('si cancelás el compartir, el aviso sigue para reintentar', async () => {
+    const { respaldadas } = montar([], ['cancelado']);
+    $('#btn-respaldar').click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(respaldadas).toEqual([HOY]);
+    expect($('#aviso-respaldo')?.className).not.toContain('ok');
+    expect(($('#btn-respaldar') as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('"Ahora no" esconde el recordatorio por hoy', () => {
+    montar();
+    $('#btn-respaldo-cerrar').click();
+    expect($('#aviso-respaldo')).toBeNull();
+    montar(); // se vuelve a montar el mismo día
+    expect($('#aviso-respaldo')).toBeNull();
   });
 
   it('deja a la vista los tres caminos y guarda el resto en Más opciones', () => {

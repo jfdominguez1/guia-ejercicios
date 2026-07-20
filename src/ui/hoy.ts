@@ -11,6 +11,8 @@ import { registrarHecha, registrarOtra, registrarGrupo, fechaValidaRetro, resume
 import { convertirDiaSinGym } from '../lib/singym';
 import { formatearObjetivo, formatearFc, etiquetaDescanso } from '../lib/formato';
 import { calcularRacha, fechaLarga, fraseRacha } from '../lib/racha';
+import { estadoRespaldo, textoRespaldo } from '../lib/respaldo';
+import { respaldar as respaldarReal, ultimoRespaldo, type ResultadoRespaldo } from './respaldo';
 import { resumenSeries } from '../lib/unidades';
 import { storage } from '../lib/storage';
 import { crearPanelEjercicio } from './panel-ejercicio';
@@ -25,6 +27,8 @@ export interface DepsHoy {
   confirmar: (mensaje: string) => boolean;
   /** Navegación inyectable: en tests no hay window.location real. */
   navegar: (ruta: string) => void;
+  /** Compartir el respaldo. Inyectable: en tests no hay navigator.share. */
+  respaldar?: (hoy: string) => Promise<ResultadoRespaldo>;
 }
 
 /** Día elegido a mano para hoy (pisa la rotación). Vale solo por hoy. */
@@ -32,6 +36,7 @@ const CLAVE_DIA = 'ge:dia';
 
 export function montarHoy(deps: DepsHoy): void {
   const { contenedor: caja, catalogo, perfil, hoy, confirmar, navegar } = deps;
+  const respaldar = deps.respaldar ?? respaldarReal;
   const $ = <T extends HTMLElement>(sel: string) => caja.querySelector(sel) as T;
   let modoSinGym = sessionStorage.getItem('ge:singym') === hoy();
 
@@ -71,6 +76,39 @@ export function montarHoy(deps: DepsHoy): void {
       <div class="discos">${discos}</div>
       <p class="frase">${escapar(fraseRacha(racha, r.hechas, r.objetivo))}</p>
     </div>`;
+  }
+
+  /** Recordatorio de respaldo: aparece arriba de todo cuando hace días que no saca una copia. */
+  function htmlRespaldo(): string {
+    if (sessionStorage.getItem('ge:respaldoOculto') === hoy()) return '';
+    const hayDatos = storage.getSesiones().length > 0 || storage.getRutina() !== null;
+    const estado = estadoRespaldo(ultimoRespaldo(), hoy(), hayDatos);
+    if (!estado.avisar) return '';
+    return `<div class="aviso respaldo" id="aviso-respaldo">
+      <span>⚠️ ${escapar(textoRespaldo(estado))}</span>
+      <div class="respaldo-acciones">
+        <button class="boton-principal" id="btn-respaldar">Respaldar</button>
+        <button class="boton-silencioso" id="btn-respaldo-cerrar">Ahora no</button>
+      </div>
+    </div>`;
+  }
+
+  async function hacerRespaldo() {
+    const boton = $('#btn-respaldar') as HTMLButtonElement | null;
+    if (boton) { boton.disabled = true; boton.textContent = 'Preparando…'; }
+    const resultado = await respaldar(hoy());
+    if (resultado === 'cancelado') {
+      // No se guardó nada: dejamos el aviso para que pueda reintentar.
+      if (boton) { boton.disabled = false; boton.textContent = 'Respaldar'; }
+      return;
+    }
+    const aviso = $('#aviso-respaldo');
+    if (aviso) {
+      aviso.className = 'aviso respaldo ok';
+      aviso.innerHTML = resultado === 'compartido'
+        ? '✓ Copia enviada. Guardala en Drive, WhatsApp o donde la tengas a mano.'
+        : '✓ Copia descargada. Movela a Drive o mandátela para tenerla fuera del teléfono.';
+    }
   }
 
   function htmlEjercicio(e: DiaRutina['ejercicios'][number], idx = -1, editable = false): string {
@@ -358,6 +396,7 @@ export function montarHoy(deps: DepsHoy): void {
     const editable = !retomando && !modoSinGym && dia === rutina.dias[diaIndex];
 
     caja.innerHTML = `
+      ${htmlRespaldo()}
       ${htmlSemana()}
       ${banner}
       ${modoSinGym ? `<div class="aviso">Modo sin gym: variantes con tu cuerpo y banda por hoy. <button class="boton-silencioso" id="btn-singym-off">Volver</button></div>` : ''}
@@ -386,6 +425,11 @@ export function montarHoy(deps: DepsHoy): void {
       const sesion = registrarHecha(rutina, diaIndex, catalogo, hoy());
       guardarYPedirRpe(retomando || dia.nombre === 'Sesión combinada' ? { ...sesion, diaRutina: dia.nombre } : sesion);
       sessionStorage.removeItem('ge:retomando');
+    });
+    $('#btn-respaldar')?.addEventListener('click', hacerRespaldo);
+    $('#btn-respaldo-cerrar')?.addEventListener('click', () => {
+      sessionStorage.setItem('ge:respaldoOculto', hoy());
+      $('#aviso-respaldo')?.remove();
     });
     $('#btn-otra').addEventListener('click', () => panelOtraCosa(hoy()));
     caja.querySelectorAll('.editar').forEach((boton) =>
@@ -445,6 +489,7 @@ export function montarHoy(deps: DepsHoy): void {
   // Volver a Hoy sale del modo libre: si no, "Entrenar ahora" seguiría entrando ahí.
   sessionStorage.removeItem('ge:libre');
   if (sessionStorage.getItem('ge:sinCombinada') !== hoy()) sessionStorage.removeItem('ge:sinCombinada');
+  if (sessionStorage.getItem('ge:respaldoOculto') !== hoy()) sessionStorage.removeItem('ge:respaldoOculto');
   if (sessionStorage.getItem('ge:retomando') !== hoy()) sessionStorage.removeItem('ge:retomando');
   const diasRutina = storage.getRutina()?.dias.length ?? 0;
   if (parsearDiaElegido(sessionStorage.getItem(CLAVE_DIA), hoy(), diasRutina) === null) {

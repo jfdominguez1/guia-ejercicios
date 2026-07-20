@@ -113,6 +113,13 @@ import Base from '../layouts/Base.astro';
     align-items: center;
     justify-content: center;
   }
+  #hoy :global(.respaldo) { display: flex; flex-direction: column; gap: 8px; }
+  #hoy :global(.respaldo.ok) {
+    background: color-mix(in srgb, var(--elongacion) 16%, var(--carta));
+    border-color: color-mix(in srgb, var(--elongacion) 45%, var(--borde));
+  }
+  #hoy :global(.respaldo-acciones) { display: flex; align-items: center; gap: 8px; }
+  #hoy :global(.respaldo-acciones .boton-principal) { flex: 1; width: auto; font-size: 15px; padding: 12px; }
   #hoy :global(.retomar) { text-align: center; padding: 28px 16px; }
   #hoy :global(.retomar p) { font-size: 16px; }
   #hoy :global(.rpe-chips) { margin-top: 10px; }
@@ -139,6 +146,7 @@ import Base from '../layouts/Base.astro';
 
 <script>
   import { montarHoy } from '../ui/hoy';
+  import { respaldar } from '../ui/respaldo';
   import { cargarCatalogoCompleto, exigirPerfil, hoyISO, rutaBase } from '../ui/datos';
 
   const perfil = exigirPerfil();
@@ -151,6 +159,7 @@ import Base from '../layouts/Base.astro';
         hoy: hoyISO,
         confirmar: (mensaje) => window.confirm(mensaje),
         navegar: (ruta) => { window.location.href = `${rutaBase}${ruta}`; },
+        respaldar,
       });
     });
   }

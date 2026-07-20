@@ -72,9 +72,11 @@ import Base from '../layouts/Base.astro';
 
   <section class="carta" id="datos">
     <h2>Tus datos</h2>
+    <p class="ayuda">Todo vive en este teléfono. Un respaldo saca una copia afuera (Drive, WhatsApp, mail) para no perderla si le pasa algo al celular.</p>
     <p class="ayuda" id="backup-estado"></p>
-    <button class="boton-secundario" id="btn-backup">Descargar backup</button>
-    <label for="restaurar-archivo">Restaurar desde backup</label>
+    <button class="boton-principal" id="btn-backup">Respaldar (sacar copia afuera)</button>
+    <p class="ayuda" id="backup-resultado" hidden></p>
+    <label for="restaurar-archivo">Restaurar desde un respaldo</label>
     <input type="file" id="restaurar-archivo" accept=".json" />
     <p class="error" id="datos-error" role="alert"></p>
   </section>
@@ -83,45 +85,49 @@ import Base from '../layouts/Base.astro';
 <script>
   import { generarExport, validarImport, PREGUNTA_DEFAULT } from '../lib/ia';
   import { storage } from '../lib/storage';
+  import { respaldar, ultimoRespaldo } from '../ui/respaldo';
   import { cargarCatalogo, hoyISO, escapar, rutaBase } from '../ui/datos';
 
   const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T;
   const MS_DIA = 86_400_000;
-  const AVISO_BACKUP_DIAS = 30;
+  const AVISO_BACKUP_DIAS = 7;
 
-  // --- Backup (C5: aviso suave, nunca interrumpe) ---
+  // --- Respaldo (aviso suave, nunca interrumpe) ---
   function pintarEstadoBackup() {
-    const ultimo = localStorage.getItem('ge:ultimoBackup');
+    const ultimo = ultimoRespaldo();
     const estado = $('#backup-estado');
     if (!ultimo) {
-      estado.textContent = 'Nunca hiciste un backup. Todo vive en este teléfono: bajate uno (1 tap).';
+      estado.textContent = 'Nunca respaldaste todavía.';
       return;
     }
     const dias = Math.round((Date.parse(hoyISO()) - Date.parse(ultimo)) / MS_DIA);
     estado.textContent =
       dias >= AVISO_BACKUP_DIAS
-        ? `Último backup: hace ${dias} días. Bajate uno nuevo (1 tap).`
-        : `Último backup: ${ultimo}.`;
+        ? `Último respaldo: hace ${dias} días. Conviene sacar uno nuevo.`
+        : `Último respaldo: ${ultimo}.`;
   }
 
-  $('#btn-backup').addEventListener('click', () => {
-    const blob = new Blob([storage.exportarBackup()], { type: 'application/json' });
-    const enlace = document.createElement('a');
-    enlace.href = URL.createObjectURL(blob);
-    enlace.download = `guia-ejercicios-backup-${hoyISO()}.json`;
-    enlace.click();
-    URL.revokeObjectURL(enlace.href);
-    localStorage.setItem('ge:ultimoBackup', hoyISO());
+  $('#btn-backup').addEventListener('click', async () => {
+    const boton = $('#btn-backup') as HTMLButtonElement;
+    const resultado = $('#backup-resultado');
+    boton.disabled = true;
+    const r = await respaldar(hoyISO());
+    boton.disabled = false;
     pintarEstadoBackup();
+    if (r === 'cancelado') return;
+    resultado.hidden = false;
+    resultado.textContent = r === 'compartido'
+      ? '✓ Copia enviada. Guardala en Drive, WhatsApp o donde la tengas a mano.'
+      : '✓ Copia descargada. Movela a Drive o mandátela para tenerla fuera del teléfono.';
   });
 
   ($('#restaurar-archivo') as HTMLInputElement).addEventListener('change', async (e) => {
     const archivo = (e.target as HTMLInputElement).files?.[0];
     if (!archivo) return;
-    if (!confirm('Restaurar el backup reemplaza lo que hay en este teléfono. ¿Sigo?')) return;
+    if (!confirm('Restaurar el respaldo reemplaza lo que hay en este teléfono. ¿Sigo?')) return;
     const ok = storage.restaurarBackup(await archivo.text());
     if (ok) window.location.href = `${rutaBase}/`;
-    else $('#datos-error').textContent = 'Ese archivo no parece un backup de la app.';
+    else $('#datos-error').textContent = 'Ese archivo no parece un respaldo de la app.';
   });
 
   pintarEstadoBackup();
