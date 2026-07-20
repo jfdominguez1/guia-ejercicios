@@ -73,6 +73,7 @@ import Base from '../layouts/Base.astro';
   <section class="carta" id="datos">
     <h2>Tus datos</h2>
     <p class="ayuda">Todo vive en este teléfono. Un respaldo saca una copia afuera (Drive, WhatsApp, mail) para no perderla si le pasa algo al celular.</p>
+    <p class="ayuda" id="persistencia-estado"></p>
     <p class="ayuda" id="backup-estado"></p>
     <button class="boton-principal" id="btn-backup">Respaldar (sacar copia afuera)</button>
     <p class="ayuda" id="backup-resultado" hidden></p>
@@ -86,7 +87,7 @@ import Base from '../layouts/Base.astro';
   import { generarExport, validarImport, PREGUNTA_DEFAULT } from '../lib/ia';
   import { storage } from '../lib/storage';
   import { respaldar, ultimoRespaldo } from '../ui/respaldo';
-  import { cargarCatalogo, hoyISO, escapar, rutaBase } from '../ui/datos';
+  import { cargarCatalogo, hoyISO, escapar, pedirPersistencia, rutaBase } from '../ui/datos';
 
   const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T;
   const MS_DIA = 86_400_000;
@@ -131,6 +132,22 @@ import Base from '../layouts/Base.astro';
   });
 
   pintarEstadoBackup();
+
+  // --- Persistencia: pedirla y mostrar si el SO protege los datos ---
+  async function pintarPersistencia() {
+    const el = $('#persistencia-estado');
+    try {
+      pedirPersistencia();
+      const protegido = await navigator.storage?.persisted?.();
+      if (protegido === undefined) return; // API ausente: no decimos nada
+      el.textContent = protegido
+        ? 'Datos protegidos ✓ — el sistema no los borra por falta de espacio.'
+        : 'El sistema podría borrarlos si falta espacio. Respaldá seguido para estar tranquilo.';
+    } catch {
+      // sin API: sin mensaje
+    }
+  }
+  pintarPersistencia();
 
   // --- Descargar toda la media para offline (Fase 4) ---
   $('#btn-descargar-todo').addEventListener('click', async () => {

@@ -5,6 +5,20 @@ import type { Ejercicio, Perfil } from '../lib/tipos';
 
 export const rutaBase = import.meta.env.BASE_URL.replace(/\/$/, '');
 
+/**
+ * Le pide al navegador que marque el almacenamiento como persistente, así el SO
+ * no lo borra bajo presión de espacio (fue una de las causas del incidente de
+ * pérdida de datos). El navegador decide; en una PWA instalada suele concederlo.
+ * No bloquea nada: se dispara y se olvida. El respaldo sigue siendo la red real.
+ */
+export function pedirPersistencia(): void {
+  try {
+    navigator.storage?.persist?.().catch(() => {});
+  } catch {
+    // API ausente en navegadores viejos: seguimos igual.
+  }
+}
+
 let cache: Ejercicio[] | null = null;
 
 export async function cargarCatalogo(): Promise<Ejercicio[]> {

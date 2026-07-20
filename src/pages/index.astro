@@ -147,7 +147,10 @@ import Base from '../layouts/Base.astro';
 <script>
   import { montarHoy } from '../ui/hoy';
   import { respaldar } from '../ui/respaldo';
-  import { cargarCatalogoCompleto, exigirPerfil, hoyISO, rutaBase } from '../ui/datos';
+  import { cargarCatalogoCompleto, exigirPerfil, hoyISO, pedirPersistencia, rutaBase } from '../ui/datos';
+
+  // El home es el start_url de la PWA: se pide persistencia en cada arranque.
+  pedirPersistencia();
 
   const perfil = exigirPerfil();
   if (perfil) {
