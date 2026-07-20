@@ -22,10 +22,16 @@ const SHELL = [
   `${BASE}/icons/icon-512.png`,
 ];
 
+// Sin skipWaiting(): la versión nueva espera a que el usuario acepte actualizar.
+// Si se activara sola, la pestaña abierta seguiría corriendo el JS viejo y la
+// app quedaría en un estado mezclado (era el "cerrá y abrí" de cada deploy).
 self.addEventListener('install', (evento) => {
-  evento.waitUntil(
-    caches.open(CACHE_SHELL).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting()),
-  );
+  evento.waitUntil(caches.open(CACHE_SHELL).then((cache) => cache.addAll(SHELL)));
+});
+
+// La página avisa cuando el usuario tocó "Actualizar".
+self.addEventListener('message', (evento) => {
+  if (evento.data === 'activar-ya') self.skipWaiting();
 });
 
 self.addEventListener('activate', (evento) => {

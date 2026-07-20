@@ -32,7 +32,49 @@ const tabs = [
     </main>
     <script is:inline define:vars={{ base }}>
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register(`${base}/sw.js`).catch(() => {});
+        // Al tocar "Actualizar" el SW nuevo toma el control y esto recarga una sola vez.
+        let recargando = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (recargando) return;
+          recargando = true;
+          location.reload();
+        });
+
+        const avisarVersionNueva = (worker) => {
+          if (document.querySelector('#aviso-version')) return;
+          const barra = document.createElement('div');
+          barra.id = 'aviso-version';
+          barra.innerHTML =
+            '<span>Hay una versión nueva</span>' +
+            '<button type="button">Actualizar</button>' +
+            '<button type="button" class="cerrar" aria-label="Ahora no">✕</button>';
+          barra.querySelector('button').addEventListener('click', () => {
+            barra.remove();
+            worker.postMessage('activar-ya');
+          });
+          barra.querySelector('.cerrar').addEventListener('click', () => barra.remove());
+          document.body.appendChild(barra);
+        };
+
+        navigator.serviceWorker
+          .register(`${base}/sw.js`)
+          .then((registro) => {
+            // Ya había una esperando de un deploy anterior.
+            if (registro.waiting && navigator.serviceWorker.controller) avisarVersionNueva(registro.waiting);
+            registro.addEventListener('updatefound', () => {
+              const nuevo = registro.installing;
+              if (!nuevo) return;
+              nuevo.addEventListener('statechange', () => {
+                // Sin controller es la primera instalación: no hay nada que avisar.
+                if (nuevo.state === 'installed' && navigator.serviceWorker.controller) avisarVersionNueva(nuevo);
+              });
+            });
+            // Una PWA instalada puede quedar días abierta: se chequea al volver a ella.
+            document.addEventListener('visibilitychange', () => {
+              if (!document.hidden) registro.update().catch(() => {});
+            });
+          })
+          .catch(() => {});
       }
     </script>
     <nav class="tabs" aria-label="Navegación principal">
@@ -211,6 +253,38 @@ const tabs = [
     font-size: 14px;
   }
   .error { color: var(--peligro); font-size: 14px; }
+
+  /* Aviso de versión nueva: sobre las tabs, sin tapar contenido. */
+  #aviso-version {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: calc(70px + env(safe-area-inset-bottom));
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--tinta);
+    color: var(--papel);
+    border-radius: var(--radio);
+    padding: 10px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 6px 20px rgb(0 0 0 / 25%);
+  }
+  #aviso-version span { flex: 1; }
+  #aviso-version button {
+    background: var(--accion);
+    color: var(--accion-tinta);
+    border: none;
+    padding: 8px 14px;
+    font-size: 14px;
+  }
+  #aviso-version .cerrar {
+    background: none;
+    color: var(--papel);
+    padding: 8px 6px;
+  }
 
   @media (prefers-reduced-motion: no-preference) {
     .pop { animation: pop 0.25s ease-out; }
