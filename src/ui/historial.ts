@@ -22,7 +22,7 @@ import { fechaValidaRetro, registrarOtra } from '../lib/registro';
 import { conMedida, medidaSerie, NOMBRE_UNIDAD } from '../lib/serie';
 import { resumenSeries } from '../lib/unidades';
 import { storage } from '../lib/storage';
-import { escapar } from './datos';
+import { escapar, repararTiposDeSesion } from './datos';
 import type { Ejercicio, ItemSesion, Sesion, TipoCardio, TipoSesion } from '../lib/tipos';
 
 export interface DepsHistorial {
@@ -71,6 +71,9 @@ function nombreMes(mes: string): string {
 
 export function montarHistorial(deps: DepsHistorial): void {
   const { raiz, catalogo, hoy, confirmar } = deps;
+  // Acá es donde se VE el tipo: las sesiones que el wizard viejo marcó todas
+  // como 'fuerza' se reparan antes de pintar, no solo al pasar por Hoy.
+  repararTiposDeSesion(catalogo);
   const buscar = <T extends HTMLElement>(sel: string) => raiz.querySelector(sel) as T;
   const cajaCalendario = buscar('#calendario');
   const cajaSesiones = buscar('#sesiones');
@@ -241,8 +244,12 @@ export function montarHistorial(deps: DepsHistorial): void {
       ? enPantalla
           .map((s) => {
             const id = s.id!;
-            return `<details${editando === id ? ' open' : ''}>
-          <summary>${s.fecha} — ${escapar(s.diaRutina ?? NOMBRE_TIPO[s.tipo] ?? s.tipo)}</summary>
+            // El nombre del día no dice el tipo ("Elongación (mañanas)" podía
+            // verse igual que una de fuerza): va el color y la palabra.
+            const nombre = escapar(s.diaRutina ?? NOMBRE_TIPO[s.tipo] ?? s.tipo);
+            const etiqueta = NOMBRE_TIPO[s.tipo] ?? s.tipo;
+            return `<details class="tipo-${s.tipo}"${editando === id ? ' open' : ''}>
+          <summary>${s.fecha} — ${nombre} <span class="tipo">· ${escapar(etiqueta)}</span></summary>
           ${detalleSesion(s)}
           ${editando === id
             ? htmlPanelEditar(s, id)

@@ -363,3 +363,70 @@ describe('filtros y paginación', () => {
     expect($('.conteo').textContent).toBe('20 de 25');
   });
 });
+
+describe('tipo de sesión visible y reparado', () => {
+  const ESTIRAR: Ejercicio = {
+    id: 'E1', nombre_es: 'Estiramiento de isquiotibiales', nombre_en: 'Hamstring stretch',
+    tipo: 'elongacion', grupo: 'cuerpo', equipment: 'cuerpo', zona: 'tren inferior',
+    musculo: 'isquiotibiales', secundarios: [], pasos: [], movimiento: 'estirar-isquios', basico: true,
+  };
+
+  function montarCon(catalogo: Ejercicio[]) {
+    document.body.innerHTML = `
+      <div id="calendario"></div>
+      <button id="btn-cardio">+ Registrar cardio</button>
+      <div id="alta-cardio"></div>
+      <div id="aviso-historial"></div>
+      <div id="sesiones"></div>`;
+    montarHistorial({ raiz: document, catalogo, hoy: () => HOY, confirmar: () => true });
+  }
+
+  /** El caso real: sesión de elongación que el wizard viejo guardó como fuerza. */
+  const elongacionMalGuardada: Sesion = {
+    id: 'e1',
+    fecha: '2026-07-18',
+    tipo: 'fuerza',
+    estado: 'hecha',
+    diaRutina: 'Elongación (mañanas / días libres)',
+    items: [
+      { ejercicioId: 'E1', variante: 'cuerpo', series: [{ reps: 30, segundos: 30 }] },
+      { ejercicioId: 'E1', variante: 'cuerpo', series: [{ reps: 40, segundos: 40 }] },
+    ],
+  };
+
+  it('repara el tipo al abrir el historial, sin pasar por Hoy', () => {
+    storage.setSesiones([elongacionMalGuardada]);
+    montarCon([...CATALOGO, ESTIRAR]);
+    expect(storage.getSesiones()[0]!.tipo).toBe('elongacion');
+  });
+
+  it('la sesión se pinta con el color de su tipo', () => {
+    storage.setSesiones([elongacionMalGuardada]);
+    montarCon([...CATALOGO, ESTIRAR]);
+    const fila = document.querySelector('#sesiones details')!;
+    expect(fila.className).toBe('tipo-elongacion');
+    expect(fila.querySelector('summary')!.textContent).toContain('Elongación');
+  });
+
+  it('el día del calendario queda con la clase del tipo corregido', () => {
+    storage.setSesiones([elongacionMalGuardada]);
+    montarCon([...CATALOGO, ESTIRAR]);
+    const dias = [...document.querySelectorAll('#calendario .dia')];
+    expect(dias.some((d) => d.className.includes('elongacion'))).toBe(true);
+    expect(dias.some((d) => d.className.includes('fuerza'))).toBe(false);
+  });
+
+  it('el filtro por elongación ahora la encuentra', () => {
+    storage.setSesiones([elongacionMalGuardada]);
+    montarCon([...CATALOGO, ESTIRAR]);
+    (document.querySelector('[data-filtro-tipo="elongacion"]') as HTMLElement).click();
+    expect(document.querySelectorAll('#sesiones details')).toHaveLength(1);
+  });
+
+  it('una sesión de fuerza sigue siendo de fuerza', () => {
+    storage.setSesiones([sesionFuerza()]);
+    montarCon([...CATALOGO, ESTIRAR]);
+    expect(storage.getSesiones()[0]!.tipo).toBe('fuerza');
+    expect(document.querySelector('#sesiones details')!.className).toBe('tipo-fuerza');
+  });
+});

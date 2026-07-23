@@ -98,7 +98,7 @@ import Base from '../layouts/Base.astro';
   import { storage } from '../lib/storage';
   import { respaldar, ultimoRespaldo } from '../ui/respaldo';
   import { compartirArchivo } from '../ui/compartir';
-  import { cargarCatalogo, hoyISO, escapar, pedirPersistencia, rutaBase } from '../ui/datos';
+  import { cargarCatalogo, hoyISO, escapar, pedirPersistencia, repararTiposDeSesion, rutaBase } from '../ui/datos';
 
   const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T;
   const MS_DIA = 86_400_000;
@@ -229,6 +229,8 @@ import Base from '../layouts/Base.astro';
       $('#datos-error').textContent = 'Antes generá (o importá) una rutina.';
       return null;
     }
+    // El resumen del pedido cuenta sesiones por tipo: se repara antes de contar.
+    repararTiposDeSesion([...(await cargarCatalogo()), ...storage.getCustoms()]);
     return generarExport(
       perfil,
       rutina,

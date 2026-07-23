@@ -47,7 +47,12 @@ import Base from '../layouts/Base.astro';
     padding: 10px 14px;
     margin: 8px 0;
   }
+  /* El tipo de sesión también se ve en la lista, no solo en el calendario. */
+  #sesiones :global(details.tipo-fuerza) { border-left: 4px solid var(--fuerza); }
+  #sesiones :global(details.tipo-cardio) { border-left: 4px solid var(--cardio); }
+  #sesiones :global(details.tipo-elongacion) { border-left: 4px solid var(--elongacion); }
   #sesiones :global(summary) { font-weight: 700; cursor: pointer; }
+  #sesiones :global(summary .tipo) { font-weight: 600; color: var(--tinta-suave); }
   #sesiones :global(.meta) { font-size: 13px; color: var(--tinta-suave); }
   #aviso-historial :global(.deshacer) { display: flex; align-items: center; gap: 10px; }
   #aviso-historial :global(.deshacer span) { flex: 1; }

@@ -16,7 +16,7 @@ import { respaldar as respaldarReal, ultimoRespaldo, type ResultadoRespaldo } fr
 import { resumenSeries } from '../lib/unidades';
 import { storage } from '../lib/storage';
 import { crearPanelEjercicio } from './panel-ejercicio';
-import { escapar, haceDias, rutaBase } from './datos';
+import { escapar, haceDias, repararTiposDeSesion, rutaBase } from './datos';
 import type { DiaRutina, Ejercicio, Perfil, Rutina, Sesion } from '../lib/tipos';
 
 export interface DepsHoy {
@@ -38,6 +38,7 @@ export function montarHoy(deps: DepsHoy): void {
   const { contenedor: caja, catalogo, perfil, hoy, confirmar, navegar } = deps;
   const respaldar = deps.respaldar ?? respaldarReal;
   const $ = <T extends HTMLElement>(sel: string) => caja.querySelector(sel) as T;
+  repararTiposDeSesion(catalogo);
   let modoSinGym = sessionStorage.getItem('ge:singym') === hoy();
 
   function porId(id: string): Ejercicio | undefined {
