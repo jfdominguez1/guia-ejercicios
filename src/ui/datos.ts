@@ -1,5 +1,6 @@
 // Capa de datos del cliente: catálogo cacheado, rutas con BASE_URL y guardas.
 
+import { corregirTipos } from '../lib/registro';
 import { storage } from '../lib/storage';
 import type { Ejercicio, Perfil } from '../lib/tipos';
 
@@ -17,6 +18,17 @@ export function pedirPersistencia(): void {
   } catch {
     // API ausente en navegadores viejos: seguimos igual.
   }
+}
+
+/**
+ * Corrige de una vez el tipo de las sesiones viejas mal clasificadas (el wizard
+ * las guardaba todas como 'fuerza'). Se corre al abrir Hoy: sin esto el
+ * historial y el resumen para la IA siguen contando mal lo ya registrado.
+ */
+export function repararTiposDeSesion(catalogo: Ejercicio[]): void {
+  const sesiones = storage.getSesiones();
+  const corregidas = corregirTipos(sesiones, catalogo);
+  if (corregidas !== sesiones) storage.setSesiones(corregidas);
 }
 
 let cache: Ejercicio[] | null = null;

@@ -6,9 +6,10 @@ import { resolverSalteo, variantesDe, ultimaVez } from '../lib/motor';
 import { sugerirProgresion } from '../lib/progreso';
 import { alternativasDe, dosisInicial, sustituirEjercicio } from '../lib/editor';
 import { parsearDiaElegido, resolverDiaDeHoy } from '../lib/dia';
-import { formatearObjetivo, formatearFc } from '../lib/formato';
+import { formatearObjetivo, formatearFc, unidadEfectiva } from '../lib/formato';
+import { conMedida, formatearCrono, medidaSerie, NOMBRE_UNIDAD } from '../lib/serie';
 import { convertirDiaSinGym } from '../lib/singym';
-import { yaHaySesion } from '../lib/registro';
+import { ETIQUETA_TIPO, tipoPredominante, yaHaySesion } from '../lib/registro';
 import { storage } from '../lib/storage';
 import { ajustarPeso, aKg, desdeKg, equivalente, formatearPeso, resumenSeries, type UnidadPeso } from '../lib/unidades';
 import { crearBuscador, etiquetaGrupo, htmlOpciones } from './buscador';
@@ -64,6 +65,48 @@ export function montarEntrenar(deps: DepsEntrenar): void {
   const porId = (id: string) => catalogo.find((e) => e.id === id);
   const unidadEntrada = (): UnidadPeso => storage.getConfig().unidadEntrada ?? 'kg';
 
+  // --- Cronómetro (ejercicios por tiempo: plancha, elongación) ---------------
+  // Sin esto el tiempo se estima de memoria después de la serie, que es
+  // justamente lo que hace que el número no sirva.
+  /** Serie que se está cronometrando, o null. */
+  let cronoIndice: number | null = null;
+  /** Paso del wizard donde arrancó: si te movés de ejercicio, se apaga solo. */
+  let cronoPaso = -1;
+  let cronoDesde = 0;
+  let cronoTimer: ReturnType<typeof setInterval> | null = null;
+
+  const transcurrido = () => Math.max(1, Math.round((Date.now() - cronoDesde) / 1000));
+
+  /** Corta el cronómetro y devuelve los segundos que corrió (0 si no corría). */
+  function pararCrono(): number {
+    const segundos = cronoIndice === null ? 0 : transcurrido();
+    if (cronoTimer) clearInterval(cronoTimer);
+    cronoTimer = null;
+    cronoIndice = null;
+    return segundos;
+  }
+
+  function arrancarCrono(indice: number) {
+    pararCrono();
+    cronoIndice = indice;
+    cronoPaso = draft.indice;
+    cronoDesde = Date.now();
+    cronoTimer = setInterval(() => {
+      const campo = caja.querySelector(`[data-campo="valor"][data-i="${indice}"]`);
+      const boton = caja.querySelector(`[data-crono="${indice}"]`);
+      // Si cambiaste de ejercicio o de pantalla, no escribe en la serie de otro.
+      if (cronoPaso !== draft.indice || !campo || !boton) {
+        pararCrono();
+        return;
+      }
+      const segundos = transcurrido();
+      (campo as HTMLInputElement).value = String(segundos);
+      boton.textContent = `■ ${formatearCrono(segundos)}`;
+    }, 1000);
+  }
+
+  const cronometrando = (i: number) => cronoIndice === i && cronoPaso === draft.indice;
+
   function guardarDraft() {
     try {
       localStorage.setItem('ge:draft', JSON.stringify(draft));
@@ -74,14 +117,17 @@ export function montarEntrenar(deps: DepsEntrenar): void {
     const info = porId(e.ejercicioId);
     const variante = (info?.grupo ?? 'cuerpo') as GrupoEquip;
     const previa = ultimaVez(storage.getSesiones(), e.ejercicioId, variante);
+    const unidad = unidadEfectiva(e, info?.tipo ?? 'fuerza');
     const series = Array.from({ length: e.series }, (_, i) => {
       const anterior = previa?.series[i];
-      return {
-        reps: anterior?.reps ?? e.repsMin,
+      const valor = anterior ? medidaSerie(anterior).valor : e.repsMin;
+      const base = conMedida(
         // Lo que levantaste manda; el peso sugerido solo cubre la primera vez.
-        pesoKg: anterior?.pesoKg ?? e.pesoInicialKg,
-        hecha: false,
-      };
+        { reps: valor, pesoKg: anterior?.pesoKg ?? e.pesoInicialKg },
+        valor,
+        unidad,
+      );
+      return { ...base, hecha: false };
     });
     return { ejercicioId: e.ejercicioId, variante, series, plan: e };
   }
@@ -123,11 +169,12 @@ export function montarEntrenar(deps: DepsEntrenar): void {
   /** Recalcula las series precargando lo que levantaste la última vez con ese ejercicio. */
   function recargarSeries(estado: EstadoEj, ejercicioId: string, variante: GrupoEquip) {
     const previa = ultimaVez(storage.getSesiones(), ejercicioId, variante);
-    estado.series = estado.series.map((s, i) => ({
-      reps: previa?.series[i]?.reps ?? s.reps,
-      pesoKg: previa?.series[i]?.pesoKg,
-      hecha: false,
-    }));
+    const unidad = unidadEfectiva(estado.plan, porId(ejercicioId)?.tipo ?? 'fuerza');
+    estado.series = estado.series.map((s, i) => {
+      const anterior = previa?.series[i];
+      const valor = anterior ? medidaSerie(anterior).valor : medidaSerie(s).valor;
+      return { ...conMedida({ reps: valor, pesoKg: anterior?.pesoKg }, valor, unidad), hecha: false };
+    });
   }
 
   function cambiarVariante(estado: EstadoEj, grupo: GrupoEquip) {
@@ -147,10 +194,18 @@ export function montarEntrenar(deps: DepsEntrenar): void {
       if (rutina) storage.setRutina(sustituirEjercicio(rutina, draft.diaIndex, draft.indice, nuevo));
       estado.enLugarDe = undefined;
     }
+    const tipoAnterior = porId(estado.ejercicioId)?.tipo;
     estado.ejercicioId = nuevo.id;
     estado.variante = nuevo.grupo;
     estado.salteado = false;
-    estado.plan = { ...estado.plan, ejercicioId: nuevo.id, movimiento: nuevo.movimiento };
+    estado.plan = {
+      ...estado.plan,
+      ejercicioId: nuevo.id,
+      movimiento: nuevo.movimiento,
+      // Cambiar una elongación por un ejercicio de fuerza cambia la unidad: si
+      // no, la pantalla sigue pidiendo segundos para un press de banca.
+      ...(tipoAnterior !== nuevo.tipo ? { unidad: dosisInicial(nuevo.tipo).unidad } : {}),
+    };
     recargarSeries(estado, nuevo.id, nuevo.grupo);
   }
 
@@ -166,15 +221,26 @@ export function montarEntrenar(deps: DepsEntrenar): void {
       <button class="boton-principal" id="btn-guardar">Guardar sesión ✓</button>
       <button class="boton-secundario" id="btn-volver-wizard">Volver</button>`;
     caja.querySelector('#btn-guardar')!.addEventListener('click', () => {
+      // El tipo sale de lo que realmente hiciste (los salteados no cuentan): una
+      // sesión de elongación tiene que quedar registrada como elongación.
+      const idsHechos = hechos.map((e) => e.ejercicioId);
+      const tipo = tipoPredominante(
+        idsHechos.length ? idsHechos : draft.ejercicios.map((e) => e.ejercicioId),
+        catalogo,
+      );
       // Mismo guard que "Hecha ✓" en Hoy: dos registros del mismo día inflan la semana.
-      if (yaHaySesion(storage.getSesiones(), hoy(), 'fuerza')
-        && !confirmar('Ya registraste una sesión de fuerza hoy. ¿Agrego otra igual?')) return;
+      if (yaHaySesion(storage.getSesiones(), hoy(), tipo)
+        && !confirmar(`Ya registraste una sesión de ${ETIQUETA_TIPO[tipo]} hoy. ¿Agrego otra igual?`)) return;
       const items: ItemSesion[] = draft.ejercicios
         .map((e) => ({
           ejercicioId: e.ejercicioId,
           variante: e.variante,
           ...(porId(e.ejercicioId)?.nombre_es ? { nombre: porId(e.ejercicioId)!.nombre_es } : {}),
-          series: e.series.filter((s) => s.hecha).map(({ reps, pesoKg }) => (pesoKg === undefined ? { reps } : { reps, pesoKg })),
+          // Se guarda la serie entera menos `hecha` (que es del wizard): así los
+          // segundos/minutos llegan al historial y no se pierde la unidad.
+          series: e.series
+            .filter((s) => s.hecha)
+            .map(({ hecha: _hecha, pesoKg, ...serie }) => (pesoKg === undefined ? serie : { ...serie, pesoKg })),
           ...(e.salteado ? { salteado: true as const } : {}),
           ...(e.enLugarDe ? { enLugarDe: e.enLugarDe } : {}),
           ...(e.nota?.trim() ? { nota: e.nota.trim() } : {}),
@@ -183,7 +249,7 @@ export function montarEntrenar(deps: DepsEntrenar): void {
         .filter((i) => i.series.length > 0 || i.salteado);
       storage.agregarSesion({
         fecha: hoy(),
-        tipo: 'fuerza',
+        tipo,
         estado: 'hecha',
         // Sin diaIndex en sesión libre: no es un día de la rutina, así que no
         // corre la rotación (resolverSalteo solo mira las que sí lo tienen).
@@ -277,6 +343,10 @@ export function montarEntrenar(deps: DepsEntrenar): void {
     const gruposDisponibles = (Object.keys(variantes) as GrupoEquip[]).filter((g) => variantes[g].length > 0);
     const fc = formatearFc(planificado);
     const unidad = unidadEntrada();
+    // Qué se registra en este ejercicio: reps, segundos o minutos. Sin esto la
+    // pantalla pide "reps" hasta en una plancha y el dato queda inservible.
+    const unidadEj = unidadEfectiva(planificado, info?.tipo ?? 'fuerza');
+    const porTiempo = unidadEj !== 'reps';
     const previa = ultimaVez(storage.getSesiones(), estado.ejercicioId, estado.variante);
     const referencia = previa ? resumenSeries(previa.series) : '';
     // Qué hacer HOY: doble progresión sobre lo de la última vez (mejora 1).
@@ -314,25 +384,35 @@ export function montarEntrenar(deps: DepsEntrenar): void {
       </div>
       <div class="carta">
         <div class="cabecera-series">
-          <span class="eyebrow">Series — tocá el círculo al terminar</span>
-          <div class="chips unidad">
+          <span class="eyebrow">${porTiempo
+            ? `${NOMBRE_UNIDAD[unidadEj]} por serie — tocá el círculo al terminar`
+            : 'Series — tocá el círculo al terminar'}</span>
+          ${porTiempo ? '' : `<div class="chips unidad">
             <button class="chip" data-unidad="kg" aria-pressed="${unidad === 'kg'}">kg</button>
             <button class="chip" data-unidad="lb" aria-pressed="${unidad === 'lb'}">lb</button>
-          </div>
+          </div>`}
         </div>
         ${estado.series
           .map((s, i) => {
             const enUnidad = s.pesoKg === undefined ? '' : String(desdeKg(s.pesoKg, unidad));
             const otra = s.pesoKg === undefined ? '' : equivalente(desdeKg(s.pesoKg, unidad), unidad);
-            return `<div class="serie${s.hecha ? ' hecha' : ''}" data-i="${i}">
+            const valor = medidaSerie(s).valor;
+            return `<div class="serie${s.hecha ? ' hecha' : ''}${porTiempo ? ' tiempo' : ''}" data-i="${i}">
             <button class="check" aria-label="Serie ${i + 1} ${s.hecha ? 'hecha' : 'pendiente'}">${s.hecha ? '✓' : i + 1}</button>
-            <input type="number" inputmode="numeric" data-campo="reps" value="${s.reps}" aria-label="Repeticiones" />
-            <div class="peso">
+            <input type="number" inputmode="numeric" data-campo="valor" data-i="${i}" value="${valor}" aria-label="${NOMBRE_UNIDAD[unidadEj]} serie ${i + 1}" />
+            ${porTiempo
+              ? `<div class="tiempo-serie">
+                  <span class="unidad-serie">${unidadEj}</span>
+                  ${unidadEj === 'seg'
+                    ? `<button class="crono" data-crono="${i}">${cronometrando(i) ? '■ Parar' : '⏱ Cronometrar'}</button>`
+                    : ''}
+                </div>`
+              : `<div class="peso">
               <button class="paso" data-paso="-1" data-i="${i}" aria-label="Bajar peso serie ${i + 1}">−</button>
               <input type="number" inputmode="decimal" step="0.5" data-campo="peso" value="${enUnidad}" placeholder="${unidad}" aria-label="Peso en ${unidad}" />
               <button class="paso" data-paso="1" data-i="${i}" aria-label="Subir peso serie ${i + 1}">+</button>
             </div>
-            <span class="equiv" data-equiv="${i}">${otra}</span>
+            <span class="equiv" data-equiv="${i}">${otra}</span>`}
           </div>`;
           })
           .join('')}
@@ -372,8 +452,11 @@ export function montarEntrenar(deps: DepsEntrenar): void {
         input.addEventListener('change', () => {
           const campo = (input as HTMLInputElement).dataset.campo;
           const valor = Number((input as HTMLInputElement).value);
-          if (campo === 'reps') {
-            estado.series[i]!.reps = valor || 0;
+          if (campo === 'valor') {
+            estado.series[i] = {
+              ...conMedida(estado.series[i]!, valor || 0, unidadEj),
+              hecha: estado.series[i]!.hecha,
+            };
           } else {
             // Lo tipeado está en la unidad activa; al dato siempre entra en kg.
             estado.series[i]!.pesoKg = valor ? aKg(valor, unidad) : undefined;
@@ -384,6 +467,19 @@ export function montarEntrenar(deps: DepsEntrenar): void {
         }),
       );
     });
+    caja.querySelectorAll('[data-crono]').forEach((boton) =>
+      boton.addEventListener('click', () => {
+        const i = Number((boton as HTMLElement).dataset.crono);
+        if (cronometrando(i)) {
+          const segundos = pararCrono();
+          estado.series[i] = { ...conMedida(estado.series[i]!, segundos, 'seg'), hecha: true };
+          guardarDraft();
+        } else {
+          arrancarCrono(i);
+        }
+        pintar();
+      }),
+    );
     caja.querySelectorAll('[data-paso]').forEach((boton) =>
       boton.addEventListener('click', () => {
         const b = boton as HTMLElement;

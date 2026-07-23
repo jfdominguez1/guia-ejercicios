@@ -595,7 +595,7 @@ describe('sugerencia de progresión (mejora 1)', () => {
     montar();
     $('#btn-usar-sugerencia').click();
     const pesos = $$('.serie [data-campo="peso"]').map((i) => (i as HTMLInputElement).value);
-    const reps = $$('.serie [data-campo="reps"]').map((i) => (i as HTMLInputElement).value);
+    const reps = $$('.serie [data-campo="valor"]').map((i) => (i as HTMLInputElement).value);
     expect(pesos).toEqual(['22.5', '22.5']); // 20 + paso 2,5
     expect(reps).toEqual(['8', '8']); // vuelve al piso del rango
   });
@@ -626,5 +626,133 @@ describe('nota por ejercicio (mejora 8)', () => {
     $('#btn-siguiente').click();
     $('#btn-guardar').click();
     expect(storage.getSesiones()[0]!.items![0]!.nota).toBeUndefined();
+  });
+});
+
+describe('ejercicios por tiempo — la unidad del plan manda', () => {
+  const PLANCHA: Ejercicio = { ...ej('T1', 'Plancha', 'plancha-core', 'cuerpo', 'core') };
+  const ESTIRAR: Ejercicio = { ...ej('T2', 'Estiramiento de isquios', 'estirar-isquios', 'cuerpo', 'isquios'), tipo: 'elongacion' };
+  const CINTA: Ejercicio = { ...ej('T3', 'Cinta', 'otro-sistema-cardiovascular', 'maquina', 'cardio'), tipo: 'cardio' };
+  const CAT = [...CATALOGO, PLANCHA, ESTIRAR, CINTA];
+
+  function montarDia(ejercicios: Rutina['dias'][number]['ejercicios']) {
+    storage.setRutina({
+      generadaEl: HOY,
+      seed: 1,
+      origen: 'reglas',
+      dias: [{ nombre: 'Día de prueba', enfoque: 'x', ejercicios }],
+    });
+    document.body.innerHTML = '<div id="wizard"></div>';
+    montarEntrenar({
+      contenedor: document.querySelector('#wizard') as HTMLElement,
+      catalogo: CAT,
+      perfil: PERFIL,
+      hoy: () => HOY,
+      navegar: () => {},
+      confirmar: () => true,
+    });
+  }
+
+  const PLAN_PLANCHA = { movimiento: 'plancha-core', ejercicioId: 'T1', series: 2, repsMin: 35, repsMax: 50, unidad: 'seg' as const, descansoSeg: 60 };
+  const PLAN_ESTIRAR = { movimiento: 'estirar-isquios', ejercicioId: 'T2', series: 2, repsMin: 30, repsMax: 40, unidad: 'seg' as const, descansoSeg: 30 };
+  const PLAN_CINTA = { movimiento: 'otro-sistema-cardiovascular', ejercicioId: 'T3', series: 1, repsMin: 30, repsMax: 35, unidad: 'min' as const, descansoSeg: 0 };
+
+  it('una plancha pide segundos, no repeticiones', () => {
+    montarDia([PLAN_PLANCHA]);
+    const campo = $('.serie [data-campo="valor"]');
+    expect(campo.getAttribute('aria-label')).toBe('Segundos serie 1');
+    expect(texto()).toContain('Segundos por serie');
+    expect(texto()).toContain('Objetivo: 2× 35-50 seg');
+  });
+
+  it('un ejercicio por tiempo no pide peso', () => {
+    montarDia([PLAN_PLANCHA]);
+    expect($$('.serie [data-campo="peso"]')).toHaveLength(0);
+    expect($$('.serie .paso')).toHaveLength(0);
+  });
+
+  it('el cardio pide minutos', () => {
+    montarDia([PLAN_CINTA]);
+    expect($('.serie [data-campo="valor"]').getAttribute('aria-label')).toBe('Minutos serie 1');
+    // el cronómetro es para segundos: en minutos no tiene sentido
+    expect($$('[data-crono]')).toHaveLength(0);
+  });
+
+  it('el valor tipeado se guarda como segundos, no metido en reps', () => {
+    montarDia([PLAN_PLANCHA]);
+    const campo = $('.serie [data-campo="valor"]') as HTMLInputElement;
+    campo.value = '42';
+    campo.dispatchEvent(new Event('change'));
+    expect(leerDraft().ejercicios[0].series[0]).toMatchObject({ reps: 42, segundos: 42 });
+  });
+
+  it('la sesión guardada trae los segundos de cada serie', () => {
+    montarDia([PLAN_PLANCHA]);
+    const campo = $('.serie [data-campo="valor"]') as HTMLInputElement;
+    campo.value = '40';
+    campo.dispatchEvent(new Event('change'));
+    $$('.serie .check')[0]!.click();
+    $('#btn-siguiente').click();
+    $('#btn-guardar').click();
+    const serie = storage.getSesiones()[0]!.items![0]!.series[0]!;
+    expect(serie.segundos).toBe(40);
+    expect(serie.pesoKg).toBeUndefined();
+  });
+
+  it('el cronómetro carga el tiempo y da la serie por hecha', () => {
+    montarDia([PLAN_PLANCHA]);
+    $('[data-crono="0"]').click();
+    expect($('[data-crono="0"]').textContent).toContain('Parar');
+    $('[data-crono="0"]').click();
+    const serie = leerDraft().ejercicios[0].series[0];
+    expect(serie.segundos).toBeGreaterThan(0);
+    expect(serie.hecha).toBe(true);
+  });
+
+  it('no sugiere subir el peso en un ejercicio por tiempo', () => {
+    storage.setSesiones([
+      { fecha: '2026-07-13', tipo: 'fuerza', items: [{ ejercicioId: 'T1', variante: 'cuerpo', series: [{ reps: 50, segundos: 50 }] }] },
+    ]);
+    montarDia([PLAN_PLANCHA]);
+    // La doble progresión es de carga: en segundos no hay peso que subir.
+    expect($$('.sugerencia')).toHaveLength(0);
+    expect(texto()).not.toContain('Probá');
+  });
+
+  it('una sesión de elongación se registra como elongación, no como fuerza', () => {
+    montarDia([PLAN_ESTIRAR]);
+    $$('.serie .check')[0]!.click();
+    $('#btn-siguiente').click();
+    $('#btn-guardar').click();
+    expect(storage.getSesiones()[0]!.tipo).toBe('elongacion');
+  });
+
+  it('un día de cinta se registra como cardio', () => {
+    montarDia([PLAN_CINTA]);
+    $$('.serie .check')[0]!.click();
+    $('#btn-siguiente').click();
+    $('#btn-guardar').click();
+    expect(storage.getSesiones()[0]!.tipo).toBe('cardio');
+  });
+
+  it('cambiar una elongación por un ejercicio de fuerza vuelve a pedir reps', () => {
+    montarDia([PLAN_ESTIRAR]);
+    expect($('.serie [data-campo="valor"]').getAttribute('aria-label')).toBe('Segundos serie 1');
+    $('#btn-cambiar').click();
+    const buscador = $('#buscar-ej') as HTMLInputElement;
+    buscador.value = 'press banca';
+    buscador.dispatchEvent(new Event('input'));
+    $('[data-elegir="F1"]').click();
+    $('[data-alcance="hoy"]').click();
+    expect($('.serie [data-campo="valor"]').getAttribute('aria-label')).toBe('Repeticiones serie 1');
+    expect($$('.serie [data-campo="peso"]')).toHaveLength(2); // vuelve el peso, una por serie
+  });
+
+  it('la referencia de la última vez muestra la unidad', () => {
+    storage.setSesiones([
+      { fecha: '2026-07-13', tipo: 'fuerza', items: [{ ejercicioId: 'T1', variante: 'cuerpo', series: [{ reps: 45, segundos: 45 }, { reps: 45, segundos: 45 }] }] },
+    ]);
+    montarDia([PLAN_PLANCHA]);
+    expect(texto()).toContain('2×45 seg');
   });
 });

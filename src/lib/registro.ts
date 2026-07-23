@@ -1,23 +1,69 @@
 // Registro de sesión de un tap: si registrar es caro, el usuario deja de
 // hacerlo y la app muere. Nada acá es obligatorio salvo la fecha.
 
-import type { Config, DiaRutina, Ejercicio, GrupoGuardado, Rutina, Sesion, TipoSesion } from './tipos';
+import type {
+  Config,
+  DiaRutina,
+  Ejercicio,
+  GrupoGuardado,
+  Rutina,
+  Sesion,
+  TipoSesion,
+} from './tipos';
 
 export const CONFIG_DEFAULT: Config = { objetivoSemanal: 3, umbralPausaDias: 7, unidadEntrada: 'kg' };
 
 const MS_POR_DIA = 86_400_000;
 export const MAX_DIAS_RETRO = 7;
 
-/** Tipo predominante de un día planificado (para clasificar la sesión). */
-function tipoDelDia(dia: DiaRutina, catalogo: Ejercicio[]): TipoSesion {
-  const tipos = dia.ejercicios.map(
-    (e) => catalogo.find((c) => c.id === e.ejercicioId)?.tipo ?? 'fuerza',
-  );
+/**
+ * Tipo de sesión según los ejercicios que la componen: gana el más frecuente.
+ * Una sesión de elongación tiene que contar como elongación — si se asume
+ * 'fuerza' para todo lo que no es cardio, el hábito que más cuesta sostener no
+ * aparece en ninguna métrica.
+ */
+export function tipoPredominante(ejercicioIds: string[], catalogo: Ejercicio[]): TipoSesion {
   const conteo = new Map<string, number>();
-  for (const t of tipos) conteo.set(t, (conteo.get(t) ?? 0) + 1);
+  for (const id of ejercicioIds) {
+    const tipo = catalogo.find((c) => c.id === id)?.tipo ?? 'fuerza';
+    conteo.set(tipo, (conteo.get(tipo) ?? 0) + 1);
+  }
   const [ganador] = [...conteo.entries()].sort((a, b) => b[1] - a[1])[0] ?? ['fuerza'];
   return ganador as TipoSesion;
 }
+
+/** Tipo predominante de un día planificado (para clasificar la sesión). */
+function tipoDelDia(dia: DiaRutina, catalogo: Ejercicio[]): TipoSesion {
+  return tipoPredominante(dia.ejercicios.map((e) => e.ejercicioId), catalogo);
+}
+
+/**
+ * Repara el tipo de las sesiones ya guardadas que tienen detalle de ejercicios:
+ * el wizard las marcaba todas 'fuerza', así que una elongación o un día de
+ * cinta quedaron mal clasificados. Solo se tocan las que traen `items` (de las
+ * otras el tipo ya se derivó bien del día). Devuelve el mismo array si no había
+ * nada que corregir, para que el llamador sepa si hace falta persistir.
+ */
+export function corregirTipos(sesiones: Sesion[], catalogo: Ejercicio[]): Sesion[] {
+  let huboCambio = false;
+  const corregidas = sesiones.map((sesion) => {
+    const hechos = (sesion.items ?? []).filter((i) => !i.salteado);
+    if (hechos.length === 0) return sesion;
+    const tipo = tipoPredominante(hechos.map((i) => i.ejercicioId), catalogo);
+    if (tipo === sesion.tipo) return sesion;
+    huboCambio = true;
+    return { ...sesion, tipo };
+  });
+  return huboCambio ? corregidas : sesiones;
+}
+
+/** Cómo nombrar el tipo de sesión en un mensaje ("una sesión de elongación"). */
+export const ETIQUETA_TIPO: Record<TipoSesion, string> = {
+  fuerza: 'fuerza',
+  cardio: 'cardio',
+  elongacion: 'elongación',
+  otro: 'otra actividad',
+};
 
 /** Botón grande "Hecha ✓": registra la sesión planificada con un tap. */
 export function registrarHecha(

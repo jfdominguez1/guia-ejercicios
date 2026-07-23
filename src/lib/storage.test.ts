@@ -103,4 +103,31 @@ describe('storage', () => {
     expect(storage.getSesiones()).toHaveLength(1);
     expect(storage.restaurarBackup('no es json')).toBe(false);
   });
+
+  it('restaurarHistorial suma las sesiones del respaldo sin tocar el resto', () => {
+    storage.setPerfil(PERFIL);
+    storage.agregarSesion({ fecha: '2026-07-13', tipo: 'cardio' });
+    const backupViejo = storage.exportarBackup();
+
+    // El teléfono siguió: se perdió lo viejo y hay una sesión nueva + rutina nueva.
+    ls.clear();
+    const rutinaNueva = { generadaEl: '2026-07-23', seed: 1, origen: 'ia' as const, dias: [] };
+    storage.setRutina(rutinaNueva);
+    storage.agregarSesion({ fecha: '2026-07-23', tipo: 'fuerza' });
+
+    const fusion = storage.restaurarHistorial(backupViejo);
+    expect(fusion).toEqual({ sesiones: expect.any(Array), agregadas: 1, omitidas: 0 });
+    expect(storage.getSesiones().map((s) => s.fecha)).toEqual(['2026-07-13', '2026-07-23']);
+    // la rutina y el perfil del teléfono quedan como estaban
+    expect(storage.getRutina()).toEqual(rutinaNueva);
+    expect(storage.getPerfil()).toBeNull();
+  });
+
+  it('restaurarHistorial no duplica si se corre dos veces y avisa si el archivo no sirve', () => {
+    storage.agregarSesion({ fecha: '2026-07-13', tipo: 'cardio' });
+    const backup = storage.exportarBackup();
+    expect(storage.restaurarHistorial(backup)?.agregadas).toBe(0);
+    expect(storage.getSesiones()).toHaveLength(1);
+    expect(storage.restaurarHistorial('no es json')).toBeNull();
+  });
 });

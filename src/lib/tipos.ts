@@ -86,8 +86,17 @@ export interface GrupoGuardado {
 }
 
 export interface SerieHecha {
+  /**
+   * Repeticiones. En ejercicios por tiempo espeja el valor de `segundos` o
+   * `minutos`, para que lo que ya lee este campo (respaldos, progresión) siga
+   * funcionando; la unidad real la dicen los dos campos de abajo.
+   */
   reps: number;
   pesoKg?: number;
+  /** Ejercicios por tiempo (plancha, elongación): duración real de la serie. */
+  segundos?: number;
+  /** Cardio por minutos: duración real del bloque. */
+  minutos?: number;
 }
 
 export interface ItemSesion {

@@ -19,6 +19,7 @@ import {
   type EdicionSesion,
 } from '../lib/historial';
 import { fechaValidaRetro, registrarOtra } from '../lib/registro';
+import { conMedida, medidaSerie, NOMBRE_UNIDAD } from '../lib/serie';
 import { resumenSeries } from '../lib/unidades';
 import { storage } from '../lib/storage';
 import { escapar } from './datos';
@@ -166,13 +167,19 @@ export function montarHistorial(deps: DepsHistorial): void {
     const items = (s.items ?? [])
       .map((item, i) => {
         const series = item.series
-          .map(
-            (serie, j) => `<div class="serie-edit">
+          .map((serie, j) => {
+            const medida = medidaSerie(serie);
+            // Una serie por tiempo se edita en su unidad y no lleva peso.
+            const segundoCampo =
+              medida.unidad === 'reps'
+                ? `<input type="number" inputmode="decimal" step="0.5" data-item="${i}" data-serie="${j}" data-serie-campo="peso" value="${serie.pesoKg ?? ''}" placeholder="kg" aria-label="Peso serie ${j + 1}" />`
+                : `<span class="meta">${medida.unidad}</span>`;
+            return `<div class="serie-edit">
               <span class="meta">Serie ${j + 1}</span>
-              <input type="number" inputmode="numeric" data-item="${i}" data-serie="${j}" data-serie-campo="reps" value="${serie.reps}" aria-label="Repeticiones serie ${j + 1}" />
-              <input type="number" inputmode="decimal" step="0.5" data-item="${i}" data-serie="${j}" data-serie-campo="peso" value="${serie.pesoKg ?? ''}" placeholder="kg" aria-label="Peso serie ${j + 1}" />
-            </div>`,
-          )
+              <input type="number" inputmode="numeric" data-item="${i}" data-serie="${j}" data-serie-campo="valor" value="${medida.valor}" aria-label="${NOMBRE_UNIDAD[medida.unidad]} serie ${j + 1}" />
+              ${segundoCampo}
+            </div>`;
+          })
           .join('');
         return series
           ? `<div class="bloque-item"><strong>${escapar(nombreDe(item))}</strong>${series}
@@ -269,14 +276,17 @@ export function montarHistorial(deps: DepsHistorial): void {
       const { nota: _viejo, ...resto } = item;
       return {
         ...resto,
-        series: item.series.map((_, j) => {
+        series: item.series.map((serie, j) => {
           const leer = (campo: string) =>
             (panel.querySelector(`[data-item="${i}"][data-serie="${j}"][data-serie-campo="${campo}"]`) as HTMLInputElement | null)?.value ?? '';
           const peso = leer('peso').trim();
-          return {
-            reps: Number(leer('reps')) || 0,
-            ...(peso === '' ? {} : { pesoKg: Number(peso) }),
-          };
+          const valor = Number(leer('valor')) || 0;
+          // La unidad no se edita: se conserva la que quedó registrada.
+          return conMedida(
+            { reps: valor, ...(peso === '' ? {} : { pesoKg: Number(peso) }) },
+            valor,
+            medidaSerie(serie).unidad,
+          );
         }),
         ...(nota ? { nota } : {}),
       };

@@ -1,6 +1,7 @@
 // Acceso tipado a localStorage con prefijo ge:. Nunca tira: ante error
 // devuelve el default (browser en privado, quota llena, JSON corrupto).
 
+import { fusionarSesiones, leerSesionesDeBackup, type ResultadoFusion } from './backup';
 import { asegurarIds } from './historial';
 import { CONFIG_DEFAULT } from './registro';
 import type { Config, Ejercicio, GrupoGuardado, Perfil, Rutina, Sesion } from './tipos';
@@ -82,6 +83,20 @@ export const storage = {
     return JSON.stringify({ app: 'guia-ejercicios', version: 1, datos });
   },
 
+  /**
+   * Suma al historial las sesiones de un respaldo, sin tocar rutina, perfil,
+   * grupos ni customs. Es lo que hay que usar cuando el respaldo es viejo pero
+   * en el teléfono ya hay sesiones nuevas. `null` = el archivo no es un respaldo.
+   */
+  restaurarHistorial(texto: string): ResultadoFusion | null {
+    const entrantes = leerSesionesDeBackup(texto);
+    if (!entrantes) return null;
+    const fusion = fusionarSesiones(this.getSesiones(), entrantes, nuevoId);
+    if (fusion.agregadas > 0) this.setSesiones(fusion.sesiones);
+    return fusion;
+  },
+
+  /** Reemplaza TODO con el contenido del respaldo (teléfono nuevo, dato perdido). */
   restaurarBackup(texto: string): boolean {
     try {
       const backup = JSON.parse(texto) as { datos?: Record<string, unknown> };

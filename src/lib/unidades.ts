@@ -2,6 +2,7 @@
 // segunda lectura para las máquinas rotuladas en lb, nunca un formato de
 // guardado. Funciones puras.
 
+import { medidaSerie } from './serie';
 import type { SerieHecha, UnidadPeso } from './tipos';
 
 export type { UnidadPeso };
@@ -77,13 +78,16 @@ export function ajustarPeso(kg: number | undefined, unidad: UnidadPeso, signo: 1
 
 /**
  * Resumen de lo que hiciste la última vez, con las dos unidades.
- * Ej: "3×10 · 20 kg · 44 lb". Vacío si no hay series.
+ * Ej: "3×10 · 20 kg · 44 lb", "2×40 seg". Vacío si no hay series.
  */
 export function resumenSeries(series: SerieHecha[]): string {
   if (!series.length) return '';
-  const reps = series.map((s) => s.reps);
+  const medidas = series.map(medidaSerie);
+  // Un número sin unidad no se puede leer: "30" no dice si son reps o segundos.
+  const sufijo = medidas[0]!.unidad === 'reps' ? '' : ` ${medidas[0]!.unidad}`;
+  const reps = medidas.map((m) => m.valor);
   const todasIguales = reps.every((r) => r === reps[0]);
-  const parteReps = todasIguales ? `${series.length}×${reps[0]}` : reps.join('/');
+  const parteReps = (todasIguales ? `${series.length}×${reps[0]}` : reps.join('/')) + sufijo;
   const pesos = series.map((s) => s.pesoKg).filter((p): p is number => p !== undefined);
   if (!pesos.length) return parteReps;
   const max = Math.max(...pesos);

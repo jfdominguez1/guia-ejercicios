@@ -88,6 +88,12 @@ cardíaca en ppm); en elongación usá unidad "seg"; en fuerza omitila o usá
 entre bloques. "nuevos_ejercicios" puede ir vacío: []. No agregues texto
 después del bloque JSON.
 
+No hace falta listar alternativas por ejercicio: la app las calcula sola del
+catálogo (en el wizard, "Cambiar ejercicio ⇄" ofrece el mismo movimiento con
+otro implemento, otros del mismo músculo y la búsqueda en todo el catálogo).
+"grupos" se fusiona por nombre y "nuevos_ejercicios" por id: nada de lo que ya
+está guardado se borra por no venir en el archivo, y el historial no se toca.
+
 "pesoInicialKg" es el peso sugerido para la PRIMERA vez que haga ese ejercicio
 (solo fuerza, en kg; omitilo en ejercicios de peso corporal). La app lo usa para
 precargar el campo y no tener que adivinar frente a la máquina, y lo deja de
@@ -172,6 +178,10 @@ Resumen: ${fuerza} sesiones de fuerza, ${cardio} de cardio, ${elongacion} de elo
 Por estado: ${hechas} sesiones planificadas hechas, ${otras} registradas como "hice otra cosa".
 ${lineaPausas}
 Cada sesión trae "estado" ('hecha' = la planificada, 'otra' = actividad libre con duracionMin).
+En las series, "reps" son repeticiones SALVO que la serie traiga "segundos" o
+"minutos": en ese caso ese es el dato real y "reps" solo lo espeja. Un ejercicio
+por tiempo (plancha, elongación, cardio) se registra en su unidad — no lo leas
+como repeticiones.
 
 \`\`\`json
 ${JSON.stringify(recientes, null, 1)}

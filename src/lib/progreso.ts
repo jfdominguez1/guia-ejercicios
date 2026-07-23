@@ -2,6 +2,7 @@
 // hoy con él. Lo comparten la ficha (curva) y el wizard (sugerencia).
 // Funciones puras — sin DOM ni storage.
 
+import { unidadEfectiva } from './formato';
 import { formatearPeso, PASO } from './unidades';
 import type { Ejercicio, EjercicioRutina, GrupoEquip, SerieHecha, Sesion } from './tipos';
 
@@ -106,7 +107,9 @@ export function sugerirProgresion(
   plan: EjercicioRutina,
   info: Ejercicio,
 ): Sugerencia {
-  if (info.tipo !== 'fuerza') {
+  // Una plancha es de tipo 'fuerza' pero se mide en segundos: ahí el peso no
+  // progresa, progresa el tiempo. La unidad manda, no solo el tipo.
+  if (info.tipo !== 'fuerza' || unidadEfectiva(plan, info.tipo) !== 'reps') {
     return { tipo: 'sin-datos', texto: 'Progresá el tiempo o la intensidad, no el peso.' };
   }
   const conPeso = (ultimaSeries ?? []).filter(

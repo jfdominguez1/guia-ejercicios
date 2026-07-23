@@ -80,7 +80,13 @@ import Base from '../layouts/Base.astro';
     <p class="ayuda" id="backup-estado"></p>
     <button class="boton-principal" id="btn-backup">Respaldar (sacar copia afuera)</button>
     <p class="ayuda" id="backup-resultado" hidden></p>
-    <label for="restaurar-archivo">Restaurar desde un respaldo</label>
+    <h3>Recuperar sesiones de un respaldo</h3>
+    <p class="ayuda">Suma al historial las sesiones que falten. No toca tu rutina, tu perfil ni tus bloques, y no pisa lo que ya registraste.</p>
+    <input type="file" id="fusionar-archivo" accept=".json" />
+    <p class="ayuda" id="fusionar-resultado" hidden></p>
+
+    <h3>Restaurar todo desde un respaldo</h3>
+    <p class="ayuda">Reemplaza TODO lo de este teléfono por lo del archivo. Es para un equipo nuevo o si perdiste los datos — si solo querés recuperar sesiones, usá el botón de arriba.</p>
     <input type="file" id="restaurar-archivo" accept=".json" />
     <p class="error" id="datos-error" role="alert"></p>
   </section>
@@ -88,6 +94,7 @@ import Base from '../layouts/Base.astro';
 
 <script>
   import { generarExport, validarImport, PREGUNTA_DEFAULT } from '../lib/ia';
+  import { leerSesionesDeBackup } from '../lib/backup';
   import { storage } from '../lib/storage';
   import { respaldar, ultimoRespaldo } from '../ui/respaldo';
   import { compartirArchivo } from '../ui/compartir';
@@ -124,6 +131,40 @@ import Base from '../layouts/Base.astro';
     resultado.textContent = r === 'compartido'
       ? '✓ Copia enviada. Guardala en Drive, WhatsApp o donde la tengas a mano.'
       : '✓ Copia descargada. Movela a Drive o mandátela para tenerla fuera del teléfono.';
+  });
+
+  // Fusionar: recuperar sesiones viejas sin perder las nuevas (respaldo viejo
+  // + teléfono con datos posteriores). Es el caso más común, va primero.
+  ($('#fusionar-archivo') as HTMLInputElement).addEventListener('change', async (e) => {
+    const entrada = e.target as HTMLInputElement;
+    const archivo = entrada.files?.[0];
+    if (!archivo) return;
+    const aviso = $('#fusionar-resultado');
+    const texto = await archivo.text();
+    const delArchivo = leerSesionesDeBackup(texto);
+    entrada.value = '';
+    if (!delArchivo) {
+      $('#datos-error').textContent = 'Ese archivo no parece un respaldo de la app.';
+      return;
+    }
+    $('#datos-error').textContent = '';
+    if (delArchivo.length === 0) {
+      aviso.hidden = false;
+      aviso.textContent = 'Ese respaldo no tiene sesiones guardadas.';
+      return;
+    }
+    const fechas = delArchivo.map((s) => s.fecha).sort();
+    const rango = `${fechas[0]} → ${fechas[fechas.length - 1]}`;
+    if (!confirm(`El respaldo trae ${delArchivo.length} sesiones (${rango}). Sumo al historial las que falten, sin borrar nada. ¿Sigo?`)) return;
+    const fusion = storage.restaurarHistorial(texto);
+    if (!fusion) {
+      $('#datos-error').textContent = 'Ese archivo no parece un respaldo de la app.';
+      return;
+    }
+    aviso.hidden = false;
+    aviso.textContent = fusion.agregadas === 0
+      ? `Ya tenías esas ${fusion.omitidas} sesiones — no cambió nada.`
+      : `✓ Sumé ${fusion.agregadas} sesiones al historial${fusion.omitidas ? ` (${fusion.omitidas} ya estaban)` : ''}.`;
   });
 
   ($('#restaurar-archivo') as HTMLInputElement).addEventListener('change', async (e) => {
@@ -269,11 +310,36 @@ import Base from '../layouts/Base.astro';
       resultado.nuevos?.length ? `${resultado.nuevos.length} ejercicio(s) nuevo(s) tuyos` : '',
       resultado.perfil ? 'tu perfil' : '',
     ].filter(Boolean);
+    // Qué NO se toca: importar a ciegas da miedo, y el miedo real es perder
+    // datos que el archivo ni menciona (el historial, los bloques guardados).
+    const customs = storage.getCustoms();
+    const nuevos = resultado.nuevos ?? [];
+    const actualiza = nuevos.filter((n) => customs.some((c) => c.id === n.id)).length;
+    const gruposGuardados = storage.getGrupos();
+    const gruposIntactos = gruposGuardados.filter(
+      (g) => !(resultado.grupos ?? []).some((n) => n.nombre === g.nombre),
+    ).length;
+    const intacto = [
+      `tus ${storage.getSesiones().length} sesiones registradas`,
+      gruposIntactos ? `${gruposIntactos} bloque(s) guardado(s) que no vienen en el archivo` : '',
+      customs.length - actualiza > 0 ? `${customs.length - actualiza} ejercicio(s) tuyos ya guardados` : '',
+      resultado.perfil ? '' : 'tu perfil',
+    ].filter(Boolean);
+
     caja.innerHTML = `<div class="aviso">
       <strong>Plan válido ✓</strong> — ${partes.join(' · ')}
-      <ul>${resultado.resumenCambios.map((c) => `<li>${escapar(c)}</li>`).join('')}</ul>
+      <span class="eyebrow" style="display:block;margin-top:8px">Qué cambia</span>
+      <ul>${resultado.resumenCambios.map((c) => `<li>${escapar(c)}</li>`).join('')}
+      ${nuevos.length ? `<li>Ejercicios tuyos: ${nuevos.length - actualiza} nuevo(s), ${actualiza} actualizado(s) (nunca se duplican).</li>` : ''}
+      ${resultado.grupos?.length ? '<li>Los bloques se fusionan por nombre.</li>' : ''}</ul>
+      <span class="eyebrow" style="display:block">Qué queda intacto</span>
+      <p class="ayuda">${escapar(intacto.join(' · '))}.</p>
       <button class="boton-principal" id="btn-adoptar">Guardar todo</button>
+      <button class="boton-secundario" id="btn-cancelar-import">Cancelar</button>
     </div>`;
+    $('#btn-cancelar-import').addEventListener('click', () => {
+      caja.innerHTML = '<p class="ayuda">Cancelado — no se guardó nada.</p>';
+    });
     $('#btn-adoptar').addEventListener('click', () => {
       if (resultado.rutina) storage.setRutina(resultado.rutina);
       for (const g of resultado.grupos ?? []) storage.guardarGrupo(g);

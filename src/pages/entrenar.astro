@@ -23,6 +23,13 @@ import Base from '../layouts/Base.astro';
     align-items: center;
     margin: 10px 0;
   }
+  /* Ejercicios por tiempo: la columna del peso la ocupan la unidad y el reloj. */
+  #wizard :global(.serie .tiempo-serie) { display: flex; gap: 8px; align-items: center; }
+  #wizard :global(.serie .unidad-serie) {
+    font-weight: 700;
+    color: var(--tinta-suave);
+  }
+  #wizard :global(.serie .crono) { flex: 1; padding: 10px 8px; font-size: 14px; }
   #wizard :global(.serie .peso) { display: flex; gap: 6px; align-items: center; }
   #wizard :global(.serie .peso input) { text-align: center; min-width: 0; }
   #wizard :global(.serie .paso) {

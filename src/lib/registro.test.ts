@@ -7,6 +7,8 @@ import {
   resumenSemanal,
   ejerciciosEsquivados,
   yaHaySesion,
+  tipoPredominante,
+  corregirTipos,
   CONFIG_DEFAULT,
 } from './registro';
 import type { Ejercicio, Rutina, Sesion } from './tipos';
@@ -180,5 +182,64 @@ describe('yaHaySesion', () => {
 
   it('sin sesiones es false', () => {
     expect(yaHaySesion([], '2026-07-20', 'fuerza')).toBe(false);
+  });
+});
+
+describe('tipoPredominante — el tipo sale de los ejercicios, no se asume', () => {
+  const CAT_MIX = [...CAT, ej('E1', 'elongacion', 'estirar-isquios'), ej('E2', 'elongacion', 'estirar-cuello')];
+
+  it('una sesión de elongación cuenta como elongación', () => {
+    expect(tipoPredominante(['E1', 'E2'], CAT_MIX)).toBe('elongacion');
+  });
+
+  it('una sesión de cinta cuenta como cardio', () => {
+    expect(tipoPredominante(['C1', 'C1', 'C1'], CAT_MIX)).toBe('cardio');
+  });
+
+  it('mezcla: gana el más frecuente', () => {
+    expect(tipoPredominante(['F1', 'F2', 'E1'], CAT_MIX)).toBe('fuerza');
+    expect(tipoPredominante(['E1', 'E2', 'F1'], CAT_MIX)).toBe('elongacion');
+  });
+
+  it('un ejercicio que ya no está en el catálogo no rompe: cae en fuerza', () => {
+    expect(tipoPredominante(['no-existe'], CAT_MIX)).toBe('fuerza');
+    expect(tipoPredominante([], CAT_MIX)).toBe('fuerza');
+  });
+});
+
+describe('corregirTipos — repara lo ya guardado por el wizard viejo', () => {
+  const CAT_MIX = [...CAT, ej('E1', 'elongacion', 'estirar-isquios')];
+  const item = (id: string) => ({ ejercicioId: id, variante: 'pesas' as const, series: [{ reps: 10 }] });
+
+  it('la elongación del 22/07 guardada como fuerza pasa a elongacion', () => {
+    const sesiones: Sesion[] = [
+      { fecha: '2026-07-22', tipo: 'fuerza', diaRutina: 'Elongación', items: [item('E1'), item('E1')] },
+    ];
+    expect(corregirTipos(sesiones, CAT_MIX)[0]!.tipo).toBe('elongacion');
+  });
+
+  it('no toca las sesiones sin detalle (ahí el tipo ya salía del día)', () => {
+    const sesiones: Sesion[] = [{ fecha: '2026-07-21', tipo: 'cardio', duracionMin: 32 }];
+    expect(corregirTipos(sesiones, CAT_MIX)).toBe(sesiones);
+  });
+
+  it('devuelve el mismo array si no hay nada que corregir', () => {
+    const sesiones: Sesion[] = [{ fecha: '2026-07-20', tipo: 'fuerza', items: [item('F1')] }];
+    expect(corregirTipos(sesiones, CAT_MIX)).toBe(sesiones);
+  });
+
+  it('los ejercicios salteados no definen el tipo', () => {
+    const sesiones: Sesion[] = [
+      {
+        fecha: '2026-07-20',
+        tipo: 'fuerza',
+        items: [
+          { ejercicioId: 'C1', variante: 'cuerpo', series: [{ reps: 1 }] },
+          { ejercicioId: 'F1', variante: 'pesas', series: [], salteado: true },
+          { ejercicioId: 'F2', variante: 'pesas', series: [], salteado: true },
+        ],
+      },
+    ];
+    expect(corregirTipos(sesiones, CAT_MIX)[0]!.tipo).toBe('cardio');
   });
 });
