@@ -60,6 +60,9 @@ import Base from '../layouts/Base.astro';
     <label for="export-pregunta">La pregunta (editala si querés)</label>
     <textarea id="export-pregunta" rows="3"></textarea>
     <button class="boton-secundario" id="btn-exportar">Generar y copiar</button>
+    <button class="boton-secundario" id="btn-compartir-export">📲 Compartir como archivo</button>
+    <p class="ayuda">El pedido es largo (no entra como mensaje de WhatsApp): se manda como archivo adjunto, y tu IA lo lee igual.</p>
+    <p class="ayuda" id="export-resultado" hidden></p>
     <textarea id="export-texto" rows="4" readonly hidden></textarea>
   </section>
 
@@ -87,6 +90,7 @@ import Base from '../layouts/Base.astro';
   import { generarExport, validarImport, PREGUNTA_DEFAULT } from '../lib/ia';
   import { storage } from '../lib/storage';
   import { respaldar, ultimoRespaldo } from '../ui/respaldo';
+  import { compartirArchivo } from '../ui/compartir';
   import { cargarCatalogo, hoyISO, escapar, pedirPersistencia, rutaBase } from '../ui/datos';
 
   const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T;
@@ -175,24 +179,30 @@ import Base from '../layouts/Base.astro';
 
   // --- Export para la IA ---
   ($('#export-pregunta') as HTMLTextAreaElement).value = PREGUNTA_DEFAULT;
-  $('#btn-exportar').addEventListener('click', async () => {
+
+  /** Arma el pedido completo. null = falta rutina (ya avisó en pantalla). */
+  async function generarPedido(): Promise<string | null> {
     const perfil = storage.getPerfil();
     const rutina = storage.getRutina();
     if (!perfil || !rutina) {
       $('#datos-error').textContent = 'Antes generá (o importá) una rutina.';
-      return;
+      return null;
     }
-    const catalogo = await cargarCatalogo();
-    const texto = generarExport(
+    return generarExport(
       perfil,
       rutina,
       storage.getSesiones(),
-      catalogo,
+      await cargarCatalogo(),
       storage.getCustoms(),
       ($('#export-pregunta') as HTMLTextAreaElement).value.trim() || undefined,
       hoyISO(),
       storage.getGrupos(),
     );
+  }
+
+  $('#btn-exportar').addEventListener('click', async () => {
+    const texto = await generarPedido();
+    if (texto === null) return;
     const salida = $('#export-texto') as HTMLTextAreaElement;
     salida.hidden = false;
     salida.value = texto;
@@ -202,6 +212,30 @@ import Base from '../layouts/Base.astro';
     } catch {
       ($('#btn-exportar') as HTMLButtonElement).textContent = 'Listo abajo — copialo a mano';
     }
+  });
+
+  $('#btn-compartir-export').addEventListener('click', async () => {
+    const boton = $('#btn-compartir-export') as HTMLButtonElement;
+    const aviso = $('#export-resultado');
+    boton.disabled = true;
+    const texto = await generarPedido();
+    if (texto === null) {
+      boton.disabled = false;
+      return;
+    }
+    const resultado = await compartirArchivo(
+      texto,
+      `guia-ejercicios-pedido-ia-${hoyISO()}.md`,
+      'text/markdown',
+      'Pedido para mi IA — Guía de Ejercicios',
+    );
+    boton.disabled = false;
+    if (resultado === 'cancelado') return;
+    aviso.hidden = false;
+    aviso.textContent =
+      resultado === 'compartido'
+        ? '✓ Archivo enviado. Abrilo con tu IA y pegale el contenido.'
+        : '✓ Archivo descargado. Adjuntalo donde uses tu IA.';
   });
 
   // --- Import del plan de la IA ---

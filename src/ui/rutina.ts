@@ -11,9 +11,11 @@ import { resolverSalteo, ultimaVezMovimiento } from '../lib/motor';
 import { ejerciciosEsquivados } from '../lib/registro';
 import { formatearObjetivo, formatearFc, etiquetaDescanso } from '../lib/formato';
 import { resumenSeries } from '../lib/unidades';
+import { textoRutina } from '../lib/rutina-texto';
 import { storage } from '../lib/storage';
 import { crearBuscador } from './buscador';
 import { crearPanelEjercicio } from './panel-ejercicio';
+import { compartirTexto, type ResultadoTexto } from './compartir';
 import { escapar, haceDias, rutaBase } from './datos';
 import type { Ejercicio, EjercicioRutina, Perfil, Rutina } from '../lib/tipos';
 
@@ -23,13 +25,23 @@ export interface DepsRutina {
   perfil: Perfil;
   hoy: () => string;
   confirmar: (mensaje: string) => boolean;
+  /** Inyectable para testear sin navigator.share. */
+  compartir?: (texto: string, titulo: string) => Promise<ResultadoTexto>;
 }
+
+const MENSAJE_COMPARTIR: Record<ResultadoTexto, string> = {
+  compartido: '✓ Rutina enviada.',
+  copiado: '✓ Copiada — pegala donde quieras (WhatsApp, notas, mail).',
+  cancelado: '',
+  fallo: 'Este navegador no me deja compartir ni copiar. Probá desde el celular.',
+};
 
 /** Panel abierto: edición de un ejercicio o alta en un día. */
 type Abierto = { modo: 'editar' | 'agregar'; dia: number; idx: number } | null;
 
 export function montarRutina(deps: DepsRutina): void {
   const { contenedor: caja, catalogo, perfil, hoy, confirmar } = deps;
+  const compartir = deps.compartir ?? compartirTexto;
   let abierto: Abierto = null;
 
   const porId = (id: string) => catalogo.find((e) => e.id === id);
@@ -149,7 +161,22 @@ export function montarRutina(deps: DepsRutina): void {
     caja.innerHTML = `
       <p class="ayuda">Tocá ✎ para ajustar series, reps o sustituir un ejercicio. Los cambios quedan guardados para las próximas semanas.</p>
       ${htmlEsquivados()}
-      ${rutina.dias.map((_, i) => htmlDia(rutina, i, salteo.diaIndex)).join('')}`;
+      ${rutina.dias.map((_, i) => htmlDia(rutina, i, salteo.diaIndex)).join('')}
+      <div class="carta">
+        <button class="boton-secundario" id="btn-compartir-rutina">📲 Compartir mi rutina</button>
+        <p class="ayuda">La manda en texto, lista para leer (WhatsApp, mail, notas).</p>
+        <p class="ayuda" id="compartir-resultado" hidden></p>
+      </div>`;
+
+    caja.querySelector('#btn-compartir-rutina')?.addEventListener('click', async () => {
+      const boton = caja.querySelector('#btn-compartir-rutina') as HTMLButtonElement;
+      const aviso = caja.querySelector('#compartir-resultado') as HTMLElement;
+      boton.disabled = true;
+      const resultado = await compartir(textoRutina(rutina, catalogo), 'Mi rutina');
+      boton.disabled = false;
+      aviso.textContent = MENSAJE_COMPARTIR[resultado];
+      aviso.hidden = !aviso.textContent;
+    });
 
     caja.querySelectorAll('[data-editar]').forEach((boton) =>
       boton.addEventListener('click', () => {

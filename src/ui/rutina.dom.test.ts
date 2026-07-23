@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { montarRutina } from './rutina';
 import { storage } from '../lib/storage';
+import type { ResultadoTexto } from './compartir';
 import type { Ejercicio, Perfil, Rutina } from '../lib/tipos';
 
 const HOY = '2026-07-20';
@@ -44,9 +45,10 @@ function rutina(): Rutina {
   };
 }
 
-function montar(respuestas: boolean[] = []) {
+function montar(respuestas: boolean[] = [], resultadoCompartir: ResultadoTexto = 'compartido') {
   document.body.innerHTML = '<div id="rutina"></div>';
   const preguntas: string[] = [];
+  const compartidos: string[] = [];
   let i = 0;
   montarRutina({
     contenedor: document.querySelector('#rutina') as HTMLElement,
@@ -57,8 +59,12 @@ function montar(respuestas: boolean[] = []) {
       preguntas.push(mensaje);
       return respuestas[i++] ?? true;
     },
+    compartir: async (texto) => {
+      compartidos.push(texto);
+      return resultadoCompartir;
+    },
   });
-  return { preguntas };
+  return { preguntas, compartidos };
 }
 
 const $ = (sel: string) => document.querySelector(sel) as HTMLElement;
@@ -96,6 +102,24 @@ describe('listado', () => {
     localStorage.removeItem('ge:rutina');
     montar();
     expect(texto()).toContain('Todavía no hay rutina');
+  });
+
+  it('comparte la rutina en texto legible, con los días y las dosis', async () => {
+    const { compartidos } = montar();
+    $('#btn-compartir-rutina').click();
+    await Promise.resolve();
+    expect(compartidos).toHaveLength(1);
+    expect(compartidos[0]).toContain('Día 1 · empuje');
+    expect(compartidos[0]).toContain('Press banca — 3× 8-12 reps');
+    expect(texto()).toContain('Rutina enviada');
+  });
+
+  it('si el usuario cancela el compartir, no dice que se envió', async () => {
+    montar([], 'cancelado');
+    $('#btn-compartir-rutina').click();
+    await Promise.resolve();
+    expect(texto()).not.toContain('Rutina enviada');
+    expect(($('#btn-compartir-rutina') as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('avisa de los ejercicios que venís salteando', () => {
