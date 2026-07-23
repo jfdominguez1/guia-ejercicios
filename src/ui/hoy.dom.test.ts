@@ -236,6 +236,27 @@ describe('registrar de un tap', () => {
 });
 
 describe('hacer otro día', () => {
+  it('dice cuál te toca hoy con todas las letras', () => {
+    montar();
+    const encabezado = $('.dia-hoy');
+    expect(encabezado.textContent).toContain('Hoy te toca');
+    expect(encabezado.textContent).toContain('Día 1 — Empuje');
+  });
+
+  it('cambiar de día está a la vista, no dentro de Más opciones', () => {
+    montar();
+    expect($('#btn-otro-dia').closest('.mas-opciones')).toBeNull();
+    expect($('#btn-otro-dia').closest('.dia-hoy')).not.toBeNull();
+  });
+
+  it('al elegir otro día el encabezado dice que lo elegiste vos', () => {
+    montar();
+    $('#btn-otro-dia').click();
+    $('[data-dia="1"]').click();
+    expect($('.dia-hoy').textContent).toContain('Elegiste hacer');
+    expect($('.dia-hoy').textContent).toContain('Día 2 — Espalda');
+  });
+
   it('lista los días y marca cuál tocaba', () => {
     montar();
     $('#btn-otro-dia').click();

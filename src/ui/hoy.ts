@@ -133,10 +133,25 @@ export function montarHoy(deps: DepsHoy): void {
     </div>`;
   }
 
+  /**
+   * Qué se entrena hoy, dicho con todas las letras y con la salida al lado.
+   * Antes el nombre del día era un título más y cambiarlo estaba enterrado en
+   * "Más opciones": si te toca piernas y querés espalda, tiene que estar a la
+   * vista, no escondido.
+   */
+  function htmlEncabezadoDia(titulo: string, dia: DiaRutina, alternable: boolean): string {
+    return `<div class="dia-hoy">
+      <div class="dia-hoy-texto">
+        <span class="eyebrow">${escapar(titulo)}</span>
+        <h2>${escapar(dia.nombre)}</h2>
+        <p class="ayuda">${escapar(dia.enfoque)} · ${dia.ejercicios.length} ejercicios</p>
+      </div>
+      ${alternable ? '<button id="btn-otro-dia">Cambiar<br />día ⇄</button>' : ''}
+    </div>`;
+  }
+
   function htmlSesion(dia: DiaRutina, avisos: string[] = [], editable = false): string {
     return `<div class="carta">
-      <span class="eyebrow">${escapar(dia.enfoque)}</span>
-      <h2 style="margin-top:2px">${escapar(dia.nombre)}</h2>
       ${dia.ejercicios.map((e, i) => htmlEjercicio(e, i, editable)).join('')}
       ${avisos.map((a) => `<p class="ayuda">⚠️ ${escapar(a)}</p>`).join('')}
     </div>`;
@@ -395,11 +410,22 @@ export function montarHoy(deps: DepsHoy): void {
     const mostrado = modoSinGym ? convertirDiaSinGym(dia, catalogo, storage.getCustoms(), perfil) : { dia, avisos: [] };
     const editable = !retomando && !modoSinGym && dia === rutina.dias[diaIndex];
 
+    // Qué se hace hoy y por qué: lo que tocaba por rotación, lo que elegiste vos
+    // a mano, o la vuelta después de una pausa.
+    const tituloDia = retomando
+      ? 'Para volver'
+      : elegidoAMano.esOverride
+        ? 'Elegiste hacer'
+        : dia.nombre === 'Sesión combinada'
+          ? 'Hoy'
+          : 'Hoy te toca';
+
     caja.innerHTML = `
       ${htmlRespaldo()}
       ${htmlSemana()}
       ${banner}
       ${modoSinGym ? `<div class="aviso">Modo sin gym: variantes con tu cuerpo y banda por hoy. <button class="boton-silencioso" id="btn-singym-off">Volver</button></div>` : ''}
+      ${htmlEncabezadoDia(tituloDia, mostrado.dia, rutina.dias.length > 1 && !retomando)}
       ${htmlSesion(mostrado.dia, mostrado.avisos, editable)}
       <button class="boton-principal" id="btn-hecha">Hecha ✓</button>
       <a class="boton boton-entrenar" href="${rutaBase}/entrenar/">${hayDraftHoy() ? 'Continuar entrenamiento ▸' : 'Entrenar ahora ▸'}</a>
@@ -409,7 +435,6 @@ export function montarHoy(deps: DepsHoy): void {
         <div class="acciones-extra">
           <button id="btn-elongacion">+ Elongación</button>
           <button id="btn-singym">${modoSinGym ? 'Con equipo' : 'Hoy sin gym'}</button>
-          ${rutina.dias.length > 1 ? '<button id="btn-otro-dia">Hacer otro día ⇄</button>' : ''}
           <button id="btn-libre">Sesión libre</button>
           <button id="btn-retro">Registrar día pasado</button>
           <a class="boton" href="${rutaBase}/historial/#cardio">+ Cardio</a>

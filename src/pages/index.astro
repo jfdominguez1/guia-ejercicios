@@ -123,6 +123,23 @@ import Base from '../layouts/Base.astro';
   #hoy :global(.retomar) { text-align: center; padding: 28px 16px; }
   #hoy :global(.retomar p) { font-size: 16px; }
   #hoy :global(.rpe-chips) { margin-top: 10px; }
+  /* Qué toca hoy + la salida para cambiarlo, en la misma línea y a la vista. */
+  #hoy :global(.dia-hoy) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 18px 0 6px;
+  }
+  #hoy :global(.dia-hoy-texto) { min-width: 0; }
+  #hoy :global(.dia-hoy h2) { margin: 2px 0 0; font-size: 21px; line-height: 1.2; }
+  #hoy :global(.dia-hoy .ayuda) { margin: 2px 0 0; }
+  #hoy :global(.dia-hoy button) {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    font-size: 13px;
+    line-height: 1.2;
+  }
   #hoy :global(.lista-dias) { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
   #hoy :global(.opcion-dia) {
     display: flex;
