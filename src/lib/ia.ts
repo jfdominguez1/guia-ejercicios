@@ -88,9 +88,23 @@ cardíaca en ppm); en elongación usá unidad "seg"; en fuerza omitila o usá
 entre bloques. "nuevos_ejercicios" puede ir vacío: []. No agregues texto
 después del bloque JSON.
 
-No hace falta listar alternativas por ejercicio: la app las calcula sola del
-catálogo (en el wizard, "Cambiar ejercicio ⇄" ofrece el mismo movimiento con
-otro implemento, otros del mismo músculo y la búsqueda en todo el catálogo).
+Para cardio el banco ya trae modalidades por tipo de sesión, con id "CARDIO-":
+bici, cinta, correr, elíptica, remo, escalera, caminata, natación — cada una en
+su versión zona 2 y/o intervalos, más "Cardio libre" como comodín. USALAS en vez
+de crear un CUSTOM: las que ya están en el banco se pueden intercambiar entre sí
+desde el wizard y arrastran el historial. La duración va en repsMin/repsMax con
+unidad "min", y la intensidad en "fcObjetivo".
+
+Cada ejercicio del banco puede traer "el": algo que hace falta además del grupo
+("ayuda o correa" significa OTRA PERSONA, más silla, barra fija, rodillo…). JFD
+entrena solo: no le propongas ejercicios con "el": "ayuda o correa". El nombre no
+alcanza para darse cuenta — hay estiramientos que sin el campo parecen
+individuales y no lo son.
+
+El campo "alternativas" NO se lee: la app lo ignora en silencio. No lo mandes.
+Las alternativas las calcula sola del catálogo — en el wizard, "Cambiar
+ejercicio ⇄" ofrece el mismo movimiento con otro implemento, otros del mismo
+músculo y la búsqueda en todo el catálogo.
 "grupos" se fusiona por nombre y "nuevos_ejercicios" por id: nada de lo que ya
 está guardado se borra por no venir en el archivo, y el historial no se toca.
 
@@ -102,7 +116,19 @@ que lesionarse en la primera serie.`;
 
 function bancoCompacto(catalogo: Ejercicio[], customs: Ejercicio[]): string {
   const items = [...catalogo, ...customs].map((e) =>
-    JSON.stringify({ id: e.id, n: e.nombre_es, m: e.movimiento, mu: e.musculo, g: e.grupo, t: e.tipo }),
+    JSON.stringify({
+      id: e.id,
+      n: e.nombre_es,
+      m: e.movimiento,
+      mu: e.musculo,
+      g: e.grupo,
+      t: e.tipo,
+      // Qué más hace falta ("ayuda o correa" = otra persona, silla, barra fija…).
+      // Sin esto la IA filtraba por nombre y se le pasaban casos como el 1259,
+      // "Estiramiento de pecho con manos detrás de la cabeza", que no dice en el
+      // nombre que alguien te tiene que tirar de los codos.
+      ...(e.elemento ? { el: e.elemento } : {}),
+    }),
   );
   return `[\n${items.join(',\n')}\n]`;
 }
@@ -182,6 +208,13 @@ En las series, "reps" son repeticiones SALVO que la serie traiga "segundos" o
 "minutos": en ese caso ese es el dato real y "reps" solo lo espeja. Un ejercicio
 por tiempo (plancha, elongación, cardio) se registra en su unidad — no lo leas
 como repeticiones.
+Que "reps" y "segundos" valgan LO MISMO es a propósito, no un error: es una sola
+medida escrita dos veces para no romper los respaldos viejos. La regla para
+leerlas es simple — si hay "segundos" o "minutos", ese es el dato y "reps" se
+ignora; si solo hay "reps", son repeticiones.
+Ojo con las series anteriores al 23/07: se registraron todas en "reps" aunque
+fueran ejercicios por tiempo, porque la app todavía no distinguía unidades. Ese
+número no es comparable con los de después — no lo uses para medir progreso.
 
 \`\`\`json
 ${JSON.stringify(recientes, null, 1)}

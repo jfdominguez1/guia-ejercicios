@@ -7,13 +7,13 @@ import { sugerirProgresion } from '../lib/progreso';
 import { alternativasDe, dosisInicial, sustituirEjercicio } from '../lib/editor';
 import { parsearDiaElegido, resolverDiaDeHoy } from '../lib/dia';
 import { formatearObjetivo, formatearFc, unidadEfectiva } from '../lib/formato';
-import { conMedida, formatearCrono, medidaSerie, NOMBRE_UNIDAD } from '../lib/serie';
+import { conMedida, formatearCrono, medidaSerie, valorPrecargado, NOMBRE_UNIDAD } from '../lib/serie';
 import { convertirDiaSinGym } from '../lib/singym';
 import { ETIQUETA_TIPO, tipoPredominante, yaHaySesion } from '../lib/registro';
 import { storage } from '../lib/storage';
 import { ajustarPeso, aKg, desdeKg, equivalente, formatearPeso, resumenSeries, type UnidadPeso } from '../lib/unidades';
 import { crearBuscador, etiquetaGrupo, htmlOpciones } from './buscador';
-import { urlGif, urlImg, escapar, rutaBase } from './datos';
+import { htmlDemo, escapar, rutaBase } from './datos';
 import type { DiaRutina, Ejercicio, EjercicioRutina, GrupoEquip, ItemSesion, Perfil, SerieHecha } from '../lib/tipos';
 
 export interface DepsEntrenar {
@@ -120,7 +120,7 @@ export function montarEntrenar(deps: DepsEntrenar): void {
     const unidad = unidadEfectiva(e, info?.tipo ?? 'fuerza');
     const series = Array.from({ length: e.series }, (_, i) => {
       const anterior = previa?.series[i];
-      const valor = anterior ? medidaSerie(anterior).valor : e.repsMin;
+      const valor = valorPrecargado(anterior, unidad, e.repsMin);
       const base = conMedida(
         // Lo que levantaste manda; el peso sugerido solo cubre la primera vez.
         { reps: valor, pesoKg: anterior?.pesoKg ?? e.pesoInicialKg },
@@ -172,7 +172,8 @@ export function montarEntrenar(deps: DepsEntrenar): void {
     const unidad = unidadEfectiva(estado.plan, porId(ejercicioId)?.tipo ?? 'fuerza');
     estado.series = estado.series.map((s, i) => {
       const anterior = previa?.series[i];
-      const valor = anterior ? medidaSerie(anterior).valor : medidaSerie(s).valor;
+      const actual = valorPrecargado(s, unidad, estado.plan.repsMin);
+      const valor = valorPrecargado(anterior, unidad, actual);
       return { ...conMedida({ reps: valor, pesoKg: anterior?.pesoKg }, valor, unidad), hecha: false };
     });
   }
@@ -302,7 +303,7 @@ export function montarEntrenar(deps: DepsEntrenar): void {
     caja.innerHTML = `
       <h1>${escapar(nuevo.nombre_es)}</h1>
       <p class="ayuda">Reemplaza a ${escapar(anterior?.nombre_es ?? estado.ejercicioId)}</p>
-      ${!nuevo.custom ? `<img class="gif" src="${nuevo.media === 'img' ? urlImg(nuevo.id) : urlGif(nuevo.id)}" alt="" onerror="this.onerror=null;this.src='${urlImg(nuevo.id)}'" />` : ''}
+      ${htmlDemo(nuevo)}
       <div class="carta">
         <span class="eyebrow">¿Hasta cuándo?</span>
         <button class="boton-principal" data-alcance="hoy" style="margin-top:8px">Solo por hoy</button>
@@ -361,7 +362,7 @@ export function montarEntrenar(deps: DepsEntrenar): void {
       <h1>${escapar(info?.nombre_es ?? estado.ejercicioId)}</h1>
       ${original ? `<p class="ayuda">Cambiado por hoy · en lugar de ${escapar(original.nombre_es)}</p>` : ''}
       <p class="ayuda">Objetivo: ${planificado.series}× ${formatearObjetivo(planificado, info?.tipo ?? 'fuerza')}${fc ? ` · ${fc}` : ''}</p>
-      ${info && !info.custom ? `<img class="gif" src="${info.media === 'img' ? urlImg(info.id) : urlGif(info.id)}" alt="" onerror="this.onerror=null;this.src='${urlImg(info.id)}'" />` : ''}
+      ${info ? htmlDemo(info) : ''}
       ${info?.pasos.length ? `<details class="carta"><summary style="font-weight:700;cursor:pointer">Cómo se hace</summary><ol style="padding-left:20px">${info.pasos.map((p) => `<li>${escapar(p)}</li>`).join('')}</ol></details>` : ''}
       <div class="carta">
         <span class="eyebrow">¿Con qué lo hacés hoy?</span>

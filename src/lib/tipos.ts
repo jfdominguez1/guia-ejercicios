@@ -21,8 +21,14 @@ export interface Ejercicio {
   basico: boolean;
   /** Solo cardio: saltos/burpees/jacks. No se propone a nivel empiezo con 50+. */
   impacto?: boolean;
-  /** 'img' = solo imagen estática (posturas de yoga); default GIF con fallback. */
-  media?: 'img';
+  /**
+   * 'img' = solo imagen estática (posturas de yoga).
+   * 'ninguna' = no hay demostración (modalidades de cardio: no existe un GIF de
+   * "andar en bici"). Sin esto se pide un archivo que no está y se ve el ícono
+   * de imagen rota.
+   * Default: GIF con fallback a imagen.
+   */
+  media?: 'img' | 'ninguna';
   /** Elemento necesario además del grupo: silla, barra fija, ayuda/correa, etc. */
   elemento?: string;
   custom?: boolean;

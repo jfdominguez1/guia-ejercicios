@@ -36,6 +36,28 @@ export function conMedida(serie: SerieHecha, valor: number, unidad: UnidadEjerci
   return unidad === 'seg' ? { ...base, segundos: valor } : { ...base, minutos: valor };
 }
 
+/**
+ * Con qué número precargar el campo de una serie nueva.
+ *
+ * Solo sirve el registro anterior si se midió en LA MISMA unidad. Un "5"
+ * guardado como repeticiones reaparecía como 5 segundos, y aceptado sin mirar
+ * quedaba persistido como si se hubieran medido 5 segundos. Pasó de verdad: la
+ * elongación del 02/08 precargó 5 y 10 seg (de sesiones de julio registradas en
+ * reps, antes de que la app distinguiera unidades) en ejercicios cuyo plan pedía
+ * 30-40 seg. El número parecía medido y no lo era.
+ *
+ * Ante la duda manda el plan: al menos es lo que la rutina pidió hacer.
+ */
+export function valorPrecargado(
+  anterior: SerieHecha | undefined,
+  unidad: UnidadEjercicio,
+  porDefecto: number,
+): number {
+  if (!anterior) return porDefecto;
+  const medida = medidaSerie(anterior);
+  return medida.unidad === unidad ? medida.valor : porDefecto;
+}
+
 /** Nombre largo, para etiquetas de campo ("Segundos"). */
 export const NOMBRE_UNIDAD: Record<UnidadEjercicio, string> = {
   reps: 'Repeticiones',

@@ -50,6 +50,32 @@ export async function cargarCatalogoCompleto(): Promise<Ejercicio[]> {
 export const urlGif = (id: string) => `${rutaBase}/media/gif/${id}.gif`;
 export const urlImg = (id: string) => `${rutaBase}/media/img/${id}.jpg`;
 
+/** ¿Este ejercicio tiene archivo de demostración en /media? */
+export function tieneDemo(e: Ejercicio): boolean {
+  return !e.custom && e.media !== 'ninguna';
+}
+
+/**
+ * Bloque de demostración de un ejercicio, o '' si no hay nada que mostrar.
+ * Los que crea el usuario y las modalidades de cardio (`media: 'ninguna'`, no
+ * existe un GIF de "andar en bici") no tienen archivo: pedirlo igual deja el
+ * ícono de imagen rota, porque el `onerror` cae a un .jpg que tampoco está.
+ * Una sola implementación para las tres pantallas que la mostraban.
+ */
+export function htmlDemo(e: Ejercicio, alt = ''): string {
+  if (!tieneDemo(e)) return '';
+  const texto = escapar(alt);
+  if (e.media === 'img') return `<img class="gif" src="${urlImg(e.id)}" alt="${texto}" />`;
+  return `<img class="gif" src="${urlGif(e.id)}" alt="${texto}" onerror="this.onerror=null;this.src='${urlImg(e.id)}'" />`;
+}
+
+/** URLs de media a precachear para "Descargar todas las demostraciones". */
+export function urlsDeMedia(catalogo: Ejercicio[]): string[] {
+  return catalogo.filter(tieneDemo).flatMap((e) =>
+    e.media === 'img' ? [urlImg(e.id)] : [urlGif(e.id), urlImg(e.id)],
+  );
+}
+
 /** Fecha local (no UTC — a las 22:00 de Argentina toISOString ya es mañana). */
 export function hoyISO(): string {
   const d = new Date();

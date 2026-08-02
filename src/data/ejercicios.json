@@ -1,5 +1,314 @@
 [
  {
+  "id": "CARDIO-bici-z2",
+  "nombre_es": "Bici — zona 2",
+  "nombre_en": "bike — zone 2",
+  "tipo": "cardio",
+  "impacto": false,
+  "grupo": "maquina",
+  "equipment": "stationary bike",
+  "zona": "Cardio",
+  "musculo": "Sistema cardiovascular",
+  "secundarios": [
+   "Cuádriceps",
+   "Isquiotibiales",
+   "Pantorrillas"
+  ],
+  "pasos": [
+   "Ajustá el asiento: con el pedal abajo, la rodilla queda casi extendida.",
+   "Pedaleá parejo a una intensidad en la que podrías mantener una conversación.",
+   "Buscá la zona de FC objetivo y quedate ahí: si subís de más, bajá la resistencia.",
+   "Sostené el ritmo todo el bloque — la gracia de la zona 2 es que sea continua.",
+   "Cerrá con 3-5 minutos suaves para bajar pulsaciones."
+  ],
+  "movimiento": "otro-sistema-cardiovascular",
+  "basico": true,
+  "media": "ninguna"
+ },
+ {
+  "id": "CARDIO-bici-intervalos",
+  "nombre_es": "Bici — intervalos",
+  "nombre_en": "bike — intervals",
+  "tipo": "cardio",
+  "impacto": false,
+  "grupo": "maquina",
+  "equipment": "stationary bike",
+  "zona": "Cardio",
+  "musculo": "Sistema cardiovascular",
+  "secundarios": [
+   "Cuádriceps",
+   "Isquiotibiales",
+   "Pantorrillas"
+  ],
+  "pasos": [
+   "Entrá en calor 5-10 minutos pedaleando suave.",
+   "Alterná bloques fuertes con bloques de recuperación activa (no pares del todo).",
+   "En el bloque fuerte subí resistencia o cadencia hasta que hablar cueste.",
+   "En la recuperación bajá hasta poder respirar por la nariz.",
+   "Cerrá con 5 minutos suaves."
+  ],
+  "movimiento": "otro-sistema-cardiovascular",
+  "basico": true,
+  "media": "ninguna"
+ },
+ {
+  "id": "CARDIO-cinta-pendiente",
+  "nombre_es": "Cinta — caminata en pendiente",
+  "nombre_en": "treadmill — incline walk",
+  "tipo": "cardio",
+  "impacto": false,
+  "grupo": "maquina",
+  "equipment": "treadmill",
+  "zona": "Cardio",
+  "musculo": "Sistema cardiovascular",
+  "secundarios": [
+   "Cuádriceps",
+   "Isquiotibiales",
+   "Pantorrillas"
+  ],
+  "pasos": [
+   "Subí la inclinación hasta que caminar exija, sin necesidad de correr.",
+   "Caminá erguido y no te cuelgues de los manubrios: te saca la mitad del trabajo.",
+   "Ajustá velocidad e inclinación para quedarte en la zona de FC objetivo.",
+   "Sostené el ritmo todo el bloque.",
+   "Bajá la inclinación de a poco los últimos minutos."
+  ],
+  "movimiento": "otro-sistema-cardiovascular",
+  "basico": true,
+  "media": "ninguna"
+ },
+ {
+  "id": "CARDIO-cinta-intervalos",
+  "nombre_es": "Cinta — intervalos",
+  "nombre_en": "treadmill — intervals",
+  "tipo": "cardio",
+  "impacto": true,
+  "grupo": "maquina",
+  "equipment": "treadmill",
+  "zona": "Cardio",
+  "musculo": "Sistema cardiovascular",
+  "secundarios": [
+   "Cuádriceps",
+   "Isquiotibiales",
+   "Pantorrillas"
+  ],
+  "pasos": [
+   "Entrá en calor 5-10 minutos caminando o trotando suave.",
+   "Alterná bloques rápidos con bloques de caminata o trote regenerativo.",
+   "Cambiá la velocidad con anticipación: la cinta tarda en acelerar y en frenar.",
+   "Si la respiración no se recupera en el bloque suave, alargalo.",
+   "Cerrá caminando 5 minutos."
+  ],
+  "movimiento": "otro-sistema-cardiovascular",
+  "basico": true,
+  "media": "ninguna"
+ },
+ {
+  "id": "CARDIO-correr-z2",
+  "nombre_es": "Correr — zona 2",
+  "nombre_en": "run — zone 2",
+  "tipo": "cardio",
+  "impacto": true,
+  "grupo": "cuerpo",
+  "equipment": "body weight",
+  "zona": "Cardio",
+  "musculo": "Sistema cardiovascular",
+  "secundarios": [
+   "Cuádriceps",
+   "Isquiotibiales",
+   "Pantorrillas"
+  ],
+  "pasos": [
+   "Arrancá caminando o trotando muy suave los primeros minutos.",
+   "Sostené un ritmo en el que puedas hablar en frases completas.",
+   "Si para quedarte en zona 2 tenés que caminar, caminá: es lo correcto, no una falla.",
+   "Mantené el ritmo constante todo el bloque.",
+   "Cerrá caminando unos minutos."
+  ],
+  "movimiento": "otro-sistema-cardiovascular",
+  "basico": true,
+  "media": "ninguna"
+ },
+ {
+  "id": "CARDIO-correr-intervalos",
+  "nombre_es": "Correr — intervalos",
+  "nombre_en": "run — intervals",
+  "tipo": "cardio",
+  "impacto": true,
+  "grupo": "cuerpo",
+  "equipment": "body weight",
+  "zona": "Cardio",
+  "musculo": "Sistema cardiovascular",
+  "secundarios": [
+   "Cuádriceps",
+   "Isquiotibiales",
+   "Pantorrillas"
+  ],
+  "pasos": [
+   "Entrá en calor 10 minutos de trote suave y algo de movilidad.",
+   "Alterná tramos rápidos con tramos de trote muy suave o caminata.",
+   "Buscá terminar cada tramo fuerte con la sensación de que te quedaba uno más.",
+   "No recortes la recuperación: es lo que sostiene la calidad de los tramos.",
+   "Cerrá con 5-10 minutos suaves."
+  ],
+  "movimiento": "otro-sistema-cardiovascular",
+  "basico": true,
+  "media": "ninguna"
+ },
+ {
+  "id": "CARDIO-eliptica-z2",
+  "nombre_es": "Elíptica — zona 2",
+  "nombre_en": "elliptical — zone 2",
+  "tipo": "cardio",
+  "impacto": false,
+  "grupo": "maquina",
+  "equipment": "elliptical machine",
+  "zona": "Cardio",
+  "musculo": "Sistema cardiovascular",
+  "secundarios": [
+   "Cuádriceps",
+   "Isquiotibiales",
+   "Pantorrillas"
+  ],
+  "pasos": [
+   "Apoyá los pies completos en las plataformas y agarrá los manubrios sin colgarte.",
+   "Movete parejo, empujando y traccionando con los brazos además de las piernas.",
+   "Ajustá la resistencia para quedarte en la zona de FC objetivo.",
+   "Sostené el ritmo todo el bloque.",
+   "Bajá la resistencia los últimos minutos."
+  ],
+  "movimiento": "otro-sistema-cardiovascular",
+  "basico": true,
+  "media": "ninguna"
+ },
+ {
+  "id": "CARDIO-remo-z2",
+  "nombre_es": "Remo — zona 2",
+  "nombre_en": "rowing — zone 2",
+  "tipo": "cardio",
+  "impacto": false,
+  "grupo": "maquina",
+  "equipment": "rowing machine",
+  "zona": "Cardio",
+  "musculo": "Sistema cardiovascular",
+  "secundarios": [
+   "Dorsales",
+   "Cuádriceps",
+   "Glúteos"
+  ],
+  "pasos": [
+   "Sujetá los pies y agarrá la manija con los brazos estirados y la espalda recta.",
+   "El orden es piernas, cadera, brazos — y a la vuelta al revés.",
+   "Buscá remadas largas y tranquilas antes que muchas y cortas.",
+   "Sostené el ritmo dentro de la zona de FC objetivo.",
+   "Cerrá remando suave un par de minutos."
+  ],
+  "movimiento": "otro-sistema-cardiovascular",
+  "basico": true,
+  "media": "ninguna"
+ },
+ {
+  "id": "CARDIO-escalera",
+  "nombre_es": "Escalera / stepper",
+  "nombre_en": "stair climber",
+  "tipo": "cardio",
+  "impacto": false,
+  "grupo": "maquina",
+  "equipment": "stair climber",
+  "zona": "Cardio",
+  "musculo": "Sistema cardiovascular",
+  "secundarios": [
+   "Glúteos",
+   "Cuádriceps",
+   "Pantorrillas"
+  ],
+  "pasos": [
+   "Subí erguido, sin apoyar el peso en los manubrios.",
+   "Pisá el escalón completo, no solo con la punta del pie.",
+   "Ajustá la velocidad para quedarte en la zona de FC objetivo.",
+   "Sostené el ritmo todo el bloque.",
+   "Bajá la velocidad los últimos minutos."
+  ],
+  "movimiento": "otro-sistema-cardiovascular",
+  "basico": true,
+  "media": "ninguna"
+ },
+ {
+  "id": "CARDIO-caminata-libre",
+  "nombre_es": "Caminata al aire libre",
+  "nombre_en": "outdoor walk",
+  "tipo": "cardio",
+  "impacto": false,
+  "grupo": "cuerpo",
+  "equipment": "body weight",
+  "zona": "Cardio",
+  "musculo": "Sistema cardiovascular",
+  "secundarios": [
+   "Cuádriceps",
+   "Isquiotibiales",
+   "Pantorrillas"
+  ],
+  "pasos": [
+   "Caminá a paso vivo, con el pecho abierto y los brazos sueltos.",
+   "Buscá subidas si querés que exija más sin tener que trotar.",
+   "Si llevás pulsómetro, apuntá a la zona objetivo; si no, guiate por poder hablar.",
+   "Sostené el paso todo el bloque.",
+   "Aflojá el ritmo los últimos minutos."
+  ],
+  "movimiento": "otro-sistema-cardiovascular",
+  "basico": true,
+  "media": "ninguna"
+ },
+ {
+  "id": "CARDIO-natacion",
+  "nombre_es": "Natación",
+  "nombre_en": "swimming",
+  "tipo": "cardio",
+  "impacto": false,
+  "grupo": "cuerpo",
+  "equipment": "body weight",
+  "zona": "Cardio",
+  "musculo": "Sistema cardiovascular",
+  "secundarios": [
+   "Dorsales",
+   "Deltoides",
+   "Core"
+  ],
+  "pasos": [
+   "Entrá en calor con unos largos suaves.",
+   "Elegí el estilo que puedas sostener sin frenar cada dos largos.",
+   "Respirá con ritmo fijo, es lo que sostiene la intensidad pareja.",
+   "Contá el tiempo total nadando, sin las pausas de borde.",
+   "Cerrá con unos largos suaves."
+  ],
+  "movimiento": "otro-sistema-cardiovascular",
+  "basico": true,
+  "media": "ninguna"
+ },
+ {
+  "id": "CARDIO-libre",
+  "nombre_es": "Cardio libre",
+  "nombre_en": "free cardio",
+  "tipo": "cardio",
+  "impacto": false,
+  "grupo": "cuerpo",
+  "equipment": "body weight",
+  "zona": "Cardio",
+  "musculo": "Sistema cardiovascular",
+  "secundarios": [
+   "Sistema cardiovascular"
+  ],
+  "pasos": [
+   "Comodín: cualquier actividad aeróbica que no esté en la lista.",
+   "Anotá los minutos y, si la tenés, la frecuencia cardíaca promedio.",
+   "Usalo para fútbol, tenis, baile, kayak, una clase — lo que hayas hecho.",
+   "Si algo se repite seguido, conviene crearlo como ejercicio propio."
+  ],
+  "movimiento": "otro-sistema-cardiovascular",
+  "basico": true,
+  "media": "ninguna"
+ },
+ {
   "id": "0001",
   "nombre_es": "3/4 sit-up",
   "nombre_en": "3/4 sit-up",

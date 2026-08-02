@@ -748,6 +748,31 @@ describe('ejercicios por tiempo — la unidad del plan manda', () => {
     expect($$('.serie [data-campo="peso"]')).toHaveLength(2); // vuelve el peso, una por serie
   });
 
+  /**
+   * Caso real del 02/08: la elongación se precargó con 5 y 10 SEGUNDOS tomados
+   * de la sesión del 22/07, que se había registrado en REPS (antes de que la
+   * app distinguiera unidades). El plan pedía 30-40 seg. El número quedaba
+   * guardado como si se hubiera medido, y no había forma de notarlo.
+   */
+  it('un registro viejo en reps no precarga el campo de segundos', () => {
+    storage.setSesiones([
+      { fecha: '2026-07-13', tipo: 'elongacion', items: [{ ejercicioId: 'T2', variante: 'cuerpo', series: [{ reps: 5 }, { reps: 5 }] }] },
+    ]);
+    montarDia([PLAN_ESTIRAR]);
+    const campos = $$('.serie [data-campo="valor"]') as HTMLInputElement[];
+    // 30 = repsMin del plan, no el 5 de la sesión medida en repeticiones.
+    expect(campos.map((c) => c.value)).toEqual(['30', '30']);
+  });
+
+  it('un registro anterior en la MISMA unidad sí se precarga', () => {
+    storage.setSesiones([
+      { fecha: '2026-07-13', tipo: 'elongacion', items: [{ ejercicioId: 'T2', variante: 'cuerpo', series: [{ reps: 45, segundos: 45 }, { reps: 45, segundos: 45 }] }] },
+    ]);
+    montarDia([PLAN_ESTIRAR]);
+    const campos = $$('.serie [data-campo="valor"]') as HTMLInputElement[];
+    expect(campos.map((c) => c.value)).toEqual(['45', '45']);
+  });
+
   it('la referencia de la última vez muestra la unidad', () => {
     storage.setSesiones([
       { fecha: '2026-07-13', tipo: 'fuerza', items: [{ ejercicioId: 'T1', variante: 'cuerpo', series: [{ reps: 45, segundos: 45 }, { reps: 45, segundos: 45 }] }] },

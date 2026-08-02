@@ -95,10 +95,11 @@ import Base from '../layouts/Base.astro';
 <script>
   import { generarExport, validarImport, PREGUNTA_DEFAULT } from '../lib/ia';
   import { leerSesionesDeBackup } from '../lib/backup';
+  import { cambiosDeBloques, pareceRenombre } from '../lib/import-bloques';
   import { storage } from '../lib/storage';
   import { respaldar, ultimoRespaldo } from '../ui/respaldo';
   import { compartirArchivo } from '../ui/compartir';
-  import { cargarCatalogo, hoyISO, escapar, pedirPersistencia, repararTiposDeSesion, rutaBase } from '../ui/datos';
+  import { cargarCatalogo, hoyISO, escapar, pedirPersistencia, repararTiposDeSesion, rutaBase, urlsDeMedia } from '../ui/datos';
 
   const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T;
   const MS_DIA = 86_400_000;
@@ -202,11 +203,7 @@ import Base from '../layouts/Base.astro';
       progreso.textContent = 'El modo offline no está disponible en este navegador.';
       return;
     }
-    const catalogo = await cargarCatalogo();
-    const urls = catalogo.flatMap((e) => {
-      const img = `${rutaBase}/media/img/${e.id}.jpg`;
-      return e.media === 'img' ? [img] : [`${rutaBase}/media/gif/${e.id}.gif`, img];
-    });
+    const urls = urlsDeMedia(await cargarCatalogo());
     progreso.textContent = `Descargando 0 de ${urls.length}…`;
     navigator.serviceWorker.addEventListener('message', (ev) => {
       if (ev.data?.tipo !== 'progreso-media') return;
@@ -317,13 +314,10 @@ import Base from '../layouts/Base.astro';
     const customs = storage.getCustoms();
     const nuevos = resultado.nuevos ?? [];
     const actualiza = nuevos.filter((n) => customs.some((c) => c.id === n.id)).length;
-    const gruposGuardados = storage.getGrupos();
-    const gruposIntactos = gruposGuardados.filter(
-      (g) => !(resultado.grupos ?? []).some((n) => n.nombre === g.nombre),
-    ).length;
+    const bloques = cambiosDeBloques(storage.getGrupos(), resultado.grupos ?? []);
     const intacto = [
       `tus ${storage.getSesiones().length} sesiones registradas`,
-      gruposIntactos ? `${gruposIntactos} bloque(s) guardado(s) que no vienen en el archivo` : '',
+      bloques.intactos.length ? `${bloques.intactos.length} bloque(s) guardado(s) que no vienen en el archivo` : '',
       customs.length - actualiza > 0 ? `${customs.length - actualiza} ejercicio(s) tuyos ya guardados` : '',
       resultado.perfil ? '' : 'tu perfil',
     ].filter(Boolean);
@@ -333,7 +327,11 @@ import Base from '../layouts/Base.astro';
       <span class="eyebrow" style="display:block;margin-top:8px">Qué cambia</span>
       <ul>${resultado.resumenCambios.map((c) => `<li>${escapar(c)}</li>`).join('')}
       ${nuevos.length ? `<li>Ejercicios tuyos: ${nuevos.length - actualiza} nuevo(s), ${actualiza} actualizado(s) (nunca se duplican).</li>` : ''}
-      ${resultado.grupos?.length ? '<li>Los bloques se fusionan por nombre.</li>' : ''}</ul>
+      ${bloques.pisa.length ? `<li>Bloques que se reemplazan: ${escapar(bloques.pisa.join(', '))}.</li>` : ''}
+      ${bloques.agrega.length ? `<li>Bloques nuevos: ${escapar(bloques.agrega.join(', '))}.</li>` : ''}</ul>
+      ${pareceRenombre(bloques)
+        ? `<p class="ayuda">⚠️ Se agregan bloques y quedan otros guardados: ${escapar(bloques.intactos.join(', '))}. Si alguno es el mismo con otro nombre, van a quedar los dos — el viejo se borra desde Hoy → Mis bloques.</p>`
+        : ''}
       <span class="eyebrow" style="display:block">Qué queda intacto</span>
       <p class="ayuda">${escapar(intacto.join(' · '))}.</p>
       <button class="boton-principal" id="btn-adoptar">Guardar todo</button>
