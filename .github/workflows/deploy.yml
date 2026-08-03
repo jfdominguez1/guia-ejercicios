@@ -15,11 +15,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Tipos + tests + build antes de publicar: si algo está en rojo, no se deploya.
+  verificar:
+    uses: ./.github/workflows/ci.yml
+
   build:
+    needs: verificar
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Build Astro
         uses: withastro/action@v3
         with:

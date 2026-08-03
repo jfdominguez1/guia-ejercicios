@@ -1,0 +1,30 @@
+# Chequeos de la app: tipos, tests y build.
+#
+# Por qué existe: hasta el 03/08 el único workflow era el deploy, así que los
+# tests no los corría nadie en el push y GitHub Pages publicaba igual aunque
+# estuvieran en rojo. Lo llama deploy.yml antes de construir, así un test roto
+# frena la publicación en vez de enterarse en el gimnasio.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main] # en main lo corre deploy.yml antes de publicar
+  workflow_call:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Tipos
+        run: npx tsc --noEmit
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build
