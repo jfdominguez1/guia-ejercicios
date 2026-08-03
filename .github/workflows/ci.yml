@@ -22,6 +22,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Genera .astro/types.d.ts (está en .gitignore): sin esto tsc no conoce
+      # `import.meta.env` y falla en un checkout limpio, no en la máquina de uno.
+      - name: Tipos de Astro
+        run: npx astro sync
       - name: Tipos
         run: npx tsc --noEmit
       - name: Tests
