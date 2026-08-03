@@ -90,11 +90,12 @@ import Base from '../layouts/Base.astro';
 
 <script>
   import { montarEntrenar } from '../ui/entrenar';
-  import { cargarCatalogoCompleto, exigirPerfil, hoyISO, rutaBase } from '../ui/datos';
+  import { arrancarPantalla, cargarCatalogoCompleto, exigirPerfil, hoyISO, rutaBase } from '../ui/datos';
 
   const perfil = exigirPerfil();
   if (perfil) {
-    cargarCatalogoCompleto().then((catalogo) => {
+    arrancarPantalla('#wizard', async () => {
+      const catalogo = await cargarCatalogoCompleto();
       montarEntrenar({
         contenedor: document.querySelector('#wizard') as HTMLElement,
         catalogo,

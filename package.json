@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "astro build && node scripts/sellar-sw.mjs",
     "preview": "astro preview",
     "astro": "astro",
     "test": "vitest run",
@@ -15,6 +15,7 @@
     "astro": "^5.18.2"
   },
   "devDependencies": {
+    "@types/node": "^22.20.1",
     "jsdom": "^29.1.1",
     "vitest": "^4.1.10"
   }

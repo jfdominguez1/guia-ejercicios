@@ -44,11 +44,12 @@ import Base from '../layouts/Base.astro';
 
 <script>
   import { montarRutina } from '../ui/rutina';
-  import { cargarCatalogoCompleto, exigirPerfil, hoyISO } from '../ui/datos';
+  import { arrancarPantalla, cargarCatalogoCompleto, exigirPerfil, hoyISO } from '../ui/datos';
 
   const perfil = exigirPerfil();
   if (perfil) {
-    cargarCatalogoCompleto().then((catalogo) => {
+    arrancarPantalla('#rutina', async () => {
+      const catalogo = await cargarCatalogoCompleto();
       montarRutina({
         contenedor: document.querySelector('#rutina') as HTMLElement,
         catalogo,

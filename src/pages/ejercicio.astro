@@ -37,7 +37,7 @@ import Base from '../layouts/Base.astro';
   import { sparkline } from '../lib/sparkline';
   import { formatearPeso } from '../lib/unidades';
   import { storage } from '../lib/storage';
-  import { cargarCatalogoCompleto, htmlDemo, escapar, rutaBase, hoyISO, haceDias } from '../ui/datos';
+  import { arrancarPantalla, cargarCatalogoCompleto, htmlDemo, escapar, rutaBase, hoyISO, haceDias } from '../ui/datos';
   import type { Ejercicio, GrupoEquip } from '../lib/tipos';
 
   const LABEL_GRUPO: Record<string, string> = {
@@ -133,5 +133,5 @@ import Base from '../layouts/Base.astro';
     });
   }
 
-  pintar();
+  arrancarPantalla('#detalle', pintar);
 </script>

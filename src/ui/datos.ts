@@ -91,6 +91,36 @@ export function exigirPerfil(): Perfil | null {
   return perfil;
 }
 
+/**
+ * Arma una pantalla y, si algo falla, lo DICE.
+ *
+ * Sin esto un error deja puesto el "Cargando…" del HTML para siempre: el
+ * síntoma no distingue "todavía está cargando" de "reventó", y en un teléfono
+ * no hay consola donde mirar. Costó un día entero de la ficha de ejercicio
+ * inutilizable (03/08) hasta encontrar que el problema era el service worker.
+ */
+export async function arrancarPantalla(
+  selector: string,
+  montar: () => void | Promise<void>,
+): Promise<void> {
+  try {
+    await montar();
+  } catch (error) {
+    console.error(error);
+    const caja = document.querySelector(selector);
+    if (!caja) throw error;
+    const detalle = error instanceof Error ? error.message : String(error);
+    caja.innerHTML = `
+      <div class="carta">
+        <p class="error">No pude abrir esta pantalla.</p>
+        <p class="ayuda">${escapar(detalle)}</p>
+        <button type="button" id="btn-reintentar" style="margin-top:8px">Reintentar</button>
+        <p class="ayuda" style="margin-top:8px">Tus datos están a salvo. Si sigue igual, entrá a Perfil y hacé un respaldo.</p>
+      </div>`;
+    caja.querySelector('#btn-reintentar')?.addEventListener('click', () => location.reload());
+  }
+}
+
 export function escapar(texto: string): string {
   const div = document.createElement('div');
   div.textContent = texto;
