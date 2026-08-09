@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { generarRutina, generarElongacion } from './motor';
+import {
+  generarRutina,
+  generarElongacion,
+  necesitaOtraPersona,
+  variantesDe,
+  ejercicioDeVariante,
+} from './motor';
 import type { Ejercicio, GrupoEquip, Perfil, TipoEjercicio } from './tipos';
 
 let contador = 0;
@@ -220,5 +226,57 @@ describe('generarElongacion', () => {
     const perfil: Perfil = { ...BASE, equipamiento: ['pesas'] };
     expect(generarElongacion(perfil, CAT, 5)).toEqual(generarElongacion(perfil, CAT, 5));
     expect(generarElongacion(perfil, CAT, 5).ejercicios.length).toBeGreaterThan(0);
+  });
+});
+
+// El caso real del 09/08: JFD tocó el chip "cuerpo" en una elongación de
+// glúteos y le apareció la versión ASISTIDA, que necesita otra persona. No era
+// azar: los dos asistidos son los primeros del catálogo para ese movimiento, y
+// el chip se quedaba con opciones[0].
+describe('ejercicios que necesitan otra persona', () => {
+  const ASISTIDO_A = ej('cuerpo', 'elongacion-gluteos', {
+    id: '1709', equipment: 'assisted', elemento: 'ayuda o correa', tipo: 'elongacion',
+  });
+  const ASISTIDO_B = ej('cuerpo', 'elongacion-gluteos', {
+    id: '1710', equipment: 'assisted', elemento: 'ayuda o correa', tipo: 'elongacion',
+  });
+  const PELOTA = ej('pelota', 'elongacion-gluteos', { id: '1559', tipo: 'elongacion' });
+  const SOLO = ej('cuerpo', 'elongacion-gluteos', {
+    id: 'ST-Ankle_On_The_Knee', tipo: 'elongacion',
+  });
+  // Mismo orden que el catálogo real: los asistidos primero.
+  const CATALOGO = [ASISTIDO_A, ASISTIDO_B, PELOTA, SOLO];
+
+  it('necesitaOtraPersona reconoce los asistidos y solo esos', () => {
+    expect(necesitaOtraPersona(ASISTIDO_A)).toBe(true);
+    expect(necesitaOtraPersona(PELOTA)).toBe(false);
+    expect(necesitaOtraPersona(SOLO)).toBe(false);
+  });
+
+  it('variantesDe no ofrece los asistidos', () => {
+    const variantes = variantesDe(CATALOGO, 'elongacion-gluteos');
+    expect(variantes.cuerpo.map((e) => e.id)).toEqual(['ST-Ankle_On_The_Knee']);
+    expect(variantes.pelota.map((e) => e.id)).toEqual(['1559']);
+  });
+
+  it('el chip de un implemento no cae en el asistido por ser el primero', () => {
+    const variantes = variantesDe(CATALOGO, 'elongacion-gluteos');
+    const elegido = ejercicioDeVariante(variantes.cuerpo, '1559');
+    expect(elegido?.id).toBe('ST-Ankle_On_The_Knee');
+    expect(necesitaOtraPersona(elegido!)).toBe(false);
+  });
+
+  it('volver a la variante del planificado devuelve ESE ejercicio', () => {
+    const OTRO_CUERPO = ej('cuerpo', 'elongacion-gluteos', { id: 'ST-Lying_Glute', tipo: 'elongacion' });
+    const variantes = variantesDe([...CATALOGO, OTRO_CUERPO], 'elongacion-gluteos');
+    // El planificado es ST-Lying_Glute aunque no sea el primero de su grupo.
+    expect(ejercicioDeVariante(variantes.cuerpo, 'ST-Lying_Glute')?.id).toBe('ST-Lying_Glute');
+    // Y si el planificado no es de ese grupo, el primero que sí se puede hacer solo.
+    expect(ejercicioDeVariante(variantes.cuerpo, 'no-existe')?.id).toBe('ST-Ankle_On_The_Knee');
+  });
+
+  it('un grupo que solo tenía asistidos queda vacío y su chip no aparece', () => {
+    const variantes = variantesDe([ASISTIDO_A, ASISTIDO_B], 'elongacion-gluteos');
+    expect(variantes.cuerpo).toEqual([]);
   });
 });

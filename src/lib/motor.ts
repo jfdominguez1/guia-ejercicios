@@ -417,7 +417,24 @@ function ultimaVezDeIds(
 
 const TODOS_LOS_GRUPOS: GrupoEquip[] = ['banda', 'pesas', 'maquina', 'cuerpo', 'pelota', 'rodillo'];
 
-/** Variantes de un movimiento por grupo, para el selector "¿con qué lo hacés?". */
+/**
+ * Ejercicios que necesitan que OTRA PERSONA te asista. Son 8 en el catálogo y
+ * `equipment: 'assisted'` coincide exactamente con `elemento: 'ayuda o correa'`,
+ * así que alcanza con el campo estructurado (no hay que adivinar por el nombre).
+ *
+ * No se proponen nunca: quien usa la app entrena solo. El 09/08 tocar el chip
+ * "cuerpo" en una elongación de glúteos devolvía siempre el asistido, porque
+ * era el primero del catálogo para ese movimiento.
+ */
+export function necesitaOtraPersona(e: Ejercicio): boolean {
+  return e.equipment === 'assisted';
+}
+
+/**
+ * Variantes de un movimiento por grupo, para el selector "¿con qué lo hacés?".
+ * Deja afuera las asistidas: un grupo puede quedar vacío y entonces su chip
+ * directamente no aparece, que es lo correcto.
+ */
 export function variantesDe(
   catalogo: Ejercicio[],
   movimiento: string,
@@ -426,9 +443,21 @@ export function variantesDe(
     TODOS_LOS_GRUPOS.map((g) => [g, [] as Ejercicio[]]),
   ) as Record<GrupoEquip, Ejercicio[]>;
   for (const e of catalogo) {
-    if (e.movimiento === movimiento) resultado[e.grupo].push(e);
+    if (e.movimiento === movimiento && !necesitaOtraPersona(e)) resultado[e.grupo].push(e);
   }
   return resultado;
+}
+
+/**
+ * Con qué ejercicio te quedás al tocar el chip de un implemento. Si el que pide
+ * la rutina es de ese grupo, vuelve ESE — mirar otras opciones y volver tiene
+ * que devolverte a donde estabas, no al primero de la lista.
+ */
+export function ejercicioDeVariante(
+  opciones: Ejercicio[],
+  planificadoId: string,
+): Ejercicio | undefined {
+  return opciones.find((e) => e.id === planificadoId) ?? opciones[0];
 }
 
 /** Nueva rutina con otro seed, misma estructura (rota equivalentes). */

@@ -1,6 +1,7 @@
 // Edición manual de la rutina: ajustar dosis, sustituir, quitar y agregar
 // ejercicios día por día. Funciones puras e inmutables — sin DOM ni storage.
 
+import { necesitaOtraPersona } from './motor';
 import type { Ejercicio, EjercicioRutina, GrupoEquip, Rutina, TipoEjercicio, UnidadEjercicio } from './tipos';
 
 const SERIES_MIN = 1;
@@ -104,6 +105,21 @@ export function agregarEjercicio(rutina: Rutina, diaIndex: number, ejercicio: Ej
   ]);
 }
 
+/**
+ * A quién reemplazó el ejercicio con el que cerraste el paso. Se compara contra
+ * el PLANIFICADO, no contra el paso anterior de la cadena: si probaste tres
+ * variantes y volviste al de la rutina, no reemplazaste nada.
+ *
+ * Existe porque `enLugarDe` es la señal con la que la IA se entera de qué
+ * ejercicios de la rutina no funcionan en la práctica. Antes solo lo anotaba
+ * "Cambiar ejercicio ⇄"; cambiar por el chip de implemento pisaba el ejercicio
+ * sin dejar rastro, y un ejercicio sustituido diez veces se veía igual que uno
+ * hecho diez veces.
+ */
+export function sustitucionDe(planificadoId: string, hechoId: string): string | undefined {
+  return hechoId === planificadoId ? undefined : planificadoId;
+}
+
 /** Alternativas para reemplazar un ejercicio, ordenadas de más a menos parecidas. */
 export interface Alternativas {
   /** Mismo movimiento, otro implemento: el cambio más seguro. */
@@ -127,7 +143,12 @@ export function alternativasDe(
   limite = 12,
 ): Alternativas {
   const candidatos = catalogo.filter(
-    (c) => c.id !== actual.id && c.tipo === actual.tipo && tieneEquipo(c, equipamiento),
+    (c) =>
+      c.id !== actual.id &&
+      c.tipo === actual.tipo &&
+      tieneEquipo(c, equipamiento) &&
+      // Nunca se propone algo que necesita que otro te sostenga la pierna.
+      !necesitaOtraPersona(c),
   );
   return {
     equivalentes: candidatos.filter((c) => c.movimiento === actual.movimiento).slice(0, limite),

@@ -224,6 +224,35 @@ describe('cambiar ejercicio', () => {
     $('#btn-guardar').click();
     expect(storage.getSesiones()[0]!.items![0]).toMatchObject({ ejercicioId: 'F2', enLugarDe: 'F1' });
   });
+
+  // El 09/08 JFD cambió "Tobillo sobre la rodilla" por "flexores de cadera con
+  // pelota" tocando el chip de implemento, no "Cambiar ejercicio ⇄". La sesión
+  // quedó sin enLugarDe y la IA no tuvo cómo enterarse de que ese ejercicio de
+  // la rutina no le sirve.
+  it('cambiar de implemento también queda registrado como enLugarDe', () => {
+    montar();
+    $('[data-grupo="maquina"]').click();
+    expect(texto()).toContain('en lugar de');
+    $$('.serie .check')[0]!.click();
+    $('#btn-siguiente').click();
+    $('#btn-siguiente').click();
+    $('#btn-guardar').click();
+    expect(storage.getSesiones()[0]!.items![0]).toMatchObject({ ejercicioId: 'F2', enLugarDe: 'F1' });
+  });
+
+  it('volver al ejercicio de la rutina no deja "en lugar de sí mismo"', () => {
+    montar();
+    $('[data-grupo="maquina"]').click();
+    $('[data-grupo="pesas"]').click();
+    expect(texto()).not.toContain('en lugar de');
+    $$('.serie .check')[0]!.click();
+    $('#btn-siguiente').click();
+    $('#btn-siguiente').click();
+    $('#btn-guardar').click();
+    const item = storage.getSesiones()[0]!.items![0]!;
+    expect(item.ejercicioId).toBe('F1');
+    expect(item.enLugarDe).toBeUndefined();
+  });
 });
 
 describe('guardar la sesión', () => {
@@ -671,11 +700,15 @@ describe('ejercicios por tiempo — la unidad del plan manda', () => {
     expect($$('.serie .paso')).toHaveLength(0);
   });
 
-  it('el cardio pide minutos', () => {
+  // El cardio dejó de ser un ejercicio del wizard: tiene su propia pantalla y
+  // su propia sesión (decisión de JFD del 09/08). Los minutos y los bpm se
+  // piden ahí, no como "serie".
+  it('el cardio no entra al wizard: abre su propia pantalla', () => {
     montarDia([PLAN_CINTA]);
-    expect($('.serie [data-campo="valor"]').getAttribute('aria-label')).toBe('Minutos serie 1');
-    // el cronómetro es para segundos: en minutos no tiene sentido
-    expect($$('[data-crono]')).toHaveLength(0);
+    expect($$('.serie')).toHaveLength(0);
+    expect($('#cardio-minutos')).toBeTruthy();
+    expect($('#cardio-bpm')).toBeTruthy();
+    expect(texto()).toContain('Guardar cardio');
   });
 
   it('el valor tipeado se guarda como segundos, no metido en reps', () => {
@@ -727,12 +760,43 @@ describe('ejercicios por tiempo — la unidad del plan manda', () => {
     expect(storage.getSesiones()[0]!.tipo).toBe('elongacion');
   });
 
-  it('un día de cinta se registra como cardio', () => {
+  it('un día de cardio se registra con su modalidad, minutos y bpm', () => {
     montarDia([PLAN_CINTA]);
-    $$('.serie .check')[0]!.click();
-    $('#btn-siguiente').click();
-    $('#btn-guardar').click();
-    expect(storage.getSesiones()[0]!.tipo).toBe('cardio');
+    $('[data-modalidad="cinta"]').click();
+    ($('#cardio-minutos') as HTMLInputElement).value = '43';
+    ($('#cardio-bpm') as HTMLInputElement).value = '115';
+    $('#btn-guardar-cardio').click();
+    const sesion = storage.getSesiones()[0]!;
+    expect(sesion.tipo).toBe('cardio');
+    expect(sesion.cardio).toEqual({ tipo: 'cinta', minutos: 43 });
+    expect(sesion.fcPromedio).toBe(115);
+  });
+
+  // El pedido textual de JFD: "Fue bici fija. Ponelo como opción."
+  it('se puede elegir bici fija o bici de calle', () => {
+    montarDia([PLAN_CINTA]);
+    expect($('[data-modalidad="bici-fija"]')).toBeTruthy();
+    $('[data-modalidad="bici-calle"]').click();
+    ($('#cardio-minutos') as HTMLInputElement).value = '50';
+    $('#btn-guardar-cardio').click();
+    expect(storage.getSesiones()[0]!.cardio!.tipo).toBe('bici-calle');
+  });
+
+  it('unos minutos imposibles no se guardan en silencio', () => {
+    montarDia([PLAN_CINTA]);
+    ($('#cardio-minutos') as HTMLInputElement).value = '0';
+    $('#btn-guardar-cardio').click();
+    expect($('#cardio-error').textContent).toContain('minutos');
+    expect(storage.getSesiones()).toHaveLength(0);
+  });
+
+  it('una FC fuera de rango tampoco', () => {
+    montarDia([PLAN_CINTA]);
+    ($('#cardio-minutos') as HTMLInputElement).value = '30';
+    ($('#cardio-bpm') as HTMLInputElement).value = '400';
+    $('#btn-guardar-cardio').click();
+    expect($('#cardio-error').textContent).toContain('FC');
+    expect(storage.getSesiones()).toHaveLength(0);
   });
 
   it('cambiar una elongación por un ejercicio de fuerza vuelve a pedir reps', () => {
@@ -779,5 +843,188 @@ describe('ejercicios por tiempo — la unidad del plan manda', () => {
     ]);
     montarDia([PLAN_PLANCHA]);
     expect(texto()).toContain('2×45 seg');
+  });
+});
+
+// EL BUG DEL 08 Y 09 DE AGOSTO, de punta a punta.
+//
+// Los días 2 y 4 de la rutina de JFD son un cardio seguido de elongaciones. El
+// wizard los guardaba como UNA sesión y descartaba todo ejercicio sin series
+// marcadas, así que:
+//   · 08/08 — la caminata en cinta no quedó registrada en NINGÚN lado
+//   · 09/08 — la bici quedó como cardio suelto, sin relación con su día
+//   · las dos sesiones quedaron con tipo 'elongacion' siendo días de cardio
+//   · y como el registro quedó vacío, la app volvía a proponer el mismo día
+describe('el día de cardio + elongación son dos sesiones', () => {
+  const BICI: Ejercicio = { ...ej('CARDIO-bici-z2', 'Bici — zona 2', 'otro-sistema-cardiovascular', 'maquina', 'cardio'), tipo: 'cardio' };
+  const ST1: Ejercicio = { ...ej('ST-A', 'Flexor de cadera', 'elongacion-cuadriceps', 'cuerpo', 'cuadriceps'), tipo: 'elongacion' };
+  const ST2: Ejercicio = { ...ej('ST-B', 'Tobillo sobre la rodilla', 'elongacion-gluteos', 'cuerpo', 'gluteos'), tipo: 'elongacion' };
+  const CAT = [...CATALOGO, BICI, ST1, ST2];
+
+  const PLAN_BICI = { movimiento: 'otro-sistema-cardiovascular', ejercicioId: 'CARDIO-bici-z2', series: 1, repsMin: 40, repsMax: 50, unidad: 'min' as const, descansoSeg: 0 };
+  const PLAN_ST1 = { movimiento: 'elongacion-cuadriceps', ejercicioId: 'ST-A', series: 2, repsMin: 30, repsMax: 40, unidad: 'seg' as const, descansoSeg: 10 };
+  const PLAN_ST2 = { movimiento: 'elongacion-gluteos', ejercicioId: 'ST-B', series: 2, repsMin: 30, repsMax: 40, unidad: 'seg' as const, descansoSeg: 10 };
+
+  function montarDia4() {
+    storage.setRutina({
+      generadaEl: HOY,
+      seed: 1,
+      origen: 'reglas',
+      dias: [{ nombre: 'Día 4 — Bici: zona 2', enfoque: 'cardio', ejercicios: [PLAN_BICI, PLAN_ST1, PLAN_ST2] }],
+    });
+    document.body.innerHTML = '<div id="wizard"></div>';
+    const rutas: string[] = [];
+    montarEntrenar({
+      contenedor: document.querySelector('#wizard') as HTMLElement,
+      catalogo: CAT,
+      perfil: PERFIL,
+      hoy: () => HOY,
+      navegar: (r) => rutas.push(r),
+      confirmar: () => true,
+    });
+    return { rutas };
+  }
+
+  it('el día abre por el cardio, no por la elongación', () => {
+    montarDia4();
+    expect(texto()).toContain('Bici — zona 2');
+    expect($('#cardio-minutos')).toBeTruthy();
+  });
+
+  it('el cardio queda guardado ANTES de empezar la elongación', () => {
+    montarDia4();
+    ($('#cardio-minutos') as HTMLInputElement).value = '30';
+    $('#btn-guardar-cardio').click();
+    // Ya está en la base sin haber tocado un solo estiramiento.
+    const sesion = storage.getSesiones()[0]!;
+    expect(sesion.tipo).toBe('cardio');
+    expect(sesion.cardio!.minutos).toBe(30);
+    expect(texto()).toContain('Cardio guardado');
+  });
+
+  it('la bici queda enganchada a su día de rutina', () => {
+    // El 09/08 quedó suelta: sin diaIndex ni diaRutina, imposible saber que era
+    // parte del Día 4.
+    montarDia4();
+    $('#btn-guardar-cardio').click();
+    const sesion = storage.getSesiones()[0]!;
+    expect(sesion.diaIndex).toBe(0);
+    expect(sesion.diaRutina).toBe('Día 4 — Bici: zona 2');
+  });
+
+  it('irse justo después del cardio NO pierde el cardio', () => {
+    // Es exactamente lo que pasó el 08/08 y costó una sesión entera.
+    const { rutas } = montarDia4();
+    $('#btn-guardar-cardio').click();
+    $('#btn-terminar').click();
+    expect(rutas).toContain('/');
+    expect(storage.getSesiones()).toHaveLength(1);
+    expect(storage.getSesiones()[0]!.tipo).toBe('cardio');
+  });
+
+  it('el día completo deja dos sesiones, cada una de su tipo', () => {
+    montarDia4();
+    ($('#cardio-minutos') as HTMLInputElement).value = '30';
+    $('#btn-guardar-cardio').click();
+    $('#btn-seguir-resto').click();
+    // El wizard ahora solo tiene las elongaciones.
+    expect(texto()).toContain('1/2');
+    $$('.serie .check')[0]!.click();
+    $('#btn-siguiente').click();
+    $$('.serie .check')[0]!.click();
+    $('#btn-siguiente').click();
+    $('#btn-guardar').click();
+
+    const sesiones = storage.getSesiones();
+    expect(sesiones).toHaveLength(2);
+    expect(sesiones.map((s) => s.tipo).sort()).toEqual(['cardio', 'elongacion']);
+    // Y la de elongación NO se lleva puesto el cardio.
+    const elongacion = sesiones.find((s) => s.tipo === 'elongacion')!;
+    expect(elongacion.items!.map((i) => i.ejercicioId)).toEqual(['ST-A', 'ST-B']);
+  });
+
+  it('salteás el cardio y el resto del día sigue funcionando', () => {
+    montarDia4();
+    $('#btn-saltear-cardio').click();
+    expect(texto()).toContain('1/2');
+    $$('.serie .check')[0]!.click();
+    $('#btn-siguiente').click();
+    $('#btn-siguiente').click();
+    $('#btn-guardar').click();
+    const sesiones = storage.getSesiones();
+    expect(sesiones).toHaveLength(1);
+    expect(sesiones[0]!.tipo).toBe('elongacion');
+  });
+
+  it('volver a entrar al mismo día no vuelve a pedir el cardio ya registrado', () => {
+    montarDia4();
+    $('#btn-guardar-cardio').click();
+    // Sale de la app y vuelve a entrar.
+    montarDia4();
+    expect($('#cardio-minutos')).toBeNull();
+    expect(texto()).toContain('1/2');
+  });
+
+  it('un día sin cardio entra derecho al wizard, como siempre', () => {
+    storage.setRutina({
+      generadaEl: HOY,
+      seed: 1,
+      origen: 'reglas',
+      dias: [{ nombre: 'Día 1 — Fuerza', enfoque: 'x', ejercicios: [PLAN_ST1, PLAN_ST2] }],
+    });
+    document.body.innerHTML = '<div id="wizard"></div>';
+    montarEntrenar({
+      contenedor: document.querySelector('#wizard') as HTMLElement,
+      catalogo: CAT, perfil: PERFIL, hoy: () => HOY, navegar: () => {}, confirmar: () => true,
+    });
+    expect($('#cardio-minutos')).toBeNull();
+    expect(texto()).toContain('1/2');
+  });
+});
+
+// El pedido 1.1(3): "si la sesión se guarda sin el item de cardio, que avise
+// en vez de guardar en silencio". Vale para cualquier ejercicio: el filtro de
+// guardado descarta todo lo que no tenga series marcadas ni esté salteado, y
+// así se perdió la caminata en cinta del 08/08 sin un solo mensaje.
+describe('lo que quedó sin registrar se avisa antes de guardar', () => {
+  it('el resumen los nombra en vez de descartarlos calladamente', () => {
+    montar();
+    $$('.serie .check')[0]!.click(); // solo el primer ejercicio
+    $('#btn-siguiente').click();
+    $('#btn-siguiente').click();
+    expect(texto()).toContain('Sin registrar');
+    expect(texto()).toContain('Remo');
+  });
+
+  it('no molesta cuando está todo registrado o salteado', () => {
+    montar();
+    $$('.serie .check')[0]!.click();
+    $('#btn-siguiente').click();
+    $('#btn-saltear').click();
+    expect(texto()).toContain('¡Terminaste!');
+    expect(texto()).not.toContain('Sin registrar');
+  });
+
+  it('"cargarlo ahora" te lleva justo a ese ejercicio', () => {
+    montar();
+    $$('.serie .check')[0]!.click();
+    $('#btn-siguiente').click();
+    $('#btn-siguiente').click();
+    $('#btn-ir-pendiente').click();
+    expect(texto()).toContain('Remo');
+    expect(texto()).toContain('2/2');
+  });
+
+  it('"no lo hice" lo anota como salteado para que no desaparezca', () => {
+    montar();
+    $$('.serie .check')[0]!.click();
+    $('#btn-siguiente').click();
+    $('#btn-siguiente').click();
+    $('#btn-no-hechos').click();
+    expect(texto()).not.toContain('Sin registrar');
+    $('#btn-guardar').click();
+    const items = storage.getSesiones()[0]!.items!;
+    expect(items.map((i) => i.ejercicioId)).toEqual(['F1', 'F4']);
+    expect(items[1]!.salteado).toBe(true);
   });
 });

@@ -19,6 +19,8 @@ import {
   type EdicionSesion,
 } from '../lib/historial';
 import { fechaValidaRetro, registrarOtra } from '../lib/registro';
+import { avisoRestante, TOPE_TEXTO } from '../lib/texto';
+import { etiquetaModalidad, MODALIDADES } from '../lib/cardio';
 import { conMedida, medidaSerie, NOMBRE_UNIDAD } from '../lib/serie';
 import { resumenSeries } from '../lib/unidades';
 import { storage } from '../lib/storage';
@@ -141,7 +143,7 @@ export function montarHistorial(deps: DepsHistorial): void {
     if (s.estado === 'otra') lineas.push(`Registrada como "hice otra cosa"${s.duracionMin ? ` · ${s.duracionMin} min` : ''}`);
     if (s.cardio) {
       lineas.push(
-        `${s.cardio.tipo} · ${s.cardio.minutos} min${s.cardio.km ? ` · ${s.cardio.km} km` : ''}${s.cardio.sensacion ? ` · ${escapar(s.cardio.sensacion)}` : ''}`,
+        `${escapar(etiquetaModalidad(s.cardio.tipo))} · ${s.cardio.minutos} min${s.cardio.km ? ` · ${s.cardio.km} km` : ''}${s.cardio.sensacion ? ` · ${escapar(s.cardio.sensacion)}` : ''}`,
       );
     }
     if (s.fcPromedio) lineas.push(`🫀 FC promedio ${s.fcPromedio} ppm`);
@@ -186,7 +188,7 @@ export function montarHistorial(deps: DepsHistorial): void {
           .join('');
         return series
           ? `<div class="bloque-item"><strong>${escapar(nombreDe(item))}</strong>${series}
-              <input type="text" class="nota-item" data-item-nota="${i}" maxlength="200" placeholder="Nota (opcional)" value="${escapar(item.nota ?? '')}" aria-label="Nota de ${escapar(nombreDe(item))}" /></div>`
+              <input type="text" class="nota-item" data-item-nota="${i}" maxlength="${TOPE_TEXTO}" placeholder="Nota (opcional)" value="${escapar(item.nota ?? '')}" aria-label="Nota de ${escapar(nombreDe(item))}" /></div>`
           : '';
       })
       .join('');
@@ -205,11 +207,13 @@ export function montarHistorial(deps: DepsHistorial): void {
             ${numero('Km', 'cardioKm', s.cardio.km, 'min="0" step="0.1"')}
           </div>
           <label>¿Cómo te sentiste?</label>
-          <input type="text" data-campo="cardioSensacion" maxlength="80" value="${escapar(s.cardio.sensacion ?? '')}" />`
+          <textarea data-campo="cardioSensacion" rows="2" maxlength="${TOPE_TEXTO}">${escapar(s.cardio.sensacion ?? '')}</textarea>
+          <p class="ayuda contador" data-contador="cardioSensacion"></p>`
         : ''}
       ${items ? `<span class="eyebrow" style="display:block;margin-top:10px">Series</span>${items}` : ''}
       <label>Notas</label>
-      <textarea data-campo="notas" rows="2" maxlength="500">${escapar(s.notas ?? '')}</textarea>
+      <textarea data-campo="notas" rows="2" maxlength="${TOPE_TEXTO}">${escapar(s.notas ?? '')}</textarea>
+      <p class="ayuda contador" data-contador="notas"></p>
       <p class="error" data-errores role="alert"></p>
       <div class="acciones-sesion">
         <button class="boton-principal" data-accion="guardar" data-id="${escapar(id)}" style="flex:2">Guardar cambios</button>
@@ -352,6 +356,23 @@ export function montarHistorial(deps: DepsHistorial): void {
         if (accion === 'guardar') guardarEdicion(id);
       }),
     );
+    conectarContador(cajaSesiones, '[data-campo="cardioSensacion"]', 'cardioSensacion');
+    conectarContador(cajaSesiones, '[data-campo="notas"]', 'notas');
+  }
+
+  /**
+   * Contador debajo de un campo de texto libre. El tope existe igual; lo que
+   * cambia es que ahora se ve venir en vez de cortar la frase por atrás.
+   */
+  function conectarContador(raiz: ParentNode, selectorCampo: string, nombre: string) {
+    const campo = raiz.querySelector(selectorCampo) as HTMLInputElement | HTMLTextAreaElement | null;
+    const aviso = raiz.querySelector(`[data-contador="${nombre}"]`) as HTMLElement | null;
+    if (!campo || !aviso) return;
+    const refrescar = () => {
+      aviso.textContent = avisoRestante(campo.value.length) ?? '';
+    };
+    campo.addEventListener('input', refrescar);
+    refrescar();
   }
 
   /** El panel se busca por dataset y no por selector: el id puede traer caracteres raros. */
@@ -415,25 +436,24 @@ export function montarHistorial(deps: DepsHistorial): void {
   }
 
   function pintarAltaCardio() {
-    const tipos: Array<{ v: TipoCardio; l: string }> = [
-      { v: 'corrida', l: 'Corrida' },
-      { v: 'caminata', l: 'Caminata' },
-      { v: 'bicicleta', l: 'Bici' },
-      { v: 'eliptica', l: 'Elíptica' },
-      { v: 'cinta', l: 'Cinta' },
-    ];
+    // Una sola lista de modalidades en toda la app (la misma que usa el cardio
+    // del día de rutina), con bici fija y bici de calle separadas.
     cajaCardio.innerHTML = `<div class="carta tipo-cardio" id="cardio">
       <span class="eyebrow">Registrar cardio</span>
-      <div class="chips" style="margin-top:8px">${tipos.map((t) => `<button class="chip" data-tipo="${t.v}">${t.l}</button>`).join('')}</div>
+      <div class="chips" style="margin-top:8px">${MODALIDADES.map((m) => `<button class="chip" data-tipo="${m.valor}">${m.etiqueta}</button>`).join('')}</div>
       <label>¿Qué día?</label><input type="date" id="cardio-fecha" value="${hoy()}" />
       <label>Minutos</label><input type="number" id="cardio-min" inputmode="numeric" value="30" min="5" max="300" />
       <label>Km <span class="eyebrow">(opcional)</span></label><input type="number" id="cardio-km" inputmode="decimal" step="0.1" min="0" />
       <label>FC promedio <span class="eyebrow">(opcional, ppm)</span></label><input type="number" id="cardio-fc" inputmode="numeric" min="40" max="220" placeholder="De tu banda o reloj" />
-      <label>¿Cómo te sentiste? <span class="eyebrow">(opcional)</span></label><input type="text" id="cardio-sensacion" maxlength="80" />
+      <label>¿Cómo te sentiste? <span class="eyebrow">(opcional)</span></label>
+      <textarea id="cardio-sensacion" rows="2" maxlength="${TOPE_TEXTO}"></textarea>
+      <p class="ayuda contador" data-contador="cardio-sensacion"></p>
       <p class="error" id="cardio-error" role="alert"></p>
       <button class="boton-principal" id="cardio-guardar" disabled>Guardar cardio ✓</button>
     </div>`;
-    const valor = (sel: string) => (cajaCardio.querySelector(sel) as HTMLInputElement).value;
+    const valor = (sel: string) =>
+      (cajaCardio.querySelector(sel) as HTMLInputElement | HTMLTextAreaElement).value;
+    conectarContador(cajaCardio, '#cardio-sensacion', 'cardio-sensacion');
     let tipo: TipoCardio | null = null;
     cajaCardio.querySelectorAll('[data-tipo]').forEach((chip) =>
       chip.addEventListener('click', () => {

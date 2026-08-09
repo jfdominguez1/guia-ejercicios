@@ -123,7 +123,24 @@ export interface ItemSesion {
   nota?: string;
 }
 
-export type TipoCardio = 'corrida' | 'caminata' | 'bicicleta' | 'eliptica' | 'cinta';
+/**
+ * Modalidad del cardio. 'bici-fija' y 'bici-calle' están separadas a pedido de
+ * JFD: en la fija los minutos y la FC se comparan entre sesiones, en la calle
+ * dependen del terreno. 'bicicleta' queda solo para leer las sesiones
+ * registradas antes de esa separación — no se ofrece más al registrar.
+ */
+export type TipoCardio =
+  | 'corrida'
+  | 'caminata'
+  | 'bici-fija'
+  | 'bici-calle'
+  | 'eliptica'
+  | 'cinta'
+  | 'remo'
+  | 'escalera'
+  | 'natacion'
+  | 'otro'
+  | 'bicicleta';
 export type TipoSesion = 'fuerza' | 'cardio' | 'elongacion' | 'otro';
 /** 'hecha' = sesión planificada completada · 'otra' = "hice otra cosa". */
 export type EstadoSesion = 'hecha' | 'otra';

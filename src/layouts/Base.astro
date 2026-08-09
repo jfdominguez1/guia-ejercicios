@@ -207,6 +207,8 @@ const tabs = [
   }
   label { display: block; font-weight: 600; font-size: 14px; margin: 12px 0 4px; }
   .ayuda { font-size: 13px; color: var(--tinta-suave); margin: 2px 0 0; }
+  /* Contador de un campo de texto: solo aparece cerca del tope, alineado a la derecha. */
+  .contador { text-align: right; min-height: 16px; }
 
   /* chips seleccionables (equipamiento, filtros, RPE) */
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -276,6 +278,8 @@ const tabs = [
     font-size: 14px;
   }
   .error { color: var(--peligro); font-size: 14px; }
+  /* Lo que quedó sin registrar y se va a descartar al guardar: tiene que saltar. */
+  .aviso-pendiente { border-left: 4px solid var(--peligro); }
 
   /* Buscador de ejercicios y opciones elegibles (wizard, rutina). */
   .buscador input[type='search'] {

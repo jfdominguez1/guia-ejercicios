@@ -6,6 +6,7 @@ import {
   agregarEjercicio,
   alternativasDe,
   buscarEjercicios,
+  sustitucionDe,
   dosisInicial,
   quitarEjercicio,
   sustituirEjercicio,
@@ -221,5 +222,25 @@ describe('alternativasDe', () => {
   it('corta por el límite pedido', () => {
     const muchos = Array.from({ length: 20 }, (_, i) => ({ ...PRESS, id: `M${i}`, grupo: 'cuerpo' as const }));
     expect(alternativasDe(muchos, PRESS, [], 5).equivalentes).toHaveLength(5);
+  });
+});
+
+describe('sustitucionDe', () => {
+  it('anota el planificado cuando hiciste otro', () => {
+    expect(sustitucionDe('F1', 'F2')).toBe('F1');
+  });
+
+  it('no anota nada si hiciste el de la rutina', () => {
+    expect(sustitucionDe('F1', 'F1')).toBeUndefined();
+  });
+
+  it('probar varios y volver al original no cuenta como sustitución', () => {
+    // F1 -> F2 -> F3 -> F1: la cadena da igual, lo que importa es dónde terminó.
+    expect(sustitucionDe('F1', 'F1')).toBeUndefined();
+  });
+
+  it('siempre apunta al planificado, no al paso anterior de la cadena', () => {
+    // F1 -> F2 -> F3 debe decir "en lugar de F1", no "en lugar de F2".
+    expect(sustitucionDe('F1', 'F3')).toBe('F1');
   });
 });

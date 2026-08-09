@@ -2,19 +2,32 @@
 // permite cambiar o saltear ejercicios y guarda la sesión. Vive acá y no en el
 // .astro para poder testearlo con jsdom.
 
-import { resolverSalteo, variantesDe, ultimaVez } from '../lib/motor';
+import { ejercicioDeVariante, necesitaOtraPersona, resolverSalteo, variantesDe, ultimaVez } from '../lib/motor';
 import { sugerirProgresion } from '../lib/progreso';
-import { alternativasDe, dosisInicial, sustituirEjercicio } from '../lib/editor';
+import { alternativasDe, dosisInicial, sustitucionDe, sustituirEjercicio } from '../lib/editor';
 import { parsearDiaElegido, resolverDiaDeHoy } from '../lib/dia';
 import { formatearObjetivo, formatearFc, unidadEfectiva } from '../lib/formato';
 import { conMedida, formatearCrono, medidaSerie, valorPrecargado, NOMBRE_UNIDAD } from '../lib/serie';
 import { convertirDiaSinGym } from '../lib/singym';
+import {
+  cardioPendiente,
+  etiquetaModalidad,
+  modalidadDe,
+  partirDia,
+  sesionDeCardio,
+  validarCardio,
+  MODALIDADES,
+  type TramosDia,
+} from '../lib/cardio';
 import { ETIQUETA_TIPO, tipoPredominante, yaHaySesion } from '../lib/registro';
+import { avisoRestante, TOPE_TEXTO } from '../lib/texto';
 import { storage } from '../lib/storage';
 import { ajustarPeso, aKg, desdeKg, equivalente, formatearPeso, resumenSeries, type UnidadPeso } from '../lib/unidades';
 import { crearBuscador, etiquetaGrupo, htmlOpciones } from './buscador';
 import { htmlDemo, escapar, rutaBase } from './datos';
-import type { DiaRutina, Ejercicio, EjercicioRutina, GrupoEquip, ItemSesion, Perfil, SerieHecha } from '../lib/tipos';
+import type {
+  DiaRutina, Ejercicio, EjercicioRutina, GrupoEquip, ItemSesion, Perfil, SerieHecha, TipoCardio,
+} from '../lib/tipos';
 
 export interface DepsEntrenar {
   /** El contenedor donde se pinta todo el wizard. */
@@ -40,10 +53,14 @@ export function montarEntrenar(deps: DepsEntrenar): void {
     series: Array<SerieHecha & { hecha: boolean }>;
     /** Dosis y movimiento con los que se está trabajando hoy (puede diferir de la rutina). */
     plan: EjercicioRutina;
+    /**
+     * Lo que la rutina pedía para este paso. No se pisa al cambiar de ejercicio
+     * ni de implemento — de acá sale `enLugarDe` al guardar. Solo cambia si
+     * elegís "cambiarlo en la rutina", que es cuando el nuevo pasa a ser el plan.
+     */
+    planificadoId: string;
     /** Lo dejaste pasar hoy. */
     salteado?: boolean;
-    /** Id del ejercicio que estaba planificado, si lo cambiaste solo por hoy. */
-    enLugarDe?: string;
     /** Nota puntual de hoy para este ejercicio. */
     nota?: string;
   }
@@ -61,9 +78,19 @@ export function montarEntrenar(deps: DepsEntrenar): void {
   let sinGym = false;
   /** Sesión libre: sin rutina, se van eligiendo los ejercicios sobre la marcha. */
   let libre = false;
+  /** El día partido en cardio y resto. El cardio se registra aparte, antes. */
+  let tramos: TramosDia = { cardio: [], resto: [] };
+  /** Índice del día en la rutina, para enganchar la sesión de cardio. */
+  let diaIndexActual: number | undefined;
 
   const porId = (id: string) => catalogo.find((e) => e.id === id);
   const unidadEntrada = (): UnidadPeso => storage.getConfig().unidadEntrada ?? 'kg';
+  /**
+   * Lo que se puede elegir en los buscadores del wizard. `catalogo` sigue
+   * entero para poder mostrar por id lo que ya está en la rutina o en el
+   * historial; lo que se OFRECE no incluye ejercicios que necesitan un ayudante.
+   */
+  const catalogoOfrecible = catalogo.filter((e) => !necesitaOtraPersona(e));
 
   // --- Cronómetro (ejercicios por tiempo: plancha, elongación) ---------------
   // Sin esto el tiempo se estima de memoria después de la serie, que es
@@ -129,7 +156,7 @@ export function montarEntrenar(deps: DepsEntrenar): void {
       );
       return { ...base, hecha: false };
     });
-    return { ejercicioId: e.ejercicioId, variante, series, plan: e };
+    return { ejercicioId: e.ejercicioId, variante, series, plan: e, planificadoId: e.ejercicioId };
   }
 
   /** Agrega un ejercicio a la sesión libre con la dosis inicial de su tipo. */
@@ -158,7 +185,7 @@ export function montarEntrenar(deps: DepsEntrenar): void {
         ? `<a class="boton-silencioso" style="display:block;text-align:center" href="${rutaBase}/">Salir</a>`
         : '<button class="boton-secundario" id="btn-volver-sesion">Volver a la sesión</button>'}`;
     caja.querySelector('#caja-buscador')!.appendChild(
-      crearBuscador({ catalogo, alElegir: agregarASesion, etiqueta: 'Buscar en el catálogo' }),
+      crearBuscador({ catalogo: catalogoOfrecible, alElegir: agregarASesion, etiqueta: 'Buscar en el catálogo' }),
     );
     caja.querySelector('#btn-volver-sesion')?.addEventListener('click', () => {
       draft.indice = Math.min(draft.indice, draft.ejercicios.length - 1);
@@ -180,7 +207,7 @@ export function montarEntrenar(deps: DepsEntrenar): void {
 
   function cambiarVariante(estado: EstadoEj, grupo: GrupoEquip) {
     const opciones = variantesDe(catalogo, estado.plan.movimiento)[grupo];
-    const elegido = opciones[0];
+    const elegido = ejercicioDeVariante(opciones, estado.planificadoId);
     if (!elegido) return;
     estado.ejercicioId = elegido.id;
     estado.variante = grupo;
@@ -189,11 +216,11 @@ export function montarEntrenar(deps: DepsEntrenar): void {
 
   /** Reemplaza el ejercicio de este paso. `enRutina` lo deja fijo; si no, vale solo hoy. */
   function cambiarEjercicio(estado: EstadoEj, nuevo: Ejercicio, enRutina: boolean) {
-    if (!estado.enLugarDe && estado.ejercicioId !== nuevo.id) estado.enLugarDe = estado.ejercicioId;
     if (enRutina && draft.diaIndex !== undefined) {
       const rutina = storage.getRutina();
       if (rutina) storage.setRutina(sustituirEjercicio(rutina, draft.diaIndex, draft.indice, nuevo));
-      estado.enLugarDe = undefined;
+      // Pasa a ser lo planificado: de acá en adelante no reemplaza a nadie.
+      estado.planificadoId = nuevo.id;
     }
     const tipoAnterior = porId(estado.ejercicioId)?.tipo;
     estado.ejercicioId = nuevo.id;
@@ -213,14 +240,41 @@ export function montarEntrenar(deps: DepsEntrenar): void {
   function pintarResumen() {
     const hechos = draft.ejercicios.filter((e) => e.series.some((s) => s.hecha));
     const salteados = draft.ejercicios.filter((e) => e.salteado);
+    // Ni hechos ni salteados: al guardar se DESCARTAN. Antes eso pasaba en
+    // silencio y así se perdió entera la cinta del 08/08. Ahora se avisa con
+    // nombre y apellido antes de guardar.
+    const sinRegistrar = draft.ejercicios.filter(
+      (e) => !e.salteado && !e.series.some((s) => s.hecha),
+    );
+    const nombres = (lista: EstadoEj[]) =>
+      escapar(lista.map((e) => porId(e.ejercicioId)?.nombre_es ?? e.ejercicioId).join(', '));
     caja.innerHTML = `<h1>¡Terminaste!</h1>
       <div class="carta">
         <span class="eyebrow">${escapar(draft.nombreDia)}</span>
         <p><strong>${hechos.length}</strong> de ${draft.ejercicios.length} ejercicios con series marcadas.</p>
-        ${salteados.length ? `<p class="ayuda">${salteados.length} salteado${salteados.length > 1 ? 's' : ''}: ${escapar(salteados.map((e) => porId(e.ejercicioId)?.nombre_es ?? e.ejercicioId).join(', '))}. Queda anotado, sin drama.</p>` : ''}
+        ${salteados.length ? `<p class="ayuda">${salteados.length} salteado${salteados.length > 1 ? 's' : ''}: ${nombres(salteados)}. Queda anotado, sin drama.</p>` : ''}
       </div>
+      ${sinRegistrar.length ? `<div class="carta aviso-pendiente">
+        <span class="eyebrow">Sin registrar</span>
+        <p>${nombres(sinRegistrar)}</p>
+        <p class="ayuda">Si guardás así, ${sinRegistrar.length > 1 ? 'no quedan' : 'no queda'} en la sesión. ¿${sinRegistrar.length > 1 ? 'Los hiciste' : 'Lo hiciste'}?</p>
+        <button class="boton-secundario" id="btn-ir-pendiente" style="margin-top:8px">Cargar${sinRegistrar.length > 1 ? 'los' : 'lo'} ahora</button>
+        <button id="btn-no-hechos" style="width:100%;margin-top:8px">No ${sinRegistrar.length > 1 ? 'los hice' : 'lo hice'} — anotar como salteado${sinRegistrar.length > 1 ? 's' : ''}</button>
+      </div>` : ''}
       <button class="boton-principal" id="btn-guardar">Guardar sesión ✓</button>
       <button class="boton-secundario" id="btn-volver-wizard">Volver</button>`;
+    caja.querySelector('#btn-ir-pendiente')?.addEventListener('click', () => {
+      draft.indice = draft.ejercicios.indexOf(sinRegistrar[0]!);
+      guardarDraft();
+      pintar();
+    });
+    caja.querySelector('#btn-no-hechos')?.addEventListener('click', () => {
+      // Salteado es una decisión tuya y queda registrada: así el ejercicio
+      // aparece en "los que venís esquivando" en vez de desaparecer.
+      for (const e of sinRegistrar) e.salteado = true;
+      guardarDraft();
+      pintarResumen();
+    });
     caja.querySelector('#btn-guardar')!.addEventListener('click', () => {
       // El tipo sale de lo que realmente hiciste (los salteados no cuentan): una
       // sesión de elongación tiene que quedar registrada como elongación.
@@ -243,7 +297,7 @@ export function montarEntrenar(deps: DepsEntrenar): void {
             .filter((s) => s.hecha)
             .map(({ hecha: _hecha, pesoKg, ...serie }) => (pesoKg === undefined ? serie : { ...serie, pesoKg })),
           ...(e.salteado ? { salteado: true as const } : {}),
-          ...(e.enLugarDe ? { enLugarDe: e.enLugarDe } : {}),
+          ...(sustitucionDe(e.planificadoId, e.ejercicioId) ? { enLugarDe: e.planificadoId } : {}),
           ...(e.nota?.trim() ? { nota: e.nota.trim() } : {}),
         }))
         // Los salteados se guardan igual (sin series) para detectar los que esquivás siempre.
@@ -289,7 +343,7 @@ export function montarEntrenar(deps: DepsEntrenar): void {
        ${!alt.equivalentes.length && !alt.mismoMusculo.length ? '<p class="ayuda">No hay alternativas directas — buscá en el catálogo.</p>' : ''}`;
 
     caja.querySelector('#caja-buscador')!.appendChild(
-      crearBuscador({ catalogo, alElegir: pintarConfirmarCambio, htmlInicial: sugerencias }),
+      crearBuscador({ catalogo: catalogoOfrecible, alElegir: pintarConfirmarCambio, htmlInicial: sugerencias }),
     );
     caja.querySelector('#btn-cancelar-cambio')!.addEventListener('click', pintar);
   }
@@ -339,7 +393,8 @@ export function montarEntrenar(deps: DepsEntrenar): void {
     const estado = draft.ejercicios[draft.indice]!;
     const planificado = estado.plan;
     const info = porId(estado.ejercicioId);
-    const original = estado.enLugarDe ? porId(estado.enLugarDe) : undefined;
+    const sustituido = sustitucionDe(estado.planificadoId, estado.ejercicioId);
+    const original = sustituido ? porId(sustituido) : undefined;
     const variantes = variantesDe(catalogo, planificado.movimiento);
     const gruposDisponibles = (Object.keys(variantes) as GrupoEquip[]).filter((g) => variantes[g].length > 0);
     const fc = formatearFc(planificado);
@@ -420,7 +475,8 @@ export function montarEntrenar(deps: DepsEntrenar): void {
       </div>
       <div class="carta">
         <label style="margin-top:0">Nota de hoy <span class="eyebrow">(opcional)</span></label>
-        <textarea id="nota-ej" rows="2" maxlength="200" placeholder="Ej: el hombro molestó en la última serie">${escapar(estado.nota ?? '')}</textarea>
+        <textarea id="nota-ej" rows="2" maxlength="${TOPE_TEXTO}" placeholder="Ej: el hombro molestó en la última serie">${escapar(estado.nota ?? '')}</textarea>
+        <p class="ayuda contador" id="contador-nota"></p>
       </div>
       <div class="acciones-ej">
         <button id="btn-cambiar">Cambiar ejercicio ⇄</button>
@@ -508,8 +564,10 @@ export function montarEntrenar(deps: DepsEntrenar): void {
       pintar();
     });
     const notaEl = caja.querySelector('#nota-ej') as HTMLTextAreaElement | null;
+    const contadorNota = caja.querySelector('#contador-nota') as HTMLElement | null;
     notaEl?.addEventListener('input', () => {
       estado.nota = notaEl.value;
+      if (contadorNota) contadorNota.textContent = avisoRestante(notaEl.value.length) ?? '';
       guardarDraft();
     });
     caja.querySelector('#btn-cambiar')!.addEventListener('click', pintarCambiar);
@@ -541,6 +599,156 @@ export function montarEntrenar(deps: DepsEntrenar): void {
     });
   }
 
+  // --- Cardio del día: su propia sesión, antes del resto -----------------------
+  // JFD, 09/08: "que sean sesiones distintas, la de cardio con sus datos, y
+  // después la elongación es algo adicional". El cardio se guarda al cerrarlo:
+  // si te vas ahí mismo, ya quedó registrado. Antes vivía como un ejercicio más
+  // del wizard y, si no le marcabas la serie, se descartaba al guardar.
+
+  /** Ejercicios de cardio que se salteaon hoy: no se vuelven a pedir al reentrar. */
+  function cardioSalteadoHoy(): string[] {
+    const crudo = sessionStorage.getItem('ge:cardio-salteado') ?? '';
+    const [fecha, ...ids] = crudo.split('|');
+    return fecha === hoy() ? ids : [];
+  }
+
+  function marcarCardioSalteado(ejercicioId: string) {
+    const ids = [...new Set([...cardioSalteadoHoy(), ejercicioId])];
+    sessionStorage.setItem('ge:cardio-salteado', [hoy(), ...ids].join('|'));
+  }
+
+  /** Minutos con los que arranca el campo: lo de la última vez, o el plan. */
+  function minutosSugeridos(ejercicio: EjercicioRutina): number {
+    const previa = ultimaVez(storage.getSesiones(), ejercicio.ejercicioId, 'maquina');
+    return previa?.series[0]?.minutos ?? ejercicio.repsMin;
+  }
+
+  function pintarCardio(pendientes: EjercicioRutina[], i: number) {
+    const ejercicio = pendientes[i]!;
+    const info = porId(ejercicio.ejercicioId);
+    const fc = formatearFc(ejercicio);
+    let modalidad: TipoCardio = modalidadDe(ejercicio.ejercicioId);
+
+    caja.innerHTML = `
+      <div class="progreso">
+        <span class="eyebrow">${escapar(dia.nombre)}</span>
+        ${pendientes.length > 1 ? `<strong>${i + 1}/${pendientes.length}</strong>` : ''}
+      </div>
+      <h1>${escapar(info?.nombre_es ?? ejercicio.ejercicioId)}</h1>
+      <p class="ayuda">Objetivo: ${formatearObjetivo(ejercicio, 'cardio')}${fc ? ` · ${fc}` : ''}</p>
+      <div class="carta">
+        <span class="eyebrow">¿Cómo lo hiciste?</span>
+        <div class="chips" style="margin-top:6px">
+          ${MODALIDADES.map(
+            (m) => `<button class="chip" data-modalidad="${m.valor}" aria-pressed="${m.valor === modalidad}">${m.etiqueta}</button>`,
+          ).join('')}
+        </div>
+      </div>
+      <div class="carta">
+        <label style="margin-top:0">Minutos</label>
+        <input type="number" id="cardio-minutos" inputmode="numeric" value="${minutosSugeridos(ejercicio)}" min="1" max="600" />
+        <label>Pulsaciones promedio <span class="eyebrow">(opcional, ppm)</span></label>
+        <input type="number" id="cardio-bpm" inputmode="numeric" min="40" max="220" placeholder="De tu banda o reloj" />
+        <p class="error" id="cardio-error" role="alert"></p>
+      </div>
+      <button class="boton-principal" id="btn-guardar-cardio">Guardar cardio ✓</button>
+      <button class="boton-secundario" id="btn-saltear-cardio">Hoy no lo hice</button>`;
+
+    caja.querySelectorAll('[data-modalidad]').forEach((chip) =>
+      chip.addEventListener('click', () => {
+        modalidad = (chip as HTMLElement).dataset.modalidad as TipoCardio;
+        caja.querySelectorAll('[data-modalidad]').forEach((c) =>
+          c.setAttribute('aria-pressed', String((c as HTMLElement).dataset.modalidad === modalidad)),
+        );
+      }),
+    );
+
+    /**
+     * `guardado` decide qué se ve después: si el cardio quedó registrado se
+     * ofrece el resto como algo adicional; si lo salteaste no hay nada que
+     * celebrar y el día sigue derecho.
+     */
+    const seguir = (guardado: boolean) => {
+      if (i + 1 < pendientes.length) {
+        pintarCardio(pendientes, i + 1);
+        return;
+      }
+      if (guardado) {
+        pintarOfrecerResto();
+        return;
+      }
+      if (tramos.resto.length === 0) navegar('/');
+      else arrancarResto();
+    };
+
+    caja.querySelector('#btn-guardar-cardio')!.addEventListener('click', () => {
+      const error = caja.querySelector('#cardio-error') as HTMLElement;
+      const leer = (sel: string) => Number((caja.querySelector(sel) as HTMLInputElement).value);
+      const minutos = leer('#cardio-minutos');
+      const fcPromedio = leer('#cardio-bpm') || undefined;
+      const errores = validarCardio({ modalidad, minutos, fcPromedio });
+      const primero = errores.minutos ?? errores.fcPromedio;
+      if (primero) {
+        error.textContent = primero;
+        return;
+      }
+      if (yaHaySesion(storage.getSesiones(), hoy(), 'cardio')
+        && !confirmar('Ya registraste un cardio hoy. ¿Agrego otro?')) return;
+      storage.agregarSesion(
+        sesionDeCardio(ejercicio, { modalidad, minutos, fcPromedio }, {
+          fecha: hoy(),
+          diaIndex: diaIndexActual,
+          nombreDia: dia.nombre,
+          ...(info?.nombre_es ? { nombre: info.nombre_es } : {}),
+        }),
+      );
+      seguir(true);
+    });
+
+    caja.querySelector('#btn-saltear-cardio')!.addEventListener('click', () => {
+      marcarCardioSalteado(ejercicio.ejercicioId);
+      seguir(false);
+    });
+  }
+
+  /**
+   * El cardio ya quedó guardado. Recién ahora se ofrece el resto del día, como
+   * lo que es: algo adicional que podés hacer o no.
+   */
+  function pintarOfrecerResto() {
+    if (tramos.resto.length === 0) {
+      navegar('/');
+      return;
+    }
+    const cuantos = tramos.resto.length;
+    const nombres = tramos.resto
+      .map((e) => porId(e.ejercicioId)?.nombre_es ?? e.ejercicioId)
+      .join(' · ');
+    caja.innerHTML = `
+      <h1>Cardio guardado ✓</h1>
+      <div class="carta">
+        <span class="eyebrow">${escapar(dia.nombre)}</span>
+        <p>El día sigue con <strong>${cuantos}</strong> ejercicio${cuantos > 1 ? 's' : ''}.</p>
+        <p class="ayuda">${escapar(nombres)}</p>
+      </div>
+      <button class="boton-principal" id="btn-seguir-resto">Sí, vamos</button>
+      <button class="boton-secundario" id="btn-terminar">Ahora no</button>`;
+    caja.querySelector('#btn-seguir-resto')!.addEventListener('click', arrancarResto);
+    caja.querySelector('#btn-terminar')!.addEventListener('click', () => navegar('/'));
+  }
+
+  /** Arranca el wizard con lo que queda del día (sin el cardio). */
+  function arrancarResto() {
+    draft = {
+      fecha: hoy(),
+      ...(diaIndexActual === undefined ? {} : { diaIndex: diaIndexActual }),
+      nombreDia: dia.nombre,
+      indice: 0,
+      ejercicios: dia.ejercicios.map(armarEstado),
+    };
+    pintar();
+  }
+
   /** Draft crudo, sin validar: para saber qué tipo de sesión hay en curso. */
   function leerDraftCrudo(): Draft | null {
     try {
@@ -562,7 +770,16 @@ export function montarEntrenar(deps: DepsEntrenar): void {
     const compatible = previo.ejercicios.every((e) => e.plan);
     const largoOk = libre || previo.ejercicios.length === diaActual.ejercicios.length;
     if (previo.fecha === hoy() && previo.nombreDia === diaActual.nombre && compatible && largoOk) {
-      return previo;
+      // Los drafts guardados antes de que existiera `planificadoId` se completan
+      // con el plan en vez de descartarse: nadie pierde la sesión a mitad del
+      // gym porque justo se deployó una versión nueva.
+      return {
+        ...previo,
+        ejercicios: previo.ejercicios.map((e) => ({
+          ...e,
+          planificadoId: e.planificadoId ?? e.plan.ejercicioId,
+        })),
+      };
     }
     return null;
   }
@@ -589,22 +806,38 @@ export function montarEntrenar(deps: DepsEntrenar): void {
     const diaElegido = parsearDiaElegido(sessionStorage.getItem('ge:dia'), hoy(), rutina.dias.length);
     const { diaIndex, dia: diaPlan } = resolverDiaDeHoy(rutina, salteo.diaIndex, diaElegido);
     sinGym = sessionStorage.getItem('ge:singym') === hoy();
-    dia = sinGym ? convertirDiaSinGym(diaPlan, catalogo, storage.getCustoms(), perfil).dia : diaPlan;
+    const diaCompleto = sinGym
+      ? convertirDiaSinGym(diaPlan, catalogo, storage.getCustoms(), perfil).dia
+      : diaPlan;
 
+    // El cardio del día se registra aparte, así que el wizard trabaja solo con
+    // el resto: `dia` de acá en adelante es el día SIN su cardio.
+    tramos = partirDia(diaCompleto, catalogo);
+    diaIndexActual = diaIndex;
+    dia = { ...diaCompleto, ejercicios: tramos.resto };
+
+    // Un draft en curso manda: si ya estabas en el resto, no se vuelve a pedir
+    // el cardio (ya pasaste por ahí, lo hayas hecho o salteado).
     const previo = retomarDraft(dia);
     if (previo) {
       draft = previo;
       pintar();
       return;
     }
-    draft = {
-      fecha: hoy(),
-      diaIndex,
-      nombreDia: dia.nombre,
-      indice: 0,
-      ejercicios: dia.ejercicios.map(armarEstado),
-    };
-    pintar();
+
+    const salteados = cardioSalteadoHoy();
+    const pendientes = cardioPendiente(tramos, storage.getSesiones(), hoy())
+      .filter((e) => !salteados.includes(e.ejercicioId));
+    if (pendientes.length) {
+      pintarCardio(pendientes, 0);
+      return;
+    }
+    // Día que era solo cardio y ya está registrado: no hay wizard que mostrar.
+    if (dia.ejercicios.length === 0) {
+      navegar('/');
+      return;
+    }
+    arrancarResto();
   }
 
   iniciar();

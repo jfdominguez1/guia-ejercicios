@@ -249,15 +249,51 @@ describe('alta de cardio', () => {
   it('registra la sesión con tipo, minutos y km', () => {
     montar();
     $('#btn-cardio').click();
-    $('[data-tipo="bicicleta"]').click();
+    $('[data-tipo="bici-fija"]').click();
     ($('#cardio-min') as HTMLInputElement).value = '45';
     ($('#cardio-km') as HTMLInputElement).value = '15';
     ($('#cardio-fecha') as HTMLInputElement).value = HOY;
     $('#cardio-guardar').click();
     const guardada = storage.getSesiones()[0]!;
     expect(guardada.tipo).toBe('cardio');
-    expect(guardada.cardio).toMatchObject({ tipo: 'bicicleta', minutos: 45, km: 15 });
+    expect(guardada.cardio).toMatchObject({ tipo: 'bici-fija', minutos: 45, km: 15 });
     expect(guardada.id).toBeTruthy();
+  });
+
+  // El 09/08 JFD reportó un bug en el campo de sensación y quedó cortado en 80
+  // caracteres a mitad de palabra. Se chequea el ATRIBUTO y no el .value porque
+  // jsdom no aplica maxlength cuando el valor se setea por código: un test que
+  // escribiera 300 caracteres pasaría igual con el tope de 80 puesto.
+  it('la sensación no se corta a los 80 caracteres', () => {
+    montar();
+    $('#btn-cardio').click();
+    const campo = $('#cardio-sensacion') as HTMLTextAreaElement;
+    const dictado =
+      'Fue bici fija. Ponelo como opcion. Cuandolo puse como ejercicio del dia hoce bici pero no me lo grabo';
+    expect(dictado.length).toBeGreaterThan(80);
+    expect(Number(campo.getAttribute('maxlength'))).toBeGreaterThanOrEqual(dictado.length);
+
+    $('[data-tipo="bici-fija"]').click();
+    campo.value = dictado;
+    ($('#cardio-fecha') as HTMLInputElement).value = HOY;
+    $('#cardio-guardar').click();
+    expect(storage.getSesiones()[0]!.cardio!.sensacion).toBe(dictado);
+  });
+
+  it('el contador aparece recién cuando el texto se acerca al tope', () => {
+    montar();
+    $('#btn-cardio').click();
+    const campo = $('#cardio-sensacion') as HTMLTextAreaElement;
+    const contador = $('[data-contador="cardio-sensacion"]');
+    expect(contador.textContent).toBe('');
+
+    campo.value = 'x'.repeat(100);
+    campo.dispatchEvent(new Event('input'));
+    expect(contador.textContent).toBe('');
+
+    campo.value = 'x'.repeat(480);
+    campo.dispatchEvent(new Event('input'));
+    expect(contador.textContent).toBe('Quedan 20 caracteres');
   });
 
   it('una fecha de hace más de 7 días se rechaza con mensaje', () => {
