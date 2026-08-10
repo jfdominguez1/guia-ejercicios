@@ -1,5 +1,5 @@
 // Zonas de frecuencia cardíaca personales (C1). El dato medido manda;
-// sin dato, fallback 220 − edad. Nada por encima del 90% de la FC máx.
+// sin dato, se estima con Tanaka. Nada por encima del 90% de la FC máx.
 
 import type { Perfil } from './tipos';
 
@@ -17,8 +17,28 @@ const ZONAS_PCT: Array<{ nombre: string; desde: number; hasta: number }> = [
   { nombre: 'Fuerte', desde: 0.81, hasta: 0.9 },
 ];
 
+/**
+ * FC máxima estimada por la fórmula de Tanaka (2001): 208 − 0,7 × edad.
+ *
+ * Reemplaza a "220 − edad", que se usaba antes acá. Esa no sale de ningún
+ * estudio: es una simplificación de los años 70 que **subestima la máxima en
+ * mayores de 40** — justo el caso de este perfil. Tanaka sale de un
+ * meta-análisis de 351 estudios y es la referencia habitual hoy.
+ *
+ * La diferencia no es cosmética: a los 60 da 166 en vez de 160, y como TODAS
+ * las zonas son un porcentaje de este número, seis ppm corren los cuatro
+ * rangos. Con la vieja, un cardio "en zona 2" quedaba pedido más suave de lo
+ * que corresponde.
+ *
+ * Sigue siendo una estimación: si algún día se mide de verdad (con la banda),
+ * `fcMaxConocida` le gana siempre y esto no se usa.
+ */
+export function fcMaxEstimada(edad: number): number {
+  return Math.round(208 - 0.7 * edad);
+}
+
 export function fcMaxEfectiva(perfil: Perfil): number {
-  return perfil.fcMaxConocida ?? 220 - perfil.edad;
+  return perfil.fcMaxConocida ?? fcMaxEstimada(perfil.edad);
 }
 
 /** Las 4 zonas en ppm derivadas del perfil. */

@@ -140,9 +140,11 @@ describe('generarExport — FC y zonas en Quién soy (C1)', () => {
     expect(texto).toContain('Fuerte 146-162');
   });
 
-  it('sin datos de FC: estima 220−edad y no inventa reposo', () => {
+  it('sin datos de FC: estima con Tanaka, le dice a la IA cuál usó, y no inventa reposo', () => {
     const texto = generarExport(PERFIL, RUTINA, [], CAT, [], undefined, '2026-07-12');
-    expect(texto).toContain('FC máxima: 168 ppm (estimada 220−edad)'); // edad 52
+    // edad 52 → 208 − 36,4 = 171,6 → 172. Con la vieja 220−edad daban 168.
+    expect(texto).toContain('FC máxima: 172 ppm (estimada por Tanaka: 208 − 0,7 × edad)');
+    expect(texto).not.toContain('220−edad');
     expect(texto).not.toContain('FC en reposo');
   });
 });

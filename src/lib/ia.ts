@@ -172,7 +172,7 @@ export function generarExport(
 - Nivel: ${perfil.nivel}
 - Objetivo: ${perfil.objetivo}
 - Equipamiento disponible: ${perfil.equipamiento.join(', ')}
-- FC máxima: ${fcMaxEfectiva(perfil)} ppm ${perfil.fcMaxConocida ? '(medida)' : '(estimada 220−edad)'}${
+- FC máxima: ${fcMaxEfectiva(perfil)} ppm ${perfil.fcMaxConocida ? '(medida)' : '(estimada por Tanaka: 208 − 0,7 × edad)'}${
     perfil.fcReposo ? `\n- FC en reposo: ${perfil.fcReposo} ppm` : ''
   }
 - Zonas de FC (ppm): ${zonasFc(perfil)
