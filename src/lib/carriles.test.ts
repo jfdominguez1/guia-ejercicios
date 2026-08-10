@@ -1,4 +1,4 @@
-// Feature: carriles por tipo — rotación propia por carril y meta 2·2·2.
+// Feature: carriles por tipo — rotación propia por carril y meta 2·2·3.
 // Los casos están armados con la rutina v9 y el historial reales de JFD.
 import { describe, it, expect } from 'vitest';
 import {
@@ -197,10 +197,14 @@ describe('estadoCarriles', () => {
     expect(del(e, 'fuerza').hechas).toBe(0);
   });
 
-  it('la meta por defecto es 2 · 2 · 2', () => {
+  // Elongación va en 3: con tres días rotando, el más difícil (cadera y
+  // piernas) toca una de cada tres veces y no una de cada dos.
+  it('la meta por defecto es 2 · 2 · 3', () => {
     const e = estadoCarriles(RUTINA, [], CATALOGO, HOY, CONFIG);
-    expect(e.map((x) => x.meta)).toEqual([2, 2, 2]);
-    expect(META_DEFAULT).toEqual({ fuerza: 2, cardio: 2, elongacion: 2 });
+    expect(del(e, 'fuerza').meta).toBe(2);
+    expect(del(e, 'cardio').meta).toBe(2);
+    expect(del(e, 'elongacion').meta).toBe(3);
+    expect(META_DEFAULT).toEqual({ fuerza: 2, cardio: 2, elongacion: 3 });
   });
 
   it('el más atrasado va arriba', () => {
@@ -211,7 +215,7 @@ describe('estadoCarriles', () => {
     ];
     const e = estadoCarriles(RUTINA, s, CATALOGO, HOY, CONFIG);
     expect(e[0]!.carril).toBe('elongacion');
-    expect(deuda(e[0]!)).toBe(2);
+    expect(deuda(e[0]!)).toBe(3);
   });
 
   // La deuda manda SOBRE el hace-cuánto. Hace falta un caso donde apunten a
@@ -279,7 +283,7 @@ describe('textos', () => {
     ];
     const e = estadoCarriles(RUTINA, s, CATALOGO, HOY, CONFIG);
     const texto = resumenSemana(e);
-    expect(texto).toContain('2 de elongación');
+    expect(texto).toContain('3 de elongación');
     expect(texto).toContain('1 de cardio');
     expect(texto).not.toContain('no hiciste');
   });
@@ -289,6 +293,7 @@ describe('textos', () => {
       sesion('2026-08-03', 'fuerza', 0), sesion('2026-08-05', 'fuerza', 2),
       sesion('2026-08-04', 'cardio', 1), sesion('2026-08-06', 'cardio', 3),
       sesion('2026-08-07', 'elongacion', 4), sesion('2026-08-08', 'elongacion', 4),
+      sesion('2026-08-09', 'elongacion', 4),
     ];
     expect(resumenSemana(estadoCarriles(RUTINA, s, CATALOGO, HOY, CONFIG))).toContain('completa');
   });

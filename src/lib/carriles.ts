@@ -29,8 +29,14 @@ export const NOMBRE_CARRIL: Record<Carril, string> = {
   elongacion: 'Elongación',
 };
 
-/** Meta por defecto, acordada con JFD el 09/08: 2 de cada uno por semana. */
-export const META_DEFAULT: Record<Carril, number> = { fuerza: 2, cardio: 2, elongacion: 2 };
+/**
+ * Meta por defecto: 2 · 2 · 3.
+ *
+ * La elongación va en 3 y no en 2 por decisión de JFD (09/08), junto con la
+ * rutina v10: con tres días de elongación rotando, el más difícil —cadera y
+ * piernas— le toca una de cada tres veces en vez de una de cada dos.
+ */
+export const META_DEFAULT: Record<Carril, number> = { fuerza: 2, cardio: 2, elongacion: 3 };
 
 const MS_POR_DIA = 86_400_000;
 

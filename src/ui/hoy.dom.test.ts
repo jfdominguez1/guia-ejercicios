@@ -453,13 +453,17 @@ describe('carriles por tipo', () => {
   });
 
   it('el más atrasado va arriba', () => {
-    // Fuerza al día, cardio nunca hecho: el cardio tiene que encabezar.
+    // Elongación al día (meta 3), fuerza con una hecha, cardio en cero: el
+    // cardio tiene que encabezar por ser el que más debe.
     storage.setSesiones([
       { fecha: '2026-07-20', tipo: 'fuerza', estado: 'hecha', diaIndex: 0 },
+      { fecha: '2026-07-20', tipo: 'elongacion', estado: 'hecha', diaIndex: 4 },
+      { fecha: '2026-07-21', tipo: 'elongacion', estado: 'hecha', diaIndex: 4 },
+      { fecha: '2026-07-22', tipo: 'elongacion', estado: 'hecha', diaIndex: 4 },
     ]);
     montar3();
-    const primero = $$('.carril')[0]!;
-    expect(primero.className).toContain('tipo-cardio');
+    expect($$('.carril')[0]!.className).toContain('tipo-cardio');
+    expect($$('.carril')[2]!.className).toContain('tipo-elongacion');
   });
 
   it('cada carril muestra hace cuánto y cómo viene la semana', () => {
