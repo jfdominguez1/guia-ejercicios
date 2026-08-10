@@ -207,6 +207,28 @@ const tabs = [
   }
   label { display: block; font-weight: 600; font-size: 14px; margin: 12px 0 4px; }
   .ayuda { font-size: 13px; color: var(--tinta-suave); margin: 2px 0 0; }
+  /* Meta por tipo: tres filas, una por carril. */
+  .metas { display: grid; gap: 8px; margin: 10px 0 4px; }
+  .fila-meta { display: flex; align-items: center; gap: 10px; }
+  .fila-meta .nombre { font-weight: 700; font-size: 14px; min-width: 88px; }
+  .fila-meta .conteo { font-size: 13px; color: var(--tinta-suave); margin-left: auto; }
+  .fila-meta .discos { display: flex; gap: 5px; }
+  .fila-meta.tipo-fuerza .disco.lleno { background: var(--fuerza); }
+  .fila-meta.tipo-cardio .disco.lleno { background: var(--cardio); }
+  .fila-meta.tipo-elongacion .disco.lleno { background: var(--elongacion); }
+  /* Carriles: los tres a un tap, el más atrasado arriba. */
+  .carriles { display: grid; gap: 8px; margin: 14px 0; }
+  .carril {
+    display: block; width: 100%; text-align: left; padding: 12px 14px;
+    border: 1px solid var(--borde); border-radius: 12px; background: var(--carta);
+    color: inherit; font: inherit; min-height: 44px; border-left-width: 4px;
+  }
+  .carril.destacado { box-shadow: 0 0 0 2px var(--accion) inset; }
+  .carril-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .carril strong { display: block; margin: 2px 0; }
+  .carril.tipo-fuerza { border-left-color: var(--fuerza); }
+  .carril.tipo-cardio { border-left-color: var(--cardio); }
+  .carril.tipo-elongacion { border-left-color: var(--elongacion); }
   /* Contador de un campo de texto: solo aparece cerca del tope, alineado a la derecha. */
   .contador { text-align: right; min-height: 16px; }
 

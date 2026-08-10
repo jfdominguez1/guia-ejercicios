@@ -94,9 +94,16 @@ describe('la sesión de hoy', () => {
     expect(texto()).toContain('Press banca');
   });
 
-  it('muestra la métrica de la semana', () => {
+  // La métrica dejó de ser un número único: son tres casilleros por tipo. El
+  // agregado mostraba verde cinco semanas seguidas mientras la elongación
+  // llegaba a 1 de 4 semanas.
+  it('muestra la meta de la semana por tipo, no un número único', () => {
     montar();
-    expect($('.semana .numero').textContent).toContain('0 de 3');
+    expect($$('.fila-meta')).toHaveLength(3);
+    expect(texto()).toContain('Fuerza');
+    expect(texto()).toContain('Cardio');
+    expect(texto()).toContain('Elongación');
+    expect($('[data-meta="fuerza"] .conteo').textContent).toBe('0/2');
   });
 
   it('encabeza con la fecha de hoy y una frase de contexto', () => {
@@ -401,5 +408,118 @@ describe('sesión libre', () => {
     sessionStorage.setItem('ge:libre', HOY);
     montar();
     expect(sessionStorage.getItem('ge:libre')).toBeNull();
+  });
+});
+
+// Carriles por tipo. El home dejaba de servir por dos motivos a la vez: la
+// rotación solo avanzaba con sesiones de fuerza (así que con 2 días de fuerza
+// sobre 5 repetía el mismo día), y la meta única mostraba verde mientras el
+// desbalance entre cardio y elongación era de 8 a 1.
+describe('carriles por tipo', () => {
+  // El fixture de arriba es todo de fuerza; acá hace falta una rutina con los
+  // tres tipos, como la real de JFD.
+  const BICI: Ejercicio = { ...ej('C1', 'Bici zona 2', 'otro-sistema-cardiovascular', 'maquina'), tipo: 'cardio' };
+  const ESTIRAR: Ejercicio = { ...ej('S1', 'Isquios', 'elongacion-isquios', 'cuerpo'), tipo: 'elongacion' };
+  const CAT3 = [...CATALOGO, BICI, ESTIRAR];
+  const p = (id: string) => ({ movimiento: 'm', ejercicioId: id, series: 2, repsMin: 10, repsMax: 12, descansoSeg: 60 });
+
+  function montar3() {
+    storage.setRutina({
+      generadaEl: HOY, seed: 1, origen: 'ia',
+      dias: [
+        { nombre: 'Día 1 — Fuerza A', enfoque: 'x', ejercicios: [p('F1')] },
+        { nombre: 'Día 2 — Zona 2', enfoque: 'x', ejercicios: [p('C1'), p('S1')] },
+        { nombre: 'Día 3 — Fuerza B', enfoque: 'x', ejercicios: [p('F4')] },
+        { nombre: 'Día 4 — Bici', enfoque: 'x', ejercicios: [p('C1')] },
+        { nombre: 'Elongación (mañanas)', enfoque: 'x', ejercicios: [p('S1')] },
+      ],
+    });
+    document.body.innerHTML = '<div id="hoy"></div>';
+    const rutas: string[] = [];
+    montarHoy({
+      contenedor: document.querySelector('#hoy') as HTMLElement,
+      catalogo: CAT3, perfil: PERFIL, hoy: () => HOY,
+      confirmar: () => true, navegar: (r) => rutas.push(r),
+      respaldar: async () => 'compartido',
+    });
+    return { rutas };
+  }
+
+  it('ofrece los tres carriles en vez de dar una sola orden', () => {
+    montar3();
+    expect($$('.carril')).toHaveLength(3);
+    expect($$('.carril').length).toBeGreaterThanOrEqual(1);
+    expect(texto()).toContain('¿Qué hacés hoy?');
+  });
+
+  it('el más atrasado va arriba', () => {
+    // Fuerza al día, cardio nunca hecho: el cardio tiene que encabezar.
+    storage.setSesiones([
+      { fecha: '2026-07-20', tipo: 'fuerza', estado: 'hecha', diaIndex: 0 },
+    ]);
+    montar3();
+    const primero = $$('.carril')[0]!;
+    expect(primero.className).toContain('tipo-cardio');
+  });
+
+  it('cada carril muestra hace cuánto y cómo viene la semana', () => {
+    // HOY es lunes: una sesión del domingo es de la semana pasada y por eso
+    // dice "ayer" pero no suma al casillero de esta semana.
+    storage.setSesiones([
+      { fecha: '2026-07-19', tipo: 'cardio', estado: 'hecha', diaIndex: 1 },
+    ]);
+    montar3();
+    let cardio = $$('.carril').find((c) => c.className.includes('tipo-cardio'))!;
+    expect(cardio.textContent).toContain('ayer');
+    expect(cardio.textContent).toContain('0 de 2 esta semana');
+
+    storage.setSesiones([
+      { fecha: '2026-07-19', tipo: 'cardio', estado: 'hecha', diaIndex: 1 },
+      { fecha: HOY, tipo: 'cardio', estado: 'hecha', diaIndex: 3 },
+    ]);
+    montar3();
+    cardio = $$('.carril').find((c) => c.className.includes('tipo-cardio'))!;
+    expect(cardio.textContent).toContain('hoy');
+    expect(cardio.textContent).toContain('1 de 2 esta semana');
+  });
+
+  it('tocar un carril elige ese día para hoy', () => {
+    montar3();
+    const cardio = $$('.carril').find((c) => c.className.includes('tipo-cardio'))!;
+    const dia = cardio.dataset.carrilDia!;
+    cardio.click();
+    expect(sessionStorage.getItem('ge:dia')).toContain(dia);
+  });
+
+  // EL BUG: hacer cardio no movía la rotación porque resolverSalteo solo
+  // miraba sesiones de tipo 'fuerza'. JFD hizo zona 2 y la app le volvió a
+  // proponer el mismo día.
+  it('hacer cardio avanza el carril de cardio', () => {
+    montar3();
+    const antes = $$('.carril').find((c) => c.className.includes('tipo-cardio'))!.dataset.carrilDia;
+    storage.setSesiones([
+      { fecha: '2026-07-20', tipo: 'cardio', estado: 'hecha', diaIndex: Number(antes) },
+    ]);
+    montar3();
+    const despues = $$('.carril').find((c) => c.className.includes('tipo-cardio'))!.dataset.carrilDia;
+    expect(despues).not.toBe(antes);
+  });
+
+  it('una sesión con todo salteado no llena el casillero', () => {
+    storage.setSesiones([
+      {
+        fecha: '2026-07-20', tipo: 'fuerza', estado: 'hecha', diaIndex: 0,
+        items: [{ ejercicioId: 'F1', variante: 'pesas', series: [], salteado: true }],
+      },
+    ]);
+    montar3();
+    expect($('[data-meta="fuerza"] .conteo').textContent).toBe('0/2');
+  });
+
+  it('el resumen nombra lo que falta sin reprochar nada', () => {
+    montar3();
+    const frase = $('.semana .frase').textContent!;
+    expect(frase).toContain('falta');
+    expect(frase).not.toContain('no hiciste');
   });
 });

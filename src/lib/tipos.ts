@@ -171,8 +171,19 @@ export interface Sesion {
 }
 
 export interface Config {
-  /** Sesiones por semana que cuentan como objetivo en la home. */
+  /**
+   * Días con actividad por semana. Sigue vivo para la racha y para leer
+   * configuraciones viejas; el número de la home ahora es `metaSemanal`.
+   */
   objetivoSemanal: number;
+  /**
+   * Meta por tipo de sesión (2 · 2 · 2 por defecto). Reemplaza al objetivo
+   * único, que mostraba verde cinco semanas seguidas mientras la elongación
+   * llegaba a 1 de 4 semanas: una métrica agregada no puede mostrar un hueco
+   * de un solo tipo. Cuenta SESIONES, no días — las dos de elongación se
+   * pueden hacer pegadas a otro día.
+   */
+  metaSemanal?: { fuerza: number; cardio: number; elongacion: number };
   /** Días sin ninguna sesión a partir de los cuales se entra en modo retomar. */
   umbralPausaDias: number;
   /**

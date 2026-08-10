@@ -4,6 +4,14 @@
 // testearla con jsdom.
 
 import { resolverSalteo, generarElongacion, regenerar, ultimaVezMovimiento } from '../lib/motor';
+import {
+  estadoCarriles,
+  resumenSemana,
+  textoUltimaVez,
+  CARRILES,
+  NOMBRE_CARRIL,
+  type EstadoCarril,
+} from '../lib/carriles';
 import { actualizarDosis, quitarEjercicio, sustituirEjercicio } from '../lib/editor';
 import { opcionesDeDia, parsearDiaElegido, resolverDiaDeHoy, serializarDiaElegido } from '../lib/dia';
 import { estadoHome, type ResultadoRetomar } from '../lib/retomar';
@@ -54,29 +62,75 @@ export function montarHoy(deps: DepsHoy): void {
     }
   }
 
-  function htmlSemana(): string {
+  /** Estado de los tres carriles con los datos de hoy. Se recalcula al pintar. */
+  function carriles() {
+    return estadoCarriles(
+      storage.getRutina(),
+      storage.getSesiones(),
+      catalogo,
+      hoy(),
+      storage.getConfig(),
+    );
+  }
+
+  /**
+   * La semana por tipo. El número único mostraba verde cinco semanas seguidas
+   * mientras la elongación llegaba a 1 de 4: sumar peras con manzanas no puede
+   * mostrar un hueco de un solo tipo.
+   */
+  function htmlSemana(estados: EstadoCarril[]): string {
     const config = storage.getConfig();
     const sesiones = storage.getSesiones();
-    const r = resumenSemanal(sesiones, hoy(), config.objetivoSemanal);
     const racha = calcularRacha(sesiones, hoy(), config.objetivoSemanal);
-    const discos = Array.from(
-      { length: Math.max(r.objetivo, Math.min(r.hechas, 7)) },
-      (_, i) => `<div class="disco${i < r.hechas ? ' lleno' : ''}"></div>`,
-    ).join('');
     // La racha solo aparece cuando existe: un "0 semanas" sería un reproche.
     const insignia = racha.semanas >= 2
       ? `<span class="insignia" title="Semanas seguidas cumpliendo el objetivo">🔥 ${racha.semanas}</span>`
       : '';
+    // En el orden de siempre, no por deuda: es un tablero, no una cola.
+    const filas = CARRILES.map((c) => {
+      const e = estados.find((x) => x.carril === c)!;
+      const discos = Array.from(
+        { length: Math.max(e.meta, Math.min(e.hechas, 7)) },
+        (_, i) => `<div class="disco${i < e.hechas ? ' lleno' : ''}"></div>`,
+      ).join('');
+      return `<div class="fila-meta tipo-${c}" data-meta="${c}">
+        <span class="nombre">${NOMBRE_CARRIL[c]}</span>
+        <div class="discos">${discos}</div>
+        <span class="conteo">${e.hechas}/${e.meta}</span>
+      </div>`;
+    }).join('');
     return `<div class="carta semana">
       <div class="semana-top">
         <span class="eyebrow">${escapar(fechaLarga(hoy()))}</span>
         ${insignia}
       </div>
-      <div class="numero">${r.hechas} <span class="de">de ${r.objetivo}</span></div>
-      <span class="eyebrow">esta semana</span>
-      <div class="discos">${discos}</div>
-      <p class="frase">${escapar(fraseRacha(racha, r.hechas, r.objetivo))}</p>
+      <div class="metas">${filas}</div>
+      <p class="frase">${escapar(resumenSemana(estados))}</p>
     </div>`;
+  }
+
+  /**
+   * Los tres carriles, el más atrasado arriba. El home deja de dar una orden
+   * ("hoy te toca X") y pasa a ofrecer: los tres están a un tap y cada uno sabe
+   * por dónde va su propia rotación.
+   */
+  function htmlCarriles(estados: EstadoCarril[], destacado: number | undefined): string {
+    const filas = estados
+      .filter((e) => e.dias.length > 0)
+      .map((e) => {
+        const esDestacado = e.proximo?.diaIndex === destacado;
+        return `<button class="carril tipo-${e.carril}${esDestacado ? ' destacado' : ''}" data-carril-dia="${e.proximo!.diaIndex}">
+          <div class="carril-top">
+            <span class="eyebrow">${NOMBRE_CARRIL[e.carril]}</span>
+            <span class="ayuda">${escapar(textoUltimaVez(e))}</span>
+          </div>
+          <strong>${escapar(e.proximo!.nombre)}</strong>
+          <span class="ayuda">${e.hechas} de ${e.meta} esta semana</span>
+        </button>`;
+      })
+      .join('');
+    if (!filas) return '';
+    return `<div class="carriles"><span class="eyebrow">¿Qué hacés hoy?</span>${filas}</div>`;
   }
 
   /** Recordatorio de respaldo: aparece arriba de todo cuando hace días que no saca una copia. */
@@ -367,7 +421,7 @@ export function montarHoy(deps: DepsHoy): void {
   function pintar() {
     const rutina = storage.getRutina();
     if (!rutina) {
-      caja.innerHTML = `${htmlSemana()}<div class="carta"><p>Todavía no hay rutina.</p>
+      caja.innerHTML = `${htmlSemana(carriles())}<div class="carta"><p>Todavía no hay rutina.</p>
         <a class="boton-principal" style="display:block;text-align:center;text-decoration:none" href="${rutaBase}/perfil/">Armar mi rutina</a></div>`;
       return;
     }
@@ -377,7 +431,7 @@ export function montarHoy(deps: DepsHoy): void {
 
     // Modo retomar: una sola cosa en pantalla. Cero culpa.
     if (estado.modo === 'retomar' && !sessionStorage.getItem('ge:retomando')) {
-      caja.innerHTML = htmlSemana() + htmlRetomar(estado.retomar!);
+      caja.innerHTML = htmlSemana(carriles()) + htmlRetomar(estado.retomar!);
       $('#btn-retomar')?.addEventListener('click', () => {
         sessionStorage.setItem('ge:retomando', hoy());
         pintar();
@@ -387,7 +441,11 @@ export function montarHoy(deps: DepsHoy): void {
 
     const retomando = estado.modo === 'retomar' && estado.retomar?.sesionReducida;
     const salteo = estado.salteo;
-    const diaSugerido = salteo?.diaIndex ?? 0;
+    const estados = carriles();
+    // El día que se destaca sale del carril MÁS ATRASADO, no de la rotación
+    // global: esa solo avanzaba con sesiones de fuerza, así que con 2 días de
+    // fuerza sobre 5 no se movía casi nunca y repetía el mismo día.
+    const diaSugerido = estados.find((e) => e.proximo)?.proximo?.diaIndex ?? 0;
     const diaElegido = parsearDiaElegido(sessionStorage.getItem(CLAVE_DIA), hoy(), rutina.dias.length);
     const elegidoAMano = resolverDiaDeHoy(rutina, diaSugerido, diaElegido);
     let dia: DiaRutina;
@@ -423,7 +481,8 @@ export function montarHoy(deps: DepsHoy): void {
 
     caja.innerHTML = `
       ${htmlRespaldo()}
-      ${htmlSemana()}
+      ${htmlSemana(estados)}
+      ${retomando || elegidoAMano.esOverride ? '' : htmlCarriles(estados, diaIndex)}
       ${banner}
       ${modoSinGym ? `<div class="aviso">Modo sin gym: variantes con tu cuerpo y banda por hoy. <button class="boton-silencioso" id="btn-singym-off">Volver</button></div>` : ''}
       ${htmlEncabezadoDia(tituloDia, mostrado.dia, rutina.dias.length > 1 && !retomando)}
@@ -470,6 +529,20 @@ export function montarHoy(deps: DepsHoy): void {
       navegar('/entrenar/');
     });
     $('#btn-otro-dia')?.addEventListener('click', () => panelElegirDia(rutina, diaSugerido, diaIndex));
+    // Los tres carriles a un tap: tocar uno elige ESE día para hoy. El
+    // destacado no necesita override — ya es el que está puesto.
+    caja.querySelectorAll('[data-carril-dia]').forEach((boton) =>
+      boton.addEventListener('click', () => {
+        const elegido = Number((boton as HTMLElement).dataset.carrilDia);
+        if (elegido === diaIndex) {
+          navegar('/entrenar/');
+          return;
+        }
+        if (!limpiarDraftSiCambiaDia()) return;
+        sessionStorage.setItem(CLAVE_DIA, serializarDiaElegido(hoy(), elegido));
+        pintar();
+      }),
+    );
     $('#btn-dia-volver')?.addEventListener('click', () => {
       if (!limpiarDraftSiCambiaDia()) return;
       sessionStorage.removeItem(CLAVE_DIA);
