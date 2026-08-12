@@ -25,7 +25,7 @@ import { avisoRestante, TOPE_TEXTO } from '../lib/texto';
 import { storage } from '../lib/storage';
 import { ajustarPeso, aKg, desdeKg, equivalente, formatearPeso, resumenSeries, type UnidadPeso } from '../lib/unidades';
 import { crearBuscador, etiquetaGrupo, htmlOpciones } from './buscador';
-import { htmlDemo, escapar, rutaBase } from './datos';
+import { htmlDemo, htmlEquivalenteConDemo, escapar, rutaBase } from './datos';
 import type {
   DiaRutina, Ejercicio, EjercicioRutina, GrupoEquip, ItemSesion, Perfil, SerieHecha, TipoCardio,
 } from '../lib/tipos';
@@ -419,7 +419,7 @@ export function montarEntrenar(deps: DepsEntrenar): void {
       ${original ? `<p class="ayuda">Cambiado por hoy · en lugar de ${escapar(original.nombre_es)}</p>` : ''}
       <p class="ayuda">Objetivo: ${planificado.series}× ${formatearObjetivo(planificado, info?.tipo ?? 'fuerza')}${fc ? ` · ${fc}` : ''}</p>
       <p class="instruccion">${escapar(instruccionDosis(planificado, info?.tipo ?? 'fuerza'))}${planificado.series > 1 ? `, ${planificado.series} veces` : ''}.</p>
-      ${info ? htmlDemo(info) : ''}
+      ${info ? htmlDemo(info) + htmlEquivalenteConDemo(info, catalogo) : ''}
       ${info?.pasos.length ? `<details class="carta"><summary style="font-weight:700;cursor:pointer">Cómo se hace</summary><ol style="padding-left:20px">${info.pasos.map((p) => `<li>${escapar(p)}</li>`).join('')}</ol></details>` : ''}
       <div class="carta">
         <span class="eyebrow">¿Con qué lo hacés hoy?</span>

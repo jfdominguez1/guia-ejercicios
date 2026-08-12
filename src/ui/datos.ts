@@ -69,6 +69,39 @@ export function htmlDemo(e: Ejercicio, alt = ''): string {
   return `<img class="gif" src="${urlGif(e.id)}" alt="${texto}" onerror="this.onerror=null;this.src='${urlImg(e.id)}'" />`;
 }
 
+/**
+ * El mismo movimiento, hecho con lo mismo, y CON demostración.
+ *
+ * Para los pocos ejercicios que se quedaron sin dibujo porque el archivo de
+ * origen mostraba otra cosa (`scripts/correcciones.json`). En vez de dejar el
+ * hueco, se ofrece uno equivalente que sí se puede mirar: el movimiento es el
+ * mismo, así que sirve igual para ver cómo se hace.
+ */
+export function equivalenteConDemo(e: Ejercicio, catalogo: Ejercicio[]): Ejercicio | null {
+  if (tieneDemo(e)) return null;
+  return (
+    catalogo.find(
+      (c) =>
+        c.id !== e.id &&
+        c.movimiento === e.movimiento &&
+        c.grupo === e.grupo &&
+        c.tipo === e.tipo &&
+        tieneDemo(c),
+    ) ?? null
+  );
+}
+
+/** Bloque "este no tiene dibujo, mirá este otro". '' si no hay a quién mandar. */
+export function htmlEquivalenteConDemo(e: Ejercicio, catalogo: Ejercicio[]): string {
+  const otro = equivalenteConDemo(e, catalogo);
+  if (!otro) return '';
+  return `<div class="carta sin-demo">
+    <span class="eyebrow">Sin demostración</span>
+    <p class="ayuda">El dibujo de este ejercicio no era el correcto y lo sacamos. Es el mismo movimiento que:</p>
+    <a class="boton boton-secundario" href="${rutaBase}/ejercicio/?id=${encodeURIComponent(otro.id)}">${escapar(otro.nombre_es)} ▸</a>
+  </div>`;
+}
+
 /** URLs de media a precachear para "Descargar todas las demostraciones". */
 export function urlsDeMedia(catalogo: Ejercicio[]): string[] {
   return catalogo.filter(tieneDemo).flatMap((e) =>

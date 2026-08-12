@@ -37,7 +37,7 @@ import Base from '../layouts/Base.astro';
   import { sparkline } from '../lib/sparkline';
   import { formatearPeso } from '../lib/unidades';
   import { storage } from '../lib/storage';
-  import { arrancarPantalla, cargarCatalogoCompleto, htmlDemo, escapar, rutaBase, hoyISO, haceDias } from '../ui/datos';
+  import { arrancarPantalla, cargarCatalogoCompleto, htmlDemo, htmlEquivalenteConDemo, escapar, rutaBase, hoyISO, haceDias } from '../ui/datos';
   import type { Ejercicio, GrupoEquip } from '../lib/tipos';
 
   const LABEL_GRUPO: Record<string, string> = {
@@ -104,7 +104,8 @@ import Base from '../layouts/Base.astro';
     const media = e.custom
       ? `<div class="carta" style="text-align:center">🏋️ Ejercicio tuyo (sin GIF)</div>`
       : e.media === 'ninguna'
-        ? `<div class="carta" style="text-align:center">⏱️ Sesión por tiempo — vos ponés los minutos</div>`
+        ? htmlEquivalenteConDemo(e, catalogo) ||
+          `<div class="carta" style="text-align:center">⏱️ Sesión por tiempo — vos ponés los minutos</div>`
         : htmlDemo(
             e,
             e.media === 'img' ? `Postura ${e.nombre_es}` : `Demostración de ${e.nombre_es}`,
