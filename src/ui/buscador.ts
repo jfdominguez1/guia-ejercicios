@@ -53,6 +53,13 @@ export function crearBuscador(opciones: OpcionesBuscador): HTMLElement {
 
   const input = caja.querySelector('input') as HTMLInputElement;
   const resultados = caja.querySelector('[data-resultados]') as HTMLElement;
+  /**
+   * Cuántos se muestran ahora. Antes el buscador cortaba en 20 **sin decirlo**:
+   * "glúteos" da 146 y se veían 20, así que lo que no entraba en esa ventana
+   * parecía no existir en el catálogo. JFD lo reportó tal cual: "no están en el
+   * banco de datos". Ahora se dice cuántos hay y se pueden pedir más.
+   */
+  let visibles = limite;
 
   function pintar() {
     const consulta = input.value.trim();
@@ -60,13 +67,29 @@ export function crearBuscador(opciones: OpcionesBuscador): HTMLElement {
       resultados.innerHTML = htmlInicial?.() ?? '';
       return;
     }
-    const encontrados = buscarEjercicios(catalogo, consulta, limite);
-    resultados.innerHTML = encontrados.length
-      ? htmlOpciones(encontrados)
-      : '<p class="ayuda">Nada con ese nombre.</p>';
+    // Sin tope acá: la ventana la maneja `visibles`. Con el default (20) el
+    // conteo mentiría, que es justo el bug que esto arregla.
+    const encontrados = buscarEjercicios(catalogo, consulta, Infinity);
+    if (!encontrados.length) {
+      resultados.innerHTML = '<p class="ayuda">Nada con ese nombre.</p>';
+      return;
+    }
+    const faltan = encontrados.length - visibles;
+    resultados.innerHTML =
+      (encontrados.length > limite ? `<p class="ayuda" data-conteo>${encontrados.length} encontrados</p>` : '') +
+      htmlOpciones(encontrados.slice(0, visibles)) +
+      (faltan > 0 ? `<button type="button" class="boton-secundario" data-ver-mas>Ver ${Math.min(faltan, limite)} más</button>` : '');
   }
 
-  input.addEventListener('input', pintar);
+  input.addEventListener('input', () => {
+    visibles = limite; // consulta nueva, ventana nueva
+    pintar();
+  });
+  resultados.addEventListener('click', (ev) => {
+    if (!(ev.target as HTMLElement).closest('[data-ver-mas]')) return;
+    visibles += limite;
+    pintar();
+  });
   resultados.addEventListener('click', (ev) => {
     const boton = (ev.target as HTMLElement).closest('[data-elegir]') as HTMLElement | null;
     if (!boton) return;

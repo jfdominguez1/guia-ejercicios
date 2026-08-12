@@ -157,6 +157,16 @@ describe('agregarEjercicio + dosisInicial', () => {
 describe('buscarEjercicios', () => {
   const CATALOGO = [PRESS, REMO, CINTA, ESTIRAMIENTO];
 
+  // Casi todos los estiramientos se llaman "Estiramiento de …", así que empatan
+  // todos y el orden lo terminaba decidiendo la posición en el catálogo: buscar
+  // "talones" no traía primero a los que se llaman así.
+  it('lo que se llama como buscaste va antes que lo que solo lo menciona', () => {
+    const conNombre = { ...ESTIRAMIENTO, id: 'X1', nombre_es: 'Estiramiento de talones contra la pared' };
+    const soloMusculo = { ...ESTIRAMIENTO, id: 'X2', nombre_es: 'Elevación de gemelos', musculo: 'talones' };
+    const orden = buscarEjercicios([soloMusculo, conNombre], 'talones').map((e) => e.id);
+    expect(orden).toEqual(['X1', 'X2']);
+  });
+
   it('busca por nombre sin importar mayúsculas ni acentos', () => {
     expect(buscarEjercicios(CATALOGO, 'PRESS').map((e) => e.id)).toEqual(['F1']);
     expect(buscarEjercicios(CATALOGO, 'estiramiento').map((e) => e.id)).toEqual(['E1']);

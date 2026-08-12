@@ -180,7 +180,13 @@ export function buscarEjercicios(
     .map((e) => {
       const nombre = normalizar(e.nombre_es);
       const campos = `${nombre} ${normalizar(e.nombre_en)} ${normalizar(e.musculo)}`;
-      const puntaje = nombre.startsWith(consulta) ? 2 : campos.includes(consulta) ? 1 : 0;
+      // Casi todos los estiramientos se llaman "Estiramiento de …", así que
+      // `startsWith` sobre el nombre entero no separa nada: buscar "talones"
+      // los dejaba a todos empatados en 1 y el orden lo terminaba decidiendo
+      // la posición en el catálogo. Una palabra que arranca con lo que
+      // escribiste vale más que una mención suelta en otro campo.
+      const palabraEmpieza = nombre.split(' ').some((p) => p.startsWith(consulta));
+      const puntaje = nombre.startsWith(consulta) ? 3 : palabraEmpieza ? 2 : campos.includes(consulta) ? 1 : 0;
       return { e, puntaje };
     })
     .filter((x) => x.puntaje > 0)

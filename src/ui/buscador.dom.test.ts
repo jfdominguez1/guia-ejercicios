@@ -64,3 +64,55 @@ describe('crearBuscador', () => {
     expect(input.value).toBe('press');
   });
 });
+
+// JFD (12/08): "no están en el banco de datos". Estaban — el buscador cortaba
+// en 20 SIN DECIRLO: "glúteos" da 146 coincidencias y se veían 20, así que todo
+// lo que no entraba en esa ventana parecía no existir.
+describe('cuando hay más resultados que los que entran', () => {
+  const muchos: Ejercicio[] = Array.from({ length: 55 }, (_, i) => ej(`E${i}`, `Estiramiento de talones ${i}`));
+
+  function montarCon(lista: Ejercicio[]) {
+    document.body.innerHTML = '';
+    const elegidos: Ejercicio[] = [];
+    document.body.appendChild(crearBuscador({ catalogo: lista, alElegir: (e) => elegidos.push(e) }));
+    return elegidos;
+  }
+  const buscar = (texto: string) => {
+    const input = document.querySelector('#buscar-ej') as HTMLInputElement;
+    input.value = texto;
+    input.dispatchEvent(new Event('input'));
+  };
+  const opciones = () => document.querySelectorAll('[data-elegir]').length;
+
+  it('dice cuántos hay en total, no solo los que muestra', () => {
+    montarCon(muchos);
+    buscar('talones');
+    expect(document.querySelector('[data-conteo]')!.textContent).toContain('55');
+    expect(opciones()).toBe(20);
+  });
+
+  it('"ver más" trae los que faltaban', () => {
+    montarCon(muchos);
+    buscar('talones');
+    (document.querySelector('[data-ver-mas]') as HTMLElement).click();
+    expect(opciones()).toBe(40);
+    (document.querySelector('[data-ver-mas]') as HTMLElement).click();
+    expect(opciones()).toBe(55);
+    expect(document.querySelector('[data-ver-mas]')).toBeNull();
+  });
+
+  it('una consulta nueva vuelve a empezar', () => {
+    montarCon(muchos);
+    buscar('talones');
+    (document.querySelector('[data-ver-mas]') as HTMLElement).click();
+    buscar('talones 1');
+    expect(opciones()).toBeLessThanOrEqual(20);
+  });
+
+  it('con pocos resultados no molesta con el conteo', () => {
+    montarCon(muchos.slice(0, 3));
+    buscar('talones');
+    expect(document.querySelector('[data-conteo]')).toBeNull();
+    expect(document.querySelector('[data-ver-mas]')).toBeNull();
+  });
+});
