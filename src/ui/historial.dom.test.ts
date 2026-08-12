@@ -466,3 +466,35 @@ describe('tipo de sesión visible y reparado', () => {
     expect(document.querySelector('#sesiones details')!.className).toBe('tipo-fuerza');
   });
 });
+
+// JFD (12/08): "una cosa es hacer una sesión de aeróbico y otra cosa es hacer
+// algo de aeróbico. Cuando voy a hacer fuerza, primero hago a veces 15 minutos
+// de cinta y me gusta registrarlo pero no lo considero como un día de aeróbico".
+describe('sesión de cardio vs entrada en calor', () => {
+  function registrarCardio(comoCalentamiento: boolean) {
+    montar();
+    $('#btn-cardio').click();
+    $('[data-tipo="cinta"]').click();
+    ($('#cardio-fecha') as HTMLInputElement).value = HOY;
+    ($('#cardio-min') as HTMLInputElement).value = '15';
+    if (comoCalentamiento) $('[data-cuenta="no"]').click();
+    $('#cardio-guardar').click();
+    return storage.getSesiones().at(-1)!;
+  }
+
+  it('por defecto es la sesión del día', () => {
+    expect(registrarCardio(false).accesorio).toBeUndefined();
+  });
+
+  it('marcada como entrada en calor se guarda igual, con todos sus datos', () => {
+    const s = registrarCardio(true);
+    expect(s.accesorio).toBe(true);
+    expect(s.tipo).toBe('cardio');
+    expect(s.cardio).toMatchObject({ tipo: 'cinta', minutos: 15 });
+  });
+
+  it('el historial dice que está pero que no cuenta', () => {
+    registrarCardio(true);
+    expect($('#sesiones').textContent).toContain('Entrada en calor');
+  });
+});

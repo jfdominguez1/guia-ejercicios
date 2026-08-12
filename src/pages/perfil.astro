@@ -35,7 +35,20 @@ import Base from '../layouts/Base.astro';
     </div>
 
     <h2>Semana</h2>
-    <label for="objetivo-semanal">Objetivo semanal (sesiones)</label>
+    <!-- Cuántas rutinas hay de cada tipo y cuántas veces por semana se hacen
+         son dos números independientes: podés tener cinco rutinas de
+         elongación rotando y hacer dos por semana. -->
+    <p class="ayuda">Cuántas sesiones de cada tipo querés hacer por semana. No
+      depende de cuántas rutinas tengas de cada una.</p>
+    <div class="meta-semanal">
+      <div><label for="meta-fuerza">Fuerza</label>
+        <input type="number" id="meta-fuerza" min="0" max="7" inputmode="numeric" /></div>
+      <div><label for="meta-cardio">Cardio</label>
+        <input type="number" id="meta-cardio" min="0" max="7" inputmode="numeric" /></div>
+      <div><label for="meta-elongacion">Elongación</label>
+        <input type="number" id="meta-elongacion" min="0" max="7" inputmode="numeric" /></div>
+    </div>
+    <label for="objetivo-semanal">Días con actividad (para la racha)</label>
     <input type="number" id="objetivo-semanal" min="1" max="7" value="3" inputmode="numeric" />
     <label for="umbral-pausa">Días sin entrenar para proponerte retomar</label>
     <input type="number" id="umbral-pausa" min="3" max="30" value="7" inputmode="numeric" />
@@ -91,6 +104,14 @@ import Base from '../layouts/Base.astro';
     <p class="error" id="datos-error" role="alert"></p>
   </section>
 </Base>
+
+<style>
+  /* Las tres metas en una fila: se leen como lo que son, un objetivo por tipo. */
+  .meta-semanal { display: flex; gap: 8px; }
+  .meta-semanal > div { flex: 1; }
+  .meta-semanal label { display: block; }
+  .meta-semanal input { width: 100%; }
+</style>
 
 <script>
   import { generarExport, validarImport, PREGUNTA_DEFAULT } from '../lib/ia';
@@ -364,6 +385,7 @@ import Base from '../layouts/Base.astro';
   import { zonasFc } from '../lib/fc';
   import { storage } from '../lib/storage';
   import { CONFIG_DEFAULT } from '../lib/registro';
+  import { metaDesdeFormulario, metasDe, CARRILES } from '../lib/carriles';
   import { cargarCatalogo, rutaBase, hoyISO } from '../ui/datos';
   import type { GrupoEquip, Nivel, Objetivo, Perfil } from '../lib/tipos';
 
@@ -462,6 +484,10 @@ import Base from '../layouts/Base.astro';
     const config = storage.getConfig();
     ($('#objetivo-semanal') as HTMLInputElement).value = String(config.objetivoSemanal);
     ($('#umbral-pausa') as HTMLInputElement).value = String(config.umbralPausaDias);
+    const meta = metasDe(config);
+    for (const carril of CARRILES) {
+      ($(`#meta-${carril}`) as HTMLInputElement).value = String(meta[carril]);
+    }
     if (!perfil) return;
     ($('#edad') as HTMLInputElement).value = String(perfil.edad);
     if (perfil.fcMaxConocida) ($('#fcmax') as HTMLInputElement).value = String(perfil.fcMaxConocida);
@@ -492,9 +518,16 @@ import Base from '../layouts/Base.astro';
     }
     cajaError.textContent = '';
     storage.setPerfil(resultado);
+    const crudo = (carril: string) => ($(`#meta-${carril}`) as HTMLInputElement).value;
     storage.setConfig({
+      ...storage.getConfig(),
       objetivoSemanal: Number(($('#objetivo-semanal') as HTMLInputElement).value) || CONFIG_DEFAULT.objetivoSemanal,
       umbralPausaDias: Number(($('#umbral-pausa') as HTMLInputElement).value) || CONFIG_DEFAULT.umbralPausaDias,
+      // La regla de qué vale vive en `metaDesdeFormulario`, que sí se testea:
+      // esta página es un .astro y su script no entra en los tests de jsdom.
+      metaSemanal: metaDesdeFormulario({
+        fuerza: crudo('fuerza'), cardio: crudo('cardio'), elongacion: crudo('elongacion'),
+      }),
     });
     const habia = storage.getRutina();
     if (habia && !confirm('Ya tenés una rutina. ¿La regenero con este perfil? (Si la importaste de tu IA, respondé Cancelar: se guarda el perfil y tu rutina queda como está.)')) {

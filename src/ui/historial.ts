@@ -140,6 +140,9 @@ export function montarHistorial(deps: DepsHistorial): void {
 
   function detalleSesion(s: Sesion): string {
     const lineas: string[] = [];
+    // Se ve que está, y se ve que no cuenta: si no, un día con 3 cardios cortos
+    // parece un historial inflado sin explicación.
+    if (s.accesorio) lineas.push('Entrada en calor — no cuenta para la semana');
     if (s.estado === 'otra') lineas.push(`Registrada como "hice otra cosa"${s.duracionMin ? ` · ${s.duracionMin} min` : ''}`);
     if (s.cardio) {
       lineas.push(
@@ -445,6 +448,12 @@ export function montarHistorial(deps: DepsHistorial): void {
       <label>Minutos</label><input type="number" id="cardio-min" inputmode="numeric" value="30" min="5" max="300" />
       <label>Km <span class="eyebrow">(opcional)</span></label><input type="number" id="cardio-km" inputmode="decimal" step="0.1" min="0" />
       <label>FC promedio <span class="eyebrow">(opcional, ppm)</span></label><input type="number" id="cardio-fc" inputmode="numeric" min="40" max="220" placeholder="De tu banda o reloj" />
+      <label>¿Qué fue?</label>
+      <div class="chips" id="cardio-peso-sesion">
+        <button class="chip" data-cuenta="si" aria-pressed="true">Mi sesión de cardio</button>
+        <button class="chip" data-cuenta="no" aria-pressed="false">Entrada en calor</button>
+      </div>
+      <p class="ayuda" id="cardio-cuenta-ayuda">Cuenta para tu semana.</p>
       <label>¿Cómo te sentiste? <span class="eyebrow">(opcional)</span></label>
       <textarea id="cardio-sensacion" rows="2" maxlength="${TOPE_TEXTO}"></textarea>
       <p class="ayuda contador" data-contador="cardio-sensacion"></p>
@@ -455,6 +464,21 @@ export function montarHistorial(deps: DepsHistorial): void {
       (cajaCardio.querySelector(sel) as HTMLInputElement | HTMLTextAreaElement).value;
     conectarContador(cajaCardio, '#cardio-sensacion', 'cardio-sensacion');
     let tipo: TipoCardio | null = null;
+    // Los 10 minutos de cinta antes de la fuerza se registran igual, pero no
+    // son el día de aeróbico. Lo decide JFD acá y no la app por duración: 15
+    // minutos pueden ser cualquiera de las dos cosas según el día.
+    let accesorio = false;
+    cajaCardio.querySelectorAll('[data-cuenta]').forEach((chip) =>
+      chip.addEventListener('click', () => {
+        accesorio = (chip as HTMLElement).dataset.cuenta === 'no';
+        cajaCardio.querySelectorAll('[data-cuenta]').forEach((c) =>
+          c.setAttribute('aria-pressed', String(((c as HTMLElement).dataset.cuenta === 'no') === accesorio)),
+        );
+        (cajaCardio.querySelector('#cardio-cuenta-ayuda') as HTMLElement).textContent = accesorio
+          ? 'Queda registrado, pero no llena un casillero de la semana.'
+          : 'Cuenta para tu semana.';
+      }),
+    );
     cajaCardio.querySelectorAll('[data-tipo]').forEach((chip) =>
       chip.addEventListener('click', () => {
         cajaCardio.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-pressed', 'false'));
@@ -487,6 +511,7 @@ export function montarHistorial(deps: DepsHistorial): void {
         estado: 'hecha',
         cardio: { tipo, minutos, ...(km ? { km } : {}), ...(sensacion ? { sensacion } : {}) },
         ...(fc ? { fcPromedio: fc } : {}),
+        ...(accesorio ? { accesorio: true } : {}),
       });
       cajaCardio.innerHTML = '';
       pintarCalendario();

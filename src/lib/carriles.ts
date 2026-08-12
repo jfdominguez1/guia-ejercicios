@@ -30,13 +30,21 @@ export const NOMBRE_CARRIL: Record<Carril, string> = {
 };
 
 /**
- * Meta por defecto: 2 · 2 · 3.
+ * Meta por defecto: 2 · 2 · 2.
  *
- * La elongación va en 3 y no en 2 por decisión de JFD (09/08), junto con la
- * rutina v10: con tres días de elongación rotando, el más difícil —cadera y
- * piernas— le toca una de cada tres veces en vez de una de cada dos.
+ * **Cuántas rutinas hay de un tipo y cuántas veces por semana se hacen son dos
+ * números independientes.** JFD (12/08): *"mi target es hacer dos aeróbicas,
+ * dos de fuerza y dos de estiramiento por semana; ahora yo puedo tener tres o
+ * cuatro o cinco rutinas de estiramiento y elegir dentro de esas"*.
+ *
+ * Estuvo en 3 unos días, atándola sin querer a las tres rutinas de elongación
+ * de la v10: le pedía una sesión de más y le mostraba el casillero incompleto
+ * aunque cumpliera su objetivo. Tener más variantes es para que roten, no para
+ * entrenar más.
+ *
+ * Es un valor de fábrica, no una constante: se edita en Perfil (`metaSemanal`).
  */
-export const META_DEFAULT: Record<Carril, number> = { fuerza: 2, cardio: 2, elongacion: 3 };
+export const META_DEFAULT: Record<Carril, number> = { fuerza: 2, cardio: 2, elongacion: 2 };
 
 const MS_POR_DIA = 86_400_000;
 
@@ -62,6 +70,9 @@ export function carrilDelDia(dia: DiaRutina, catalogo: Ejercicio[]): Carril {
  * salteados. Pintar ese casillero de verde sería mentir.
  */
 export function sesionCuenta(sesion: Sesion): boolean {
+  // Entrada en calor: se registra, no cuenta. "Una cosa es hacer una sesión de
+  // aeróbico y otra cosa es hacer algo de aeróbico" (JFD, 12/08).
+  if (sesion.accesorio) return false;
   const items = sesion.items ?? [];
   if (items.length === 0) return true; // "Hecha ✓" y registros rápidos: sin detalle, valen
   return items.some((i) => !i.salteado);
@@ -120,6 +131,25 @@ export function proximoDelCarril(
 /** Meta configurada, con la de fábrica como respaldo. */
 export function metasDe(config: Config): Record<Carril, number> {
   return { ...META_DEFAULT, ...(config.metaSemanal ?? {}) };
+}
+
+/**
+ * La meta que sale del formulario de Perfil, saneada.
+ *
+ * Un **0 es válido** ("este mes no hago cardio") — por eso no alcanza con
+ * `Number(x) || default`, que convertiría ese 0 en 2 sin decir nada. Lo que no
+ * vale es un campo vacío, un texto o un número fuera de rango.
+ */
+export function metaDesdeFormulario(crudos: Partial<Record<Carril, unknown>>): Record<Carril, number> {
+  const sano = (valor: unknown, porDefecto: number) => {
+    const n = typeof valor === 'string' ? (valor.trim() === '' ? NaN : Number(valor)) : Number(valor);
+    return Number.isInteger(n) && n >= 0 && n <= 7 ? n : porDefecto;
+  };
+  return {
+    fuerza: sano(crudos.fuerza, META_DEFAULT.fuerza),
+    cardio: sano(crudos.cardio, META_DEFAULT.cardio),
+    elongacion: sano(crudos.elongacion, META_DEFAULT.elongacion),
+  };
 }
 
 /**

@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { montarHoy } from './hoy';
 import { storage } from '../lib/storage';
+import { CONFIG_DEFAULT } from '../lib/registro';
 import type { Ejercicio, Perfil, Rutina } from '../lib/tipos';
 
 const HOY = '2026-07-20';
@@ -583,6 +584,10 @@ describe('la rotación vieja ya no decide nada en el home', () => {
   }
 
   beforeEach(() => {
+    // La meta va explícita: para este test hace falta que el carril de
+    // elongación sea el más atrasado, y eso no puede depender del objetivo
+    // semanal de JFD (que es un dato suyo y cambia).
+    storage.setConfig({ ...CONFIG_DEFAULT, metaSemanal: { fuerza: 1, cardio: 1, elongacion: 2 } });
     // Última de fuerza el Día 3 (índice 2): la rotación vieja pide el índice 3
     // (la bici). El carril más atrasado es elongación → Elongación A (índice 4).
     storage.setSesiones([{ fecha: '2026-07-18', tipo: 'fuerza', estado: 'hecha', diaIndex: 2, id: 'a' }]);

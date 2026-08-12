@@ -179,6 +179,19 @@ export interface Sesion {
   /** Detalle fino (pesos/reps por serie) — opcional, nunca obligatorio. */
   items?: ItemSesion[];
   cardio?: { tipo: TipoCardio; minutos: number; km?: number; sensacion?: string };
+  /**
+   * Lo hiciste, pero **no es la sesión del día**: los 10 minutos de cinta antes
+   * de la fuerza, un estiramiento corto de paso.
+   *
+   * JFD (12/08): *"una cosa es hacer una sesión de aeróbico y otra cosa es hacer
+   * algo de aeróbico… me gusta registrarlo pero no lo considero como un día de
+   * aeróbico"*.
+   *
+   * Se guarda entero (minutos, modalidad, pulsaciones) y va al historial y al
+   * export para la IA — **lo único que no hace es llenar el casillero de la
+   * semana**, ni correr la rotación de su carril.
+   */
+  accesorio?: boolean;
 }
 
 export interface Config {

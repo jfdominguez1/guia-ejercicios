@@ -212,6 +212,10 @@ Resumen: ${fuerza} sesiones de fuerza, ${cardio} de cardio, ${elongacion} de elo
 Por estado: ${hechas} sesiones planificadas hechas, ${otras} registradas como "hice otra cosa".
 ${lineaPausas}
 Cada sesión trae "estado" ('hecha' = la planificada, 'otra' = actividad libre con duracionMin).
+Una sesión con "accesorio": true es algo que hizo de paso y NO es la sesión del
+día: los 10-15 minutos de cinta antes de la fuerza, por ejemplo. El dato sirve
+(volumen real, pulsaciones), pero NO la cuentes como un día de ese tipo ni la
+uses para decir que cumplió la meta semanal de ese carril.
 En las series, "reps" son repeticiones SALVO que la serie traiga "segundos" o
 "minutos": en ese caso ese es el dato real y "reps" solo lo espeja. Un ejercicio
 por tiempo (plancha, elongación, cardio) se registra en su unidad — no lo leas

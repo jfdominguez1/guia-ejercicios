@@ -101,8 +101,11 @@ describe('diaSugeridoDeHoy', () => {
 
   it('propone el carril más atrasado y no el que sigue en la rotación por fuerza', () => {
     // Último día de fuerza: índice 2. La rotación vieja pedía el 3 (bici).
+    // La meta va explícita: el escenario tiene que ser el mismo aunque JFD
+    // cambie su objetivo semanal, que es un dato suyo y no del test.
+    const config = { ...CONFIG_DEFAULT, metaSemanal: { fuerza: 1, cardio: 1, elongacion: 2 } };
     const sesiones: Sesion[] = [{ fecha: '2026-07-19', tipo: 'fuerza', estado: 'hecha', diaIndex: 2 }];
-    expect(diaSugeridoDeHoy(v10, sesiones, CATALOGO, HOY, CONFIG_DEFAULT)).toBe(4);
+    expect(diaSugeridoDeHoy(v10, sesiones, CATALOGO, HOY, config)).toBe(4);
   });
 
   it('sin rutina no explota', () => {

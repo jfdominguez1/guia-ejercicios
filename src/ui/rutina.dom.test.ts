@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { montarRutina } from './rutina';
 import { storage } from '../lib/storage';
+import { CONFIG_DEFAULT } from '../lib/registro';
 import type { ResultadoTexto } from './compartir';
 import type { Ejercicio, Perfil, Rutina } from '../lib/tipos';
 
@@ -264,6 +265,10 @@ describe('el chip "Te toca hoy" coincide con el home', () => {
         { nombre: 'Elongación A', enfoque: 'x', ejercicios: [p('S1')] },
       ],
     });
+    // La meta va explícita: para este test hace falta que el carril de
+    // elongación sea el más atrasado, y eso no puede depender del objetivo
+    // semanal de JFD (que es un dato suyo y cambia).
+    storage.setConfig({ ...CONFIG_DEFAULT, metaSemanal: { fuerza: 1, cardio: 1, elongacion: 2 } });
     // Última de fuerza el Día 3 (índice 2): la rotación vieja marcaría el Día 4
     // (la bici); por carriles, el más atrasado es la elongación.
     storage.setSesiones([{ fecha: '2026-07-18', tipo: 'fuerza', estado: 'hecha', diaIndex: 2, id: 'a' }]);

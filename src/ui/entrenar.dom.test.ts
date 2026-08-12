@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { montarEntrenar } from './entrenar';
 import { storage } from '../lib/storage';
 import { sesionCuenta } from '../lib/carriles';
+import { CONFIG_DEFAULT } from '../lib/registro';
 import type { Ejercicio, Perfil, Rutina } from '../lib/tipos';
 
 const HOY = '2026-07-20';
@@ -1085,6 +1086,10 @@ describe('el día que abre el wizard es el que ofrece el home', () => {
 
   beforeEach(() => {
     storage.setRutina(rutinaV10());
+    // La meta va explícita: para este test hace falta que el carril de
+    // elongación sea el más atrasado, y eso no puede depender del objetivo
+    // semanal de JFD (que es un dato suyo y cambia).
+    storage.setConfig({ ...CONFIG_DEFAULT, metaSemanal: { fuerza: 1, cardio: 1, elongacion: 2 } });
     // La última de fuerza fue el día 3 (índice 2): la rotación vieja pide el
     // índice 3 (la bici). La elongación es la más atrasada, así que el home
     // ofrece "Elongación A" (índice 4).

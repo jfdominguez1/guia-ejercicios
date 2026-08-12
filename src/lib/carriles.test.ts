@@ -5,6 +5,7 @@ import {
   carrilDelDia,
   deuda,
   estadoCarriles,
+  metaDesdeFormulario,
   metasDe,
   proximoDelCarril,
   resumenSemana,
@@ -210,14 +211,45 @@ describe('estadoCarriles', () => {
     expect(del(e, 'fuerza').hechas).toBe(0);
   });
 
-  // Elongación va en 3: con tres días rotando, el más difícil (cadera y
-  // piernas) toca una de cada tres veces y no una de cada dos.
-  it('la meta por defecto es 2 · 2 · 3', () => {
+  // 2 · 2 · 2 por decisión de JFD (12/08): "mi target es hacer dos aeróbicas,
+  // dos de fuerza y dos de estiramiento por semana; ahora yo puedo tener tres o
+  // cuatro o cinco rutinas de estiramiento y elegir dentro de esas". Cuántas
+  // rutinas hay de un tipo NO es cuántas veces por semana se hace.
+  it('la meta por defecto es 2 · 2 · 2, sin importar cuántas rutinas haya', () => {
     const e = estadoCarriles(RUTINA, [], CATALOGO, HOY, CONFIG);
     expect(del(e, 'fuerza').meta).toBe(2);
     expect(del(e, 'cardio').meta).toBe(2);
-    expect(del(e, 'elongacion').meta).toBe(3);
-    expect(META_DEFAULT).toEqual({ fuerza: 2, cardio: 2, elongacion: 3 });
+    expect(del(e, 'elongacion').meta).toBe(2);
+    expect(META_DEFAULT).toEqual({ fuerza: 2, cardio: 2, elongacion: 2 });
+  });
+
+  // "Una cosa es hacer una sesión de aeróbico y otra cosa es hacer algo de
+  // aeróbico" (JFD, 12/08): los 10 minutos de cinta antes de la fuerza se
+  // registran, pero no son su día de aeróbico.
+  it('la entrada en calor no llena el casillero', () => {
+    const calentamiento: Sesion = { ...sesion('2026-08-05', 'cardio', 1), accesorio: true };
+    const e = estadoCarriles(RUTINA, [calentamiento], CATALOGO, HOY, CONFIG);
+    expect(del(e, 'cardio').hechas).toBe(0);
+    expect(sesionCuenta(calentamiento)).toBe(false);
+  });
+
+  it('y tampoco corre la rotación del carril', () => {
+    // Con la de verdad, el próximo sería el SIGUIENTE día de cardio; con una
+    // entrada en calor el carril tiene que quedar donde estaba.
+    const real = estadoCarriles(RUTINA, [sesion('2026-08-05', 'cardio', 1)], CATALOGO, HOY, CONFIG);
+    const calor = estadoCarriles(
+      RUTINA, [{ ...sesion('2026-08-05', 'cardio', 1), accesorio: true }], CATALOGO, HOY, CONFIG,
+    );
+    const sinNada = estadoCarriles(RUTINA, [], CATALOGO, HOY, CONFIG);
+    expect(del(real, 'cardio').proximo!.diaIndex).not.toBe(del(sinNada, 'cardio').proximo!.diaIndex);
+    expect(del(calor, 'cardio').proximo!.diaIndex).toBe(del(sinNada, 'cardio').proximo!.diaIndex);
+  });
+
+  it('la meta configurada le gana a la de fábrica', () => {
+    const config = { ...CONFIG, metaSemanal: { fuerza: 3, cardio: 1, elongacion: 5 } };
+    const e = estadoCarriles(RUTINA, [], CATALOGO, HOY, config);
+    expect([del(e, 'fuerza').meta, del(e, 'cardio').meta, del(e, 'elongacion').meta])
+      .toEqual([3, 1, 5]);
   });
 
   it('el más atrasado va arriba', () => {
@@ -228,7 +260,7 @@ describe('estadoCarriles', () => {
     ];
     const e = estadoCarriles(RUTINA, s, CATALOGO, HOY, CONFIG);
     expect(e[0]!.carril).toBe('elongacion');
-    expect(deuda(e[0]!)).toBe(3);
+    expect(deuda(e[0]!)).toBe(2);
   });
 
   // La deuda manda SOBRE el hace-cuánto. Hace falta un caso donde apunten a
@@ -296,7 +328,7 @@ describe('textos', () => {
     ];
     const e = estadoCarriles(RUTINA, s, CATALOGO, HOY, CONFIG);
     const texto = resumenSemana(e);
-    expect(texto).toContain('3 de elongación');
+    expect(texto).toContain('2 de elongación');
     expect(texto).toContain('1 de cardio');
     expect(texto).not.toContain('no hiciste');
   });
@@ -316,5 +348,27 @@ describe('textos', () => {
     const e = estadoCarriles(RUTINA, s, CATALOGO, HOY, CONFIG);
     expect(deuda(del(e, 'fuerza'))).toBe(0);
     expect(del(e, 'fuerza').hechas).toBe(5);
+  });
+});
+
+// La pantalla de Perfil es un .astro: su script no entra en los tests de jsdom,
+// así que la regla de qué valor vale vive acá y se prueba acá.
+describe('metaDesdeFormulario', () => {
+  it('toma lo que escribiste', () => {
+    expect(metaDesdeFormulario({ fuerza: '3', cardio: '2', elongacion: '5' }))
+      .toEqual({ fuerza: 3, cardio: 2, elongacion: 5 });
+  });
+
+  it('un 0 es válido: "este mes no hago cardio"', () => {
+    expect(metaDesdeFormulario({ fuerza: '2', cardio: '0', elongacion: '2' }).cardio).toBe(0);
+  });
+
+  it('vacío, texto o fuera de rango caen a la de fábrica', () => {
+    expect(metaDesdeFormulario({ fuerza: '', cardio: 'dos', elongacion: '99' }))
+      .toEqual(META_DEFAULT);
+  });
+
+  it('un número roto no se cuela como NaN', () => {
+    expect(metaDesdeFormulario({ fuerza: '2.5' }).fuerza).toBe(META_DEFAULT.fuerza);
   });
 });
