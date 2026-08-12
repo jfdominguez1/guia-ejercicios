@@ -50,6 +50,7 @@ Devolvé UN SOLO bloque \`\`\`json al final con esta estructura exacta:
             "repsMax": <número>,
             "unidad": "<reps|seg|min — opcional, default reps>",
             "fcObjetivo": { "min": <ppm>, "max": <ppm> },
+            "porLado": <true si el ejercicio se hace de a un lado por vez — opcional>,
             "descansoSeg": <segundos entre series>,
             "pesoInicialKg": <kg con los que arrancar — opcional, solo fuerza>
           }
@@ -85,7 +86,14 @@ Reglas: cada "ejercicioId" existe en el banco o en "nuevos_ejercicios"
 cardio usá unidad "min" y opcionalmente "fcObjetivo" (zona de frecuencia
 cardíaca en ppm); en elongación usá unidad "seg"; en fuerza omitila o usá
 "reps". En cardio con series > 1, "descansoSeg" es la recuperación activa
-entre bloques. "nuevos_ejercicios" puede ir vacío: []. No agregues texto
+entre bloques.
+
+"porLado": true en los ejercicios que se hacen de a un lado por vez (un
+estiramiento de cuádriceps, un flexor de cadera, una zancada). Con el campo
+puesto, repsMin/repsMax son POR LADO y la app lo dice en pantalla ("Sostené
+30-40 seg de cada lado"); sin el campo, el número se entiende como el total.
+Ponelo siempre que corresponda: sin él, "20-30 seg" es ambiguo y la mitad de
+las veces se termina haciendo la mitad del estiramiento. "nuevos_ejercicios" puede ir vacío: []. No agregues texto
 después del bloque JSON.
 
 Para cardio el banco ya trae modalidades por tipo de sesión, con id "CARDIO-":
@@ -435,6 +443,12 @@ function validarEjercicios(
         pesoInicialKg = Number(pesoCrudo);
       }
     }
+    // Solo `true` lo enciende: un "porLado": "sí" o 1 es un dato que no
+    // entendemos, y en la duda vale lo de siempre (el número es el total).
+    const porLado = e.porLado === true;
+    if (e.porLado !== undefined && typeof e.porLado !== 'boolean') {
+      errores.push(`${etiqueta}, "${id}": porLado tiene que ser true o false.`);
+    }
     ejercicios.push({
       movimiento: String(e.movimiento ?? ''),
       ejercicioId: id,
@@ -443,6 +457,7 @@ function validarEjercicios(
       repsMax: Number(e.repsMax),
       ...(unidad ? { unidad } : {}),
       ...(fcObjetivo ? { fcObjetivo } : {}),
+      ...(porLado ? { porLado } : {}),
       descansoSeg: Number(e.descansoSeg ?? 60),
       ...(pesoInicialKg === undefined ? {} : { pesoInicialKg }),
     });

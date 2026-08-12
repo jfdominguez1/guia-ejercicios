@@ -23,7 +23,7 @@ import {
 import { estadoHome, type ResultadoRetomar } from '../lib/retomar';
 import { registrarHecha, registrarOtra, registrarGrupo, fechaValidaRetro, resumenSemanal, yaHaySesion, ETIQUETA_TIPO, type TipoRapido } from '../lib/registro';
 import { convertirDiaSinGym } from '../lib/singym';
-import { formatearObjetivo, formatearFc, etiquetaDescanso } from '../lib/formato';
+import { formatearObjetivo, formatearFc, etiquetaDescanso, instruccionDosis } from '../lib/formato';
 import { calcularRacha, fechaLarga, fraseRacha } from '../lib/racha';
 import { estadoRespaldo, textoRespaldo } from '../lib/respaldo';
 import { respaldar as respaldarReal, ultimoRespaldo, type ResultadoRespaldo } from './respaldo';
@@ -190,6 +190,7 @@ export function montarHoy(deps: DepsHoy): void {
         ${editable ? `<button class="boton-silencioso editar" data-idx="${idx}" aria-label="Editar ejercicio">✎</button>` : ''}
       </div>
       <div class="dosis">${e.series}× ${formatearObjetivo(e, tipo)} · ${etiquetaDescanso(e, tipo)} ${e.descansoSeg}s${fc ? ` · ${fc}` : ''}</div>
+      <div class="instruccion">${escapar(instruccionDosis(e, tipo))}</div>
       <div class="ultima">${ultima}</div>
     </div>`;
   }

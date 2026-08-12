@@ -10,7 +10,7 @@ import {
 import { ultimaVezMovimiento } from '../lib/motor';
 import { diaSugeridoDeHoy } from '../lib/dia';
 import { ejerciciosEsquivados } from '../lib/registro';
-import { formatearObjetivo, formatearFc, etiquetaDescanso } from '../lib/formato';
+import { formatearObjetivo, formatearFc, etiquetaDescanso, instruccionDosis } from '../lib/formato';
 import { resumenSeries } from '../lib/unidades';
 import { textoRutina } from '../lib/rutina-texto';
 import { storage } from '../lib/storage';
@@ -64,6 +64,7 @@ export function montarRutina(deps: DepsRutina): void {
         <button class="boton-silencioso" data-editar data-dia="${dia}" data-idx="${idx}" aria-label="Editar ejercicio">✎</button>
       </div>
       <div class="dosis">${e.series}× ${formatearObjetivo(e, tipo)} · ${etiquetaDescanso(e, tipo)} ${e.descansoSeg}s${fc ? ` · ${fc}` : ''}</div>
+      <div class="instruccion">${escapar(instruccionDosis(e, tipo))}</div>
       ${ultima}
       ${editando ? '<div data-panel-aqui></div>' : ''}
     </div>`;

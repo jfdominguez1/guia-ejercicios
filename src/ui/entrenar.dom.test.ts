@@ -1108,3 +1108,51 @@ describe('el día que abre el wizard es el que ofrece el home', () => {
     expect(texto()).toContain('Bici');
   });
 });
+
+// JFD, del pedido del 09/08: el número se lee igual sea "sostener 30 seg" o
+// "10 repeticiones lentas", y en los ejercicios de a un lado no se sabe si es
+// por pierna o en total.
+describe('la dosis dicha en palabras', () => {
+  const ESTIRAR: Ejercicio = { ...ej('S1', 'Flexor de cadera arrodillado', 'elongacion-cadera', 'cuerpo'), tipo: 'elongacion' };
+
+  function montarElongacion(extras: Record<string, unknown>) {
+    storage.setRutina({
+      generadaEl: HOY, seed: 1, origen: 'ia',
+      dias: [{
+        nombre: 'Elongación B', enfoque: 'cadera',
+        ejercicios: [{ movimiento: 'elongacion-cadera', ejercicioId: 'S1', series: 2, repsMin: 20, repsMax: 30, descansoSeg: 10, ...extras }],
+      }],
+    });
+    document.body.innerHTML = '<div id="wizard"></div>';
+    montarEntrenar({
+      contenedor: document.querySelector('#wizard') as HTMLElement,
+      catalogo: [...CATALOGO, ESTIRAR], perfil: PERFIL, hoy: () => HOY,
+      navegar: () => {}, confirmar: () => true,
+    });
+  }
+
+  it('dice que se sostiene, y cuántas veces', () => {
+    montarElongacion({ unidad: 'seg' });
+    expect(texto()).toContain('Sostené 20-30 seg, 2 veces');
+  });
+
+  it('con porLado avisa que el número es de UN lado', () => {
+    montarElongacion({ unidad: 'seg', porLado: true });
+    expect(texto()).toContain('Sostené 20-30 seg de cada lado');
+    expect(texto()).toContain('20-30 seg por lado');
+    expect(texto()).toContain('(de UN lado)');
+  });
+
+  it('sin porLado no se menciona el lado: el número es el total', () => {
+    montarElongacion({ unidad: 'seg' });
+    // Ojo con buscar solo "lado": el ejercicio se llama "arrodillado".
+    expect(texto()).not.toContain('por lado');
+    expect(texto()).not.toContain('de cada lado');
+    expect(texto()).not.toContain('de UN lado');
+  });
+
+  it('las repeticiones de elongación se aclaran lentas', () => {
+    montarElongacion({ unidad: 'reps', repsMin: 5, repsMax: 8 });
+    expect(texto()).toContain('5-8 repeticiones lentas');
+  });
+});

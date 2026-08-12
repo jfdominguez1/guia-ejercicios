@@ -6,7 +6,7 @@ import { ejercicioDeVariante, necesitaOtraPersona, variantesDe, ultimaVez } from
 import { sugerirProgresion } from '../lib/progreso';
 import { alternativasDe, dosisInicial, sustitucionDe, sustituirEjercicio } from '../lib/editor';
 import { diaSugeridoDeHoy, parsearDiaElegido, resolverDiaDeHoy } from '../lib/dia';
-import { formatearObjetivo, formatearFc, unidadEfectiva } from '../lib/formato';
+import { formatearObjetivo, formatearFc, instruccionDosis, unidadEfectiva } from '../lib/formato';
 import { conMedida, formatearCrono, medidaSerie, valorPrecargado, NOMBRE_UNIDAD } from '../lib/serie';
 import { convertirDiaSinGym } from '../lib/singym';
 import {
@@ -418,6 +418,7 @@ export function montarEntrenar(deps: DepsEntrenar): void {
       <h1>${escapar(info?.nombre_es ?? estado.ejercicioId)}</h1>
       ${original ? `<p class="ayuda">Cambiado por hoy · en lugar de ${escapar(original.nombre_es)}</p>` : ''}
       <p class="ayuda">Objetivo: ${planificado.series}× ${formatearObjetivo(planificado, info?.tipo ?? 'fuerza')}${fc ? ` · ${fc}` : ''}</p>
+      <p class="instruccion">${escapar(instruccionDosis(planificado, info?.tipo ?? 'fuerza'))}${planificado.series > 1 ? `, ${planificado.series} veces` : ''}.</p>
       ${info ? htmlDemo(info) : ''}
       ${info?.pasos.length ? `<details class="carta"><summary style="font-weight:700;cursor:pointer">Cómo se hace</summary><ol style="padding-left:20px">${info.pasos.map((p) => `<li>${escapar(p)}</li>`).join('')}</ol></details>` : ''}
       <div class="carta">
@@ -442,8 +443,8 @@ export function montarEntrenar(deps: DepsEntrenar): void {
       <div class="carta">
         <div class="cabecera-series">
           <span class="eyebrow">${porTiempo
-            ? `${NOMBRE_UNIDAD[unidadEj]} por serie — tocá el círculo al terminar`
-            : 'Series — tocá el círculo al terminar'}</span>
+            ? `${NOMBRE_UNIDAD[unidadEj]} por serie${planificado.porLado ? ' (de UN lado)' : ''} — tocá el círculo al terminar`
+            : `Series${planificado.porLado ? ' (de UN lado)' : ''} — tocá el círculo al terminar`}</span>
           ${porTiempo ? '' : `<div class="chips unidad">
             <button class="chip" data-unidad="kg" aria-pressed="${unidad === 'kg'}">kg</button>
             <button class="chip" data-unidad="lb" aria-pressed="${unidad === 'lb'}">lb</button>

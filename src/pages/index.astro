@@ -71,6 +71,9 @@ import Base from '../layouts/Base.astro';
   #hoy :global(.ejercicio:last-child) { border-bottom: none; }
   #hoy :global(.ejercicio a) { color: inherit; text-decoration: none; font-weight: 700; }
   #hoy :global(.dosis) { font-size: 14px; color: var(--tinta-suave); }
+  /* La dosis dicha en palabras: "Sostené 30-40 seg de cada lado". El número
+     solo se lee igual sea aguantar o repetir despacio. */
+  #hoy :global(.instruccion) { font-size: 14px; color: var(--tinta); margin: 2px 0 0; }
   #hoy :global(.ultima) { font-size: 13px; color: var(--tinta-suave); }
   /* Los 8 atajos ocupaban tanto como la sesión del día y competían entre sí.
      Ahora viven detrás de un tap; los tres caminos reales quedan a la vista. */

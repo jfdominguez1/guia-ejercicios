@@ -16,6 +16,14 @@ import Base from '../layouts/Base.astro';
     margin: 8px auto;
   }
   #wizard :global(.progreso) { display: flex; justify-content: space-between; align-items: center; }
+  /* Qué hacer, dicho en palabras: "Sostené 30-40 seg de cada lado, 2 veces".
+     Va más marcada que el "Objetivo: 2× 30-40 seg" porque es la que se lee
+     de un vistazo en el medio del ejercicio. */
+  #wizard :global(.instruccion) {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 2px 0 10px;
+  }
   #wizard :global(.serie) {
     display: grid;
     grid-template-columns: 44px 64px 1fr;

@@ -61,6 +61,17 @@ export interface EjercicioRutina {
   unidad?: UnidadEjercicio;
   /** Zona de frecuencia cardíaca objetivo en ppm — solo tiene sentido en cardio. */
   fcObjetivo?: { min: number; max: number };
+  /**
+   * El ejercicio se hace de a un lado por vez (una pierna, un brazo).
+   *
+   * **Si falta, el número es el TOTAL** — que es lo que la app hizo siempre, así
+   * que ninguna rutina vieja cambia de significado. Si viene, `repsMin`/`repsMax`
+   * son **por lado**: "30 seg por lado" son 60 en total.
+   *
+   * Existe porque "flexor de cadera arrodillado, 20-30 seg" se lee igual sean 25
+   * en total o 25 por pierna, y ahí el estiramiento es la mitad o el doble.
+   */
+  porLado?: boolean;
   /** En cardio con series > 1 es recuperación activa entre bloques. */
   descansoSeg: number;
   /**

@@ -355,3 +355,45 @@ describe('validarImport — peso inicial solo en fuerza', () => {
     expect(r.errores.join(' ')).toContain('solo tiene sentido en ejercicios de fuerza');
   });
 });
+
+// El campo lo acordamos con la IA de JFD el 09/08 y ella ya lo manda: la v10
+// trae 5 ejercicios con porLado. `validarImport` reconstruye cada ejercicio
+// campo por campo, así que hasta ahora los descartaba EN SILENCIO y la rutina
+// guardada quedaba con 0.
+describe('validarImport — porLado', () => {
+  it('lo conserva en vez de descartarlo callado', () => {
+    const texto = respuestaValida().replace('"repsMin": 8', '"porLado": true, "repsMin": 8');
+    const r = validarImport(texto, CAT, RUTINA);
+    expect(r.ok).toBe(true);
+    expect(r.rutina!.dias[0]!.ejercicios[0]!.porLado).toBe(true);
+  });
+
+  it('sin el campo no aparece: el número sigue siendo el total', () => {
+    const r = validarImport(respuestaValida(), CAT, RUTINA);
+    expect(r.rutina!.dias[0]!.ejercicios[0]!.porLado).toBeUndefined();
+  });
+
+  it('un valor que no es booleano se rechaza con un error legible', () => {
+    const texto = respuestaValida().replace('"repsMin": 8', '"porLado": "si", "repsMin": 8');
+    const r = validarImport(texto, CAT, RUTINA);
+    expect(r.ok).toBe(false);
+    expect(r.errores.join(' ')).toContain('porLado');
+  });
+
+  it('la rutina v10 real de JFD llega con sus 5 porLado', () => {
+    const { readFileSync } = require('node:fs');
+    const catalogo = require('../data/ejercicios.json') as Ejercicio[];
+    const ruta = `${process.env.HOME}/IA_share/guia-ejercicios-IMPORTAR-rutina-v10-2026-08-09-CORREGIDA.json`;
+    const crudo = readFileSync(ruta, 'utf8');
+    // El custom de la plancha lo aporta la app desde los ejercicios propios.
+    const customs: Ejercicio[] = [{
+      id: 'CUSTOM-plancha-antebrazos', nombre_es: 'Plancha', nombre_en: 'Plank', tipo: 'fuerza',
+      grupo: 'cuerpo', equipment: 'body only', zona: 'core', musculo: 'abdominales',
+      secundarios: [], pasos: [], movimiento: 'core-plancha', basico: true,
+    }];
+    const r = validarImport(crudo, [...catalogo, ...customs]);
+    expect(r.errores).toEqual([]);
+    const conLado = r.rutina!.dias.flatMap((d) => d.ejercicios).filter((e) => e.porLado);
+    expect(conLado).toHaveLength(5);
+  });
+});
