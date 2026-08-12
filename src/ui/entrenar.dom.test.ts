@@ -1028,3 +1028,71 @@ describe('lo que quedó sin registrar se avisa antes de guardar', () => {
     expect(items[1]!.salteado).toBe(true);
   });
 });
+
+// El día que se ofrece en el home tiene que ser el que abre el wizard. Iban por
+// caminos distintos: el home por carriles, /entrenar por `resolverSalteo` (que
+// solo avanza con fuerza). Con la rutina v10 de JFD el home ofrecía
+// "Elongación A" y el wizard arrancaba "Día 4 — Bici", que además es un día de
+// puro cardio: saltearlo te devolvía al home sin haber entrenado nada.
+describe('el día que abre el wizard es el que ofrece el home', () => {
+  const CINTA: Ejercicio = { ...ej('C1', 'Cinta', 'cardio-cinta', 'maquina'), tipo: 'cardio' };
+  const BICI: Ejercicio = { ...ej('C2', 'Bici', 'cardio-bici', 'maquina'), tipo: 'cardio' };
+  const GATO: Ejercicio = { ...ej('E1', 'Estiramiento del gato', 'elongacion-espalda', 'cuerpo'), tipo: 'elongacion' };
+  const CATALOGO_V10 = [...CATALOGO, CINTA, BICI, GATO];
+
+  /** La forma de la v10: 2 días de fuerza, 2 de cardio, 3 de elongación. */
+  function rutinaV10(): Rutina {
+    const paso = (id: string) => ({ movimiento: 'x', ejercicioId: id, series: 1, repsMin: 8, repsMax: 12, descansoSeg: 60 });
+    return {
+      generadaEl: HOY, seed: 1, origen: 'reglas',
+      dias: [
+        { nombre: 'Día 1 — Fuerza A', enfoque: 'gym', ejercicios: [paso('F1')] },
+        { nombre: 'Día 2 — Zona 2 en cinta', enfoque: 'cardio', ejercicios: [paso('C1')] },
+        { nombre: 'Día 3 — Fuerza B', enfoque: 'gym', ejercicios: [paso('F4')] },
+        { nombre: 'Día 4 — Bici: zona 2', enfoque: 'cardio', ejercicios: [paso('C2')] },
+        { nombre: 'Elongación A', enfoque: 'la de siempre', ejercicios: [paso('E1')] },
+        { nombre: 'Elongación B', enfoque: 'cadera', ejercicios: [paso('E1')] },
+        { nombre: 'Elongación C', enfoque: 'espalda', ejercicios: [paso('E1')] },
+      ],
+    };
+  }
+
+  function montarV10() {
+    document.body.innerHTML = '<div id="wizard"></div>';
+    const rutas: string[] = [];
+    montarEntrenar({
+      contenedor: document.querySelector('#wizard') as HTMLElement,
+      catalogo: CATALOGO_V10,
+      perfil: PERFIL,
+      hoy: () => HOY,
+      navegar: (ruta) => rutas.push(ruta),
+      confirmar: () => true,
+    });
+    return { rutas };
+  }
+
+  beforeEach(() => {
+    storage.setRutina(rutinaV10());
+    // La última de fuerza fue el día 3 (índice 2): la rotación vieja pide el
+    // índice 3 (la bici). La elongación es la más atrasada, así que el home
+    // ofrece "Elongación A" (índice 4).
+    storage.agregarSesion({ fecha: '2026-07-19', tipo: 'fuerza', estado: 'hecha', diaIndex: 2 });
+  });
+
+  it('abre la elongación que ofrece el home, no el día de bici de la rotación vieja', () => {
+    montarV10();
+    expect(texto()).toContain('Estiramiento del gato');
+    expect(texto()).not.toContain('Bici');
+  });
+
+  it('un día de puro cardio no te devuelve al home sin entrenar', () => {
+    const { rutas } = montarV10();
+    expect(rutas).not.toContain('/');
+  });
+
+  it('el día elegido a mano en el home sigue mandando', () => {
+    sessionStorage.setItem('ge:dia', JSON.stringify({ fecha: HOY, diaIndex: 3 }));
+    montarV10();
+    expect(texto()).toContain('Bici');
+  });
+});

@@ -13,7 +13,13 @@ import {
   type EstadoCarril,
 } from '../lib/carriles';
 import { actualizarDosis, quitarEjercicio, sustituirEjercicio } from '../lib/editor';
-import { opcionesDeDia, parsearDiaElegido, resolverDiaDeHoy, serializarDiaElegido } from '../lib/dia';
+import {
+  diaSugeridoDeHoy,
+  opcionesDeDia,
+  parsearDiaElegido,
+  resolverDiaDeHoy,
+  serializarDiaElegido,
+} from '../lib/dia';
 import { estadoHome, type ResultadoRetomar } from '../lib/retomar';
 import { registrarHecha, registrarOtra, registrarGrupo, fechaValidaRetro, resumenSemanal, yaHaySesion, type TipoRapido } from '../lib/registro';
 import { convertirDiaSinGym } from '../lib/singym';
@@ -445,7 +451,15 @@ export function montarHoy(deps: DepsHoy): void {
     // El día que se destaca sale del carril MÁS ATRASADO, no de la rotación
     // global: esa solo avanzaba con sesiones de fuerza, así que con 2 días de
     // fuerza sobre 5 no se movía casi nunca y repetía el mismo día.
-    const diaSugerido = estados.find((e) => e.proximo)?.proximo?.diaIndex ?? 0;
+    // La cuenta vive en `diaSugeridoDeHoy` porque /entrenar tiene que sacar el
+    // mismo número: cuando cada uno la hacía por su lado, no coincidían.
+    const diaSugerido = diaSugeridoDeHoy(
+      rutina,
+      storage.getSesiones(),
+      catalogo,
+      hoy(),
+      storage.getConfig(),
+    );
     const diaElegido = parsearDiaElegido(sessionStorage.getItem(CLAVE_DIA), hoy(), rutina.dias.length);
     const elegidoAMano = resolverDiaDeHoy(rutina, diaSugerido, diaElegido);
     let dia: DiaRutina;
@@ -529,17 +543,25 @@ export function montarHoy(deps: DepsHoy): void {
       navegar('/entrenar/');
     });
     $('#btn-otro-dia')?.addEventListener('click', () => panelElegirDia(rutina, diaSugerido, diaIndex));
-    // Los tres carriles a un tap: tocar uno elige ESE día para hoy. El
-    // destacado no necesita override — ya es el que está puesto.
+    // Los tres carriles a un tap: tocar uno elige ESE día para hoy.
+    //
+    // La elección SIEMPRE queda escrita, también cuando coincide con el día
+    // destacado. Antes ese caso era un atajo directo a /entrenar sin dejar
+    // rastro, y el wizard terminaba resolviendo el día por su cuenta: tocabas
+    // "Elongación A" y arrancaba el día de bici. Escribirlo siempre hace que la
+    // elección viaje explícita en vez de depender de que las dos pantallas
+    // calculen lo mismo.
     caja.querySelectorAll('[data-carril-dia]').forEach((boton) =>
       boton.addEventListener('click', () => {
         const elegido = Number((boton as HTMLElement).dataset.carrilDia);
+        // Solo si cambiás de día: el destacado puede tener un entrenamiento a
+        // medias y tocarlo es continuarlo, no descartarlo.
+        if (elegido !== diaIndex && !limpiarDraftSiCambiaDia()) return;
+        sessionStorage.setItem(CLAVE_DIA, serializarDiaElegido(hoy(), elegido));
         if (elegido === diaIndex) {
           navegar('/entrenar/');
           return;
         }
-        if (!limpiarDraftSiCambiaDia()) return;
-        sessionStorage.setItem(CLAVE_DIA, serializarDiaElegido(hoy(), elegido));
         pintar();
       }),
     );

@@ -2,10 +2,10 @@
 // permite cambiar o saltear ejercicios y guarda la sesión. Vive acá y no en el
 // .astro para poder testearlo con jsdom.
 
-import { ejercicioDeVariante, necesitaOtraPersona, resolverSalteo, variantesDe, ultimaVez } from '../lib/motor';
+import { ejercicioDeVariante, necesitaOtraPersona, variantesDe, ultimaVez } from '../lib/motor';
 import { sugerirProgresion } from '../lib/progreso';
 import { alternativasDe, dosisInicial, sustitucionDe, sustituirEjercicio } from '../lib/editor';
-import { parsearDiaElegido, resolverDiaDeHoy } from '../lib/dia';
+import { diaSugeridoDeHoy, parsearDiaElegido, resolverDiaDeHoy } from '../lib/dia';
 import { formatearObjetivo, formatearFc, unidadEfectiva } from '../lib/formato';
 import { conMedida, formatearCrono, medidaSerie, valorPrecargado, NOMBRE_UNIDAD } from '../lib/serie';
 import { convertirDiaSinGym } from '../lib/singym';
@@ -802,9 +802,17 @@ export function montarEntrenar(deps: DepsEntrenar): void {
       navegar('/perfil/');
       return;
     }
-    const salteo = resolverSalteo(rutina, storage.getSesiones(), hoy());
+    // El día sugerido sale de los CARRILES, igual que en el home. Si acá se
+    // calculara de otra forma, el día que elegiste en el home no llegaría.
+    const sugerido = diaSugeridoDeHoy(
+      rutina,
+      storage.getSesiones(),
+      catalogo,
+      hoy(),
+      storage.getConfig(),
+    );
     const diaElegido = parsearDiaElegido(sessionStorage.getItem('ge:dia'), hoy(), rutina.dias.length);
-    const { diaIndex, dia: diaPlan } = resolverDiaDeHoy(rutina, salteo.diaIndex, diaElegido);
+    const { diaIndex, dia: diaPlan } = resolverDiaDeHoy(rutina, sugerido, diaElegido);
     sinGym = sessionStorage.getItem('ge:singym') === hoy();
     const diaCompleto = sinGym
       ? convertirDiaSinGym(diaPlan, catalogo, storage.getCustoms(), perfil).dia

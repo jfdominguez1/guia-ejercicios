@@ -1,7 +1,8 @@
 // Elegir qué día de la rutina se entrena hoy, pisando lo que propone el motor.
 // "Me tocaba piernas pero hoy hago espalda". Funciones puras — sin DOM ni storage.
 
-import type { DiaRutina, Rutina } from './tipos';
+import { estadoCarriles } from './carriles';
+import type { Config, DiaRutina, Ejercicio, Rutina, Sesion } from './tipos';
 
 /** Override guardado en sessionStorage: vale solo para la fecha en que se eligió. */
 export interface DiaElegido {
@@ -47,6 +48,27 @@ export function parsearDiaElegido(
 /** Serializa el override para guardarlo. */
 export function serializarDiaElegido(fecha: string, diaIndex: number): string {
   return JSON.stringify({ fecha, diaIndex } satisfies DiaElegido);
+}
+
+/**
+ * El día que se propone para hoy: el próximo del carril MÁS ATRASADO.
+ *
+ * FUENTE ÚNICA. Existe porque el home y el wizard lo calculaban cada uno por su
+ * lado y no daban lo mismo: el home ya usaba los carriles y `/entrenar` seguía
+ * usando `resolverSalteo`, que solo avanza con sesiones de fuerza. Con la rutina
+ * v10 (2 días de fuerza, 2 de cardio, 3 de elongación) el home ofrecía
+ * "Elongación A" y al entrar arrancaba el día de bici — el día elegido no
+ * llegaba nunca al wizard. Los dos tienen que preguntarle a esta función.
+ */
+export function diaSugeridoDeHoy(
+  rutina: Rutina | null,
+  sesiones: Sesion[],
+  catalogo: Ejercicio[],
+  hoyISO: string,
+  config: Config,
+): number {
+  return estadoCarriles(rutina, sesiones, catalogo, hoyISO, config).find((e) => e.proximo)?.proximo
+    ?.diaIndex ?? 0;
 }
 
 /**

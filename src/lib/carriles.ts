@@ -142,6 +142,10 @@ export function estadoCarriles(
   const estados = CARRILES.map((carril): EstadoCarril => {
     const dias = (rutina?.dias ?? [])
       .map((dia, diaIndex) => ({ dia, diaIndex }))
+      // Un día sin ejercicios no se puede ofrecer: el wizard abriría una
+      // pantalla vacía. Además `carrilDelDia` lo mandaba a elongación por
+      // descarte (sin tipos que mirar), donde encima ganaba por deuda.
+      .filter(({ dia }) => dia.ejercicios.length > 0)
       .filter(({ dia }) => carrilDelDia(dia, catalogo) === carril)
       .map(({ dia, diaIndex }) => ({ diaIndex, nombre: dia.nombre }));
 

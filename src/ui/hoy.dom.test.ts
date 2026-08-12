@@ -452,6 +452,27 @@ describe('carriles por tipo', () => {
     expect(texto()).toContain('¿Qué hacés hoy?');
   });
 
+  // Tocar el carril destacado era un atajo a /entrenar SIN dejar rastro de la
+  // elección, y el wizard terminaba resolviendo el día por su cuenta. La
+  // elección tiene que viajar escrita, no depender de que las dos pantallas
+  // calculen el mismo número.
+  it('tocar el carril destacado deja escrito qué día elegiste', () => {
+    const { rutas } = montar3();
+    const destacado = $$('.carril').find((c) => c.className.includes('destacado'))!;
+    const dia = Number(destacado.dataset.carrilDia);
+    destacado.click();
+    expect(JSON.parse(sessionStorage.getItem('ge:dia')!)).toEqual({ fecha: HOY, diaIndex: dia });
+    expect(rutas).toContain('/entrenar/');
+  });
+
+  it('tocar otro carril también lo deja escrito', () => {
+    montar3();
+    const otro = $$('.carril').find((c) => !c.className.includes('destacado'))!;
+    const dia = Number(otro.dataset.carrilDia);
+    otro.click();
+    expect(JSON.parse(sessionStorage.getItem('ge:dia')!).diaIndex).toBe(dia);
+  });
+
   it('el más atrasado va arriba', () => {
     // Elongación al día (meta 3), fuerza con una hecha, cardio en cero: el
     // cardio tiene que encabezar por ser el que más debe.

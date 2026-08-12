@@ -192,6 +192,19 @@ describe('estadoCarriles', () => {
     expect(del(e, 'elongacion').hechas).toBe(1);
   });
 
+  // Un día vacío no se puede entrenar, y encima `carrilDelDia` lo mandaba a
+  // elongación por descarte (no hay tipos que mirar) donde ganaba por deuda: el
+  // home lo ofrecía y el wizard abría una pantalla en blanco.
+  it('un día sin ejercicios no se ofrece en ningún carril', () => {
+    const conVacio: Rutina = {
+      ...RUTINA,
+      dias: [...RUTINA.dias, { nombre: 'Día libre', enfoque: 'nada', ejercicios: [] }],
+    };
+    const e = estadoCarriles(conVacio, [], CATALOGO, HOY, CONFIG);
+    const todos = e.flatMap((c) => c.dias.map((d) => d.nombre));
+    expect(todos).not.toContain('Día libre');
+  });
+
   it('no cuenta las sesiones de la semana pasada', () => {
     const e = estadoCarriles(RUTINA, [sesion('2026-08-02', 'fuerza', 0)], CATALOGO, HOY, CONFIG);
     expect(del(e, 'fuerza').hechas).toBe(0);
