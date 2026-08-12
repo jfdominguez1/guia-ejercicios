@@ -380,20 +380,18 @@ describe('validarImport — porLado', () => {
     expect(r.errores.join(' ')).toContain('porLado');
   });
 
-  it('la rutina v10 real de JFD llega con sus 5 porLado', () => {
-    const { readFileSync } = require('node:fs');
-    const catalogo = require('../data/ejercicios.json') as Ejercicio[];
-    const ruta = `${process.env.HOME}/IA_share/guia-ejercicios-IMPORTAR-rutina-v10-2026-08-09-CORREGIDA.json`;
-    const crudo = readFileSync(ruta, 'utf8');
-    // El custom de la plancha lo aporta la app desde los ejercicios propios.
-    const customs: Ejercicio[] = [{
-      id: 'CUSTOM-plancha-antebrazos', nombre_es: 'Plancha', nombre_en: 'Plank', tipo: 'fuerza',
-      grupo: 'cuerpo', equipment: 'body only', zona: 'core', musculo: 'abdominales',
-      secundarios: [], pasos: [], movimiento: 'core-plancha', basico: true,
-    }];
-    const r = validarImport(crudo, [...catalogo, ...customs]);
-    expect(r.errores).toEqual([]);
-    const conLado = r.rutina!.dias.flatMap((d) => d.ejercicios).filter((e) => e.porLado);
-    expect(conLado).toHaveLength(5);
+  // La forma real de la v10: elongaciones con `porLado` mezcladas con las que no
+  // lo llevan. (El archivo de JFD se validó a mano con este mismo código: 5
+  // porLado, 0 errores. **No se puede leer acá**: vive en ~/IA_share, fuera del
+  // repo, y en el runner de CI no existe — un test no puede depender de eso.)
+  it('convive con ejercicios que no lo llevan, sin contagiarlos', () => {
+    const texto = respuestaValida()
+      .replace('"repsMin": 8', '"porLado": true, "unidad": "seg", "repsMin": 20')
+      .replace('"repsMax": 12', '"repsMax": 30');
+    const r = validarImport(texto, CAT, RUTINA);
+    expect(r.ok).toBe(true);
+    const ejs = r.rutina!.dias[0]!.ejercicios;
+    expect(ejs[0]!.porLado).toBe(true);
+    expect(ejs.slice(1).every((e) => e.porLado === undefined)).toBe(true);
   });
 });
