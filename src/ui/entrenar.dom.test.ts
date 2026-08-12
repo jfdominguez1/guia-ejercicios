@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { montarEntrenar } from './entrenar';
 import { storage } from '../lib/storage';
+import { sesionCuenta } from '../lib/carriles';
 import type { Ejercicio, Perfil, Rutina } from '../lib/tipos';
 
 const HOY = '2026-07-20';
@@ -952,8 +953,19 @@ describe('el día de cardio + elongación son dos sesiones', () => {
     $('#btn-siguiente').click();
     $('#btn-guardar').click();
     const sesiones = storage.getSesiones();
-    expect(sesiones).toHaveLength(1);
-    expect(sesiones[0]!.tipo).toBe('elongacion');
+    expect(sesiones.find((s) => s.tipo === 'elongacion')).toBeDefined();
+  });
+
+  // Un salteo es una decisión: queda anotado igual que en el resto del día.
+  // Antes solo vivía en sessionStorage para no volver a preguntarlo, así que
+  // el cardio que dejabas pasar no dejaba ninguna huella.
+  it('el cardio salteado queda registrado, pero NO llena el casillero de la semana', () => {
+    montarDia4();
+    $('#btn-saltear-cardio').click();
+    const cardio = storage.getSesiones().find((s) => s.tipo === 'cardio')!;
+    expect(cardio.items![0]).toMatchObject({ ejercicioId: 'CARDIO-bici-z2', salteado: true });
+    expect(cardio.items![0]!.series).toEqual([]);
+    expect(sesionCuenta(cardio)).toBe(false);
   });
 
   it('volver a entrar al mismo día no vuelve a pedir el cardio ya registrado', () => {

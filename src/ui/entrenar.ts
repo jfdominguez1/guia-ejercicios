@@ -15,6 +15,7 @@ import {
   modalidadDe,
   partirDia,
   sesionDeCardio,
+  sesionDeCardioSalteado,
   validarCardio,
   MODALIDADES,
   type TramosDia,
@@ -707,6 +708,17 @@ export function montarEntrenar(deps: DepsEntrenar): void {
 
     caja.querySelector('#btn-saltear-cardio')!.addEventListener('click', () => {
       marcarCardioSalteado(ejercicio.ejercicioId);
+      // Queda registrado como salteado, igual que en el resto del día: un
+      // salteo es una decisión y alimenta "los que venís esquivando". No llena
+      // el casillero de la semana (`sesionCuenta` lo descarta).
+      storage.agregarSesion(
+        sesionDeCardioSalteado(ejercicio, {
+          fecha: hoy(),
+          diaIndex: diaIndexActual,
+          nombreDia: dia.nombre,
+          ...(info?.nombre_es ? { nombre: info.nombre_es } : {}),
+        }),
+      );
       seguir(false);
     });
   }

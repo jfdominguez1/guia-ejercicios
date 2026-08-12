@@ -3,7 +3,7 @@
 // Es la pantalla que más decisiones toma; vive acá y no en el .astro para poder
 // testearla con jsdom.
 
-import { resolverSalteo, generarElongacion, regenerar, ultimaVezMovimiento } from '../lib/motor';
+import { generarElongacion, regenerar, ultimaVezMovimiento } from '../lib/motor';
 import {
   estadoCarriles,
   resumenSemana,
@@ -21,7 +21,7 @@ import {
   serializarDiaElegido,
 } from '../lib/dia';
 import { estadoHome, type ResultadoRetomar } from '../lib/retomar';
-import { registrarHecha, registrarOtra, registrarGrupo, fechaValidaRetro, resumenSemanal, yaHaySesion, type TipoRapido } from '../lib/registro';
+import { registrarHecha, registrarOtra, registrarGrupo, fechaValidaRetro, resumenSemanal, yaHaySesion, ETIQUETA_TIPO, type TipoRapido } from '../lib/registro';
 import { convertirDiaSinGym } from '../lib/singym';
 import { formatearObjetivo, formatearFc, etiquetaDescanso } from '../lib/formato';
 import { calcularRacha, fechaLarga, fraseRacha } from '../lib/racha';
@@ -287,9 +287,18 @@ export function montarHoy(deps: DepsHoy): void {
     globalThis.scrollTo?.({ top: 0 });
   }
 
+  /**
+   * Guarda la sesión y pregunta el RPE. **La pantalla se repinta recién al
+   * cerrar la carta**, no antes.
+   *
+   * Antes repintaba en el acto: al registrar la elongación, el carril más
+   * atrasado pasaba a ser otro y el botón "Hecha ✓" —en el mismo lugar de la
+   * pantalla, ahora tapado por el "Guardada ✓"— pasaba a significar otro día.
+   * Un tap de más registraba un cardio que nunca hiciste, y como era de otro
+   * tipo, ningún aviso de duplicado lo frenaba.
+   */
   function guardarYPedirRpe(sesion: Sesion) {
     storage.agregarSesion(sesion);
-    pintar();
     const carta = document.createElement('div');
     carta.className = 'carta pop';
     carta.innerHTML = `<strong>Guardada ✓</strong>
@@ -307,6 +316,9 @@ export function montarHoy(deps: DepsHoy): void {
         if (ultima) storage.setSesiones([...sesiones.slice(0, -1), { ...ultima, rpe }]);
       }
       carta.remove();
+      // Recién ahora: el día que ofrece el home puede haber cambiado con lo que
+      // se acaba de registrar, y no queremos que cambie mientras tocás.
+      pintar();
     });
   }
 
@@ -370,9 +382,12 @@ export function montarHoy(deps: DepsHoy): void {
         panelOtraCosa(fecha);
       } else {
         const rutina = storage.getRutina();
-        const salteo = rutina ? resolverSalteo(rutina, storage.getSesiones(), fecha) : null;
-        if (rutina && salteo) {
-          storage.agregarSesion(registrarHecha(rutina, salteo.diaIndex, catalogo, fecha));
+        if (rutina) {
+          // El mismo día que ofrece el home, no el de la rotación vieja: esta
+          // pantalla anotaba "Día 4 — Bici" (¡un cardio!) cuando lo que tocaba
+          // era la elongación, y ese dato falso queda en el historial.
+          const dia = diaSugeridoDeHoy(rutina, storage.getSesiones(), catalogo, fecha, storage.getConfig());
+          storage.agregarSesion(registrarHecha(rutina, dia, catalogo, fecha));
           pintar();
         }
       }
@@ -446,7 +461,6 @@ export function montarHoy(deps: DepsHoy): void {
     }
 
     const retomando = estado.modo === 'retomar' && estado.retomar?.sesionReducida;
-    const salteo = estado.salteo;
     const estados = carriles();
     // El día que se destaca sale del carril MÁS ATRASADO, no de la rotación
     // global: esa solo avanzaba con sesiones de fuerza, así que con 2 días de
@@ -471,12 +485,14 @@ export function montarHoy(deps: DepsHoy): void {
       dia = elegidoAMano.dia;
       banner = `<div class="aviso">Hoy hacés <strong>${escapar(dia.nombre)}</strong> en vez de ${escapar(rutina.dias[diaSugerido]?.nombre ?? 'lo que tocaba')}.
         <button class="boton-silencioso" id="btn-dia-volver">Volver a lo que tocaba</button></div>`;
-    } else if (salteo && salteo.tipo === 'combinada' && salteo.ejercicios?.length && !sessionStorage.getItem('ge:sinCombinada')) {
-      dia = { nombre: 'Sesión combinada', enfoque: 'lo esencial de lo que quedó', ejercicios: salteo.ejercicios };
-      banner = `<div class="aviso">${escapar(salteo.mensaje)} <button class="boton-silencioso" id="btn-dejar-pasar">Seguir normal</button></div>`;
     } else {
+      // Sin banner de la rotación vieja. `resolverSalteo` solo avanza con
+      // sesiones de fuerza, así que escribía cosas como "te quedó pendiente
+      // Día 4 — Bici, la semana se corre un día" JUSTO ARRIBA de "hoy te toca
+      // Elongación A": nombraba un día que no se iba a entrenar y anunciaba una
+      // deuda que no existía (el carril cardio lleva su propia cuenta).
+      // Lo que falta de verdad ya lo dice la tarjeta de la semana, por tipo.
       dia = elegidoAMano.dia;
-      if (salteo && salteo.tipo !== 'normal') banner = `<div class="aviso">${escapar(salteo.mensaje)}</div>`;
     }
 
     const diaIndex = retomando ? 0 : elegidoAMano.diaIndex;
@@ -489,9 +505,7 @@ export function montarHoy(deps: DepsHoy): void {
       ? 'Para volver'
       : elegidoAMano.esOverride
         ? 'Elegiste hacer'
-        : dia.nombre === 'Sesión combinada'
-          ? 'Hoy'
-          : 'Hoy te toca';
+        : 'Hoy te toca';
 
     caja.innerHTML = `
       ${htmlRespaldo()}
@@ -518,11 +532,14 @@ export function montarHoy(deps: DepsHoy): void {
       ${htmlBloques()}`;
 
     $('#btn-hecha').addEventListener('click', () => {
-      // Dos taps por error meten dos sesiones y le mienten al número de la semana.
-      if (yaHaySesion(storage.getSesiones(), hoy(), 'fuerza')
-        && !confirmar('Ya registraste una sesión de fuerza hoy. ¿Agrego otra igual?')) return;
       const sesion = registrarHecha(rutina, diaIndex, catalogo, hoy());
-      guardarYPedirRpe(retomando || dia.nombre === 'Sesión combinada' ? { ...sesion, diaRutina: dia.nombre } : sesion);
+      // El aviso mira el tipo de LO QUE SE VA A REGISTRAR. Estaba clavado en
+      // 'fuerza', así que en elongación y cardio no saltaba nunca: registrabas
+      // la elongación, volvías al home —que ya destacaba otro carril— y el
+      // segundo tap guardaba un cardio que nunca hiciste, callado.
+      if (yaHaySesion(storage.getSesiones(), hoy(), sesion.tipo)
+        && !confirmar(`Ya registraste una sesión de ${ETIQUETA_TIPO[sesion.tipo]} hoy. ¿Agrego otra igual?`)) return;
+      guardarYPedirRpe(retomando ? { ...sesion, diaRutina: dia.nombre } : sesion);
       sessionStorage.removeItem('ge:retomando');
     });
     $('#btn-respaldar')?.addEventListener('click', hacerRespaldo);
@@ -595,10 +612,6 @@ export function montarHoy(deps: DepsHoy): void {
       carta.querySelector('.boton-silencioso')!.addEventListener('click', () => carta.remove());
       caja.prepend(carta);
     });
-    $('#btn-dejar-pasar')?.addEventListener('click', () => {
-      sessionStorage.setItem('ge:sinCombinada', hoy());
-      pintar();
-    });
     $('#btn-regenerar').addEventListener('click', () => {
       if (!confirmar('¿Regenero la rutina? Se cambian los ejercicios elegidos (mismo esquema).')) return;
       storage.setRutina(regenerar(rutina, catalogo, perfil));
@@ -609,7 +622,6 @@ export function montarHoy(deps: DepsHoy): void {
   if (sessionStorage.getItem('ge:singym') !== hoy()) sessionStorage.removeItem('ge:singym');
   // Volver a Hoy sale del modo libre: si no, "Entrenar ahora" seguiría entrando ahí.
   sessionStorage.removeItem('ge:libre');
-  if (sessionStorage.getItem('ge:sinCombinada') !== hoy()) sessionStorage.removeItem('ge:sinCombinada');
   if (sessionStorage.getItem('ge:respaldoOculto') !== hoy()) sessionStorage.removeItem('ge:respaldoOculto');
   if (sessionStorage.getItem('ge:retomando') !== hoy()) sessionStorage.removeItem('ge:retomando');
   const diasRutina = storage.getRutina()?.dias.length ?? 0;

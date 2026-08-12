@@ -7,7 +7,8 @@ import {
   quitarEjercicio,
   sustituirEjercicio,
 } from '../lib/editor';
-import { resolverSalteo, ultimaVezMovimiento } from '../lib/motor';
+import { ultimaVezMovimiento } from '../lib/motor';
+import { diaSugeridoDeHoy } from '../lib/dia';
 import { ejerciciosEsquivados } from '../lib/registro';
 import { formatearObjetivo, formatearFc, etiquetaDescanso } from '../lib/formato';
 import { resumenSeries } from '../lib/unidades';
@@ -157,11 +158,13 @@ export function montarRutina(deps: DepsRutina): void {
         <a class="boton-principal" style="display:block;text-align:center;text-decoration:none" href="${rutaBase}/perfil/">Armar mi rutina</a></div>`;
       return;
     }
-    const salteo = resolverSalteo(rutina, storage.getSesiones(), hoy());
+    // El mismo día que ofrece el home: el chip "Te toca hoy" marcaba el día de
+    // la rotación vieja y contradecía a la pantalla principal.
+    const diaHoy = diaSugeridoDeHoy(rutina, storage.getSesiones(), catalogo, hoy(), storage.getConfig());
     caja.innerHTML = `
       <p class="ayuda">Tocá ✎ para ajustar series, reps o sustituir un ejercicio. Los cambios quedan guardados para las próximas semanas.</p>
       ${htmlEsquivados()}
-      ${rutina.dias.map((_, i) => htmlDia(rutina, i, salteo.diaIndex)).join('')}
+      ${rutina.dias.map((_, i) => htmlDia(rutina, i, diaHoy)).join('')}
       <div class="carta">
         <button class="boton-secundario" id="btn-compartir-rutina">📲 Compartir mi rutina</button>
         <p class="ayuda">La manda en texto, lista para leer (WhatsApp, mail, notas).</p>

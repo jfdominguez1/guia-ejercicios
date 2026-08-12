@@ -548,3 +548,87 @@ describe('carriles por tipo', () => {
     expect(frase).not.toContain('no hiciste');
   });
 });
+
+// Auditoría 2026-08-12: la rotación vieja (`resolverSalteo`, que solo avanza con
+// sesiones de fuerza) seguía decidiendo cosas en pantallas sueltas.
+describe('la rotación vieja ya no decide nada en el home', () => {
+  const BICI: Ejercicio = { ...ej('C1', 'Bici zona 2', 'otro-sistema-cardiovascular', 'maquina'), tipo: 'cardio' };
+  const ESTIRAR: Ejercicio = { ...ej('S1', 'Isquios', 'elongacion-isquios', 'cuerpo'), tipo: 'elongacion' };
+  const CAT3 = [...CATALOGO, BICI, ESTIRAR];
+  const p = (id: string) => ({ movimiento: 'm', ejercicioId: id, series: 1, repsMin: 10, repsMax: 12, descansoSeg: 60 });
+
+  function montarV10(respuestas: boolean[] = []) {
+    storage.setRutina({
+      generadaEl: HOY, seed: 1, origen: 'ia',
+      dias: [
+        { nombre: 'Día 1 — Fuerza A', enfoque: 'x', ejercicios: [p('F1')] },
+        { nombre: 'Día 2 — Cinta', enfoque: 'x', ejercicios: [p('C1')] },
+        { nombre: 'Día 3 — Fuerza B', enfoque: 'x', ejercicios: [p('F4')] },
+        { nombre: 'Día 4 — Bici', enfoque: 'x', ejercicios: [p('C1')] },
+        { nombre: 'Elongación A', enfoque: 'x', ejercicios: [p('S1')] },
+        { nombre: 'Elongación B', enfoque: 'x', ejercicios: [p('S1')] },
+        { nombre: 'Elongación C', enfoque: 'x', ejercicios: [p('S1')] },
+      ],
+    });
+    document.body.innerHTML = '<div id="hoy"></div>';
+    const preguntas: string[] = [];
+    let i = 0;
+    montarHoy({
+      contenedor: document.querySelector('#hoy') as HTMLElement,
+      catalogo: CAT3, perfil: PERFIL, hoy: () => HOY,
+      confirmar: (m) => { preguntas.push(m); return respuestas[i++] ?? true; },
+      navegar: () => {}, respaldar: async () => 'compartido',
+    });
+    return { preguntas };
+  }
+
+  beforeEach(() => {
+    // Última de fuerza el Día 3 (índice 2): la rotación vieja pide el índice 3
+    // (la bici). El carril más atrasado es elongación → Elongación A (índice 4).
+    storage.setSesiones([{ fecha: '2026-07-18', tipo: 'fuerza', estado: 'hecha', diaIndex: 2, id: 'a' }]);
+  });
+
+  // El home decía "Te quedó pendiente Día 4 — Bici, la semana se corre un día"
+  // justo arriba de "Hoy te toca Elongación A". Ni te quedó pendiente (el carril
+  // cardio lleva su cuenta) ni ese es el día que vas a entrenar.
+  it('no anuncia una deuda de un día que no vas a entrenar', () => {
+    montarV10();
+    expect(texto()).toContain('Elongación A');
+    expect(texto()).not.toContain('la semana se corre un día');
+    expect(texto()).not.toContain('Día 4');
+  });
+
+  // Registraba "Día 4 — Bici" (¡un cardio!) cuando lo que tocaba era la
+  // elongación: un dato falso en el historial y el casillero equivocado.
+  it('"registrar un día pasado" anota el día que ofrecen los carriles', () => {
+    montarV10();
+    $('#btn-retro').click();
+    (document.querySelector('.carta input[type=date]') as HTMLInputElement).value = '2026-07-19';
+    (document.querySelector('.carta [data-accion="hecha"]') as HTMLElement).click();
+    const s = storage.getSesiones().find((x) => x.fecha === '2026-07-19')!;
+    expect(s.diaRutina).toBe('Elongación A');
+    expect(s.tipo).toBe('elongacion');
+  });
+
+  // El aviso estaba clavado en 'fuerza': en elongación no saltaba, y como el
+  // home ya destacaba otro carril, el segundo tap guardaba un cardio inventado.
+  it('un tap de más no registra una sesión de otro día', () => {
+    const { preguntas } = montarV10([false]);
+    $('#btn-hecha').click();
+    // El home NO se reorganiza mientras te pregunta el RPE: el botón sigue
+    // siendo el del día que registraste, así que el aviso de duplicado aplica.
+    $('#btn-hecha').click();
+    const hoyReg = storage.getSesiones().filter((s) => s.fecha === HOY);
+    expect(preguntas.join(' ')).toContain('Ya registraste');
+    expect(hoyReg).toHaveLength(1);
+    expect(hoyReg[0]!.tipo).toBe('elongacion');
+  });
+
+  it('el día ofrecido se actualiza al cerrar el RPE', () => {
+    montarV10();
+    $('#btn-hecha').click();
+    expect(texto()).toContain('Elongación A');
+    (document.querySelector('.pop [data-rpe=""]') as HTMLElement).click();
+    expect(texto()).toContain('Elongación B');
+  });
+});

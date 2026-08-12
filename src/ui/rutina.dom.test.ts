@@ -244,3 +244,42 @@ describe('agregar ejercicio', () => {
     expect(dias()[1]!.ejercicios).toHaveLength(0);
   });
 });
+
+// El chip "Te toca hoy" salía de `resolverSalteo` (la rotación que solo avanza
+// con sesiones de fuerza) mientras el home ya ofrecía por carriles: las dos
+// pantallas de la misma app marcaban días distintos.
+describe('el chip "Te toca hoy" coincide con el home', () => {
+  const BICI: Ejercicio = { ...ej('C1', 'Bici', 'otro-sistema-cardiovascular', 'maquina'), tipo: 'cardio' };
+  const ESTIRAR: Ejercicio = { ...ej('S1', 'Isquios', 'elongacion-isquios', 'cuerpo'), tipo: 'elongacion' };
+  const p = (id: string) => ({ movimiento: 'm', ejercicioId: id, series: 1, repsMin: 10, repsMax: 12, descansoSeg: 60 });
+
+  function montarV10() {
+    storage.setRutina({
+      generadaEl: HOY, seed: 1, origen: 'ia',
+      dias: [
+        { nombre: 'Día 1 — Fuerza A', enfoque: 'x', ejercicios: [p('F1')] },
+        { nombre: 'Día 2 — Cinta', enfoque: 'x', ejercicios: [p('C1')] },
+        { nombre: 'Día 3 — Fuerza B', enfoque: 'x', ejercicios: [p('F4')] },
+        { nombre: 'Día 4 — Bici', enfoque: 'x', ejercicios: [p('C1')] },
+        { nombre: 'Elongación A', enfoque: 'x', ejercicios: [p('S1')] },
+      ],
+    });
+    // Última de fuerza el Día 3 (índice 2): la rotación vieja marcaría el Día 4
+    // (la bici); por carriles, el más atrasado es la elongación.
+    storage.setSesiones([{ fecha: '2026-07-18', tipo: 'fuerza', estado: 'hecha', diaIndex: 2, id: 'a' }]);
+    document.body.innerHTML = '<div id="rutina"></div>';
+    montarRutina({
+      contenedor: document.querySelector('#rutina') as HTMLElement,
+      catalogo: [...CATALOGO, BICI, ESTIRAR], perfil: PERFIL, hoy: () => HOY,
+      confirmar: () => true, compartir: async () => 'compartido',
+    });
+  }
+
+  it('marca el día del carril más atrasado, no el de la rotación por fuerza', () => {
+    montarV10();
+    const marcado = $$('.carta')
+      .find((c) => c.querySelector('.hoy-chip'))!
+      .querySelector('h2')!.textContent;
+    expect(marcado).toBe('Elongación A');
+  });
+});

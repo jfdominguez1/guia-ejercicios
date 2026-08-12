@@ -76,8 +76,42 @@ export function partirDia(dia: DiaRutina, catalogo: Ejercicio[]): TramosDia {
 }
 
 /**
+ * Un cardio del día que dejaste pasar. Se guarda igual que un salteo del resto
+ * del día: `items` con `salteado`, sin series.
+ *
+ * Por qué se guarda en vez de descartarlo: un salteado es una decisión, y es la
+ * señal de "esto lo venís esquivando" (`ejerciciosEsquivados`). Antes el salteo
+ * del cardio solo vivía en `sessionStorage` para no volver a preguntarlo, así
+ * que no dejaba ninguna huella. **No llena el casillero de la semana**:
+ * `sesionCuenta` descarta las sesiones con todos los ejercicios salteados.
+ */
+export function sesionDeCardioSalteado(
+  ejercicio: EjercicioRutina,
+  contexto: { fecha: string; diaIndex?: number; nombreDia: string; nombre?: string },
+): Sesion {
+  const { fecha, diaIndex, nombreDia, nombre } = contexto;
+  return {
+    fecha,
+    tipo: 'cardio',
+    estado: 'hecha',
+    ...(diaIndex === undefined ? {} : { diaIndex }),
+    diaRutina: nombreDia,
+    items: [
+      {
+        ejercicioId: ejercicio.ejercicioId,
+        variante: 'maquina',
+        ...(nombre ? { nombre } : {}),
+        series: [],
+        salteado: true,
+      },
+    ],
+  };
+}
+
+/**
  * ¿Ya se registró hoy ese ejercicio de cardio? Evita volver a pedirlo si
- * saliste de la app y volviste a entrar al mismo día.
+ * saliste de la app y volviste a entrar al mismo día. Cuenta también el
+ * salteado: ya pasaste por esa pantalla y dijiste que no.
  */
 export function cardioYaRegistrado(
   sesiones: Sesion[],
