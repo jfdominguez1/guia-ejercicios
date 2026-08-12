@@ -124,9 +124,16 @@ import Base from '../layouts/Base.astro';
         <p>${lineaUltimaVez(e)}</p>
       </div>
       ${cartaProgreso(e, catalogo)}
+      <div class="carta">
+        <label style="margin-top:0">Observaciones <span class="eyebrow">(tuyas, quedan siempre acá)</span></label>
+        <textarea id="obs-ej" rows="2" maxlength="500" placeholder="Ej: el dibujo no coincide · bajar el asiento dos puntos">${escapar(storage.getObservaciones()[e.id] ?? '')}</textarea>
+      </div>
       ${e.pasos.length ? `<h2>Cómo se hace</h2><ol>${e.pasos.map((p) => `<li>${escapar(p)}</li>`).join('')}</ol>` : ''}
       ${listaVariantes ? `<h2>El mismo movimiento con otro equipo</h2>${listaVariantes}` : ''}
     `;
+    document.querySelector('#obs-ej')?.addEventListener('input', (ev) => {
+      storage.setObservacion(e.id, (ev.target as HTMLTextAreaElement).value);
+    });
     document.querySelector('#btn-volver')!.addEventListener('click', () => {
       // en la PWA instalada no hay botón atrás del browser
       if (history.length > 1) history.back();

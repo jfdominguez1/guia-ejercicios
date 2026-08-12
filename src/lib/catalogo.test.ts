@@ -68,8 +68,8 @@ describe('modalidades de cardio', () => {
 // preprocesar.py. Este test existe porque regenerar el catálogo sin aplicarlas
 // las borraría en silencio, y nadie se enteraría hasta volver a leerlo en el gym.
 describe('correcciones al catálogo de origen', () => {
-  const correcciones = correccionesJson.correcciones as Array<{
-    id: string; pasos?: string[]; media?: string;
+  const correcciones = correccionesJson.correcciones as unknown as Array<{
+    id: string; pasos?: string[]; media?: string; demoDudosa?: boolean;
   }>;
   const porId = new Map(CATALOGO.map((e) => [e.id, e]));
 
@@ -80,15 +80,17 @@ describe('correcciones al catálogo de origen', () => {
       expect(e, `falta el ejercicio ${c.id}`).toBeDefined();
       if (c.pasos) expect(e!.pasos, `pasos de ${c.id}`).toEqual(c.pasos);
       if (c.media) expect(e!.media, `media de ${c.id}`).toBe(c.media);
+      if (c.demoDudosa) expect(e!.demoDudosa, `demoDudosa de ${c.id}`).toBe(true);
     }
   });
 
-  // El caso concreto que reportó JFD, escrito con nombre y apellido: el archivo
-  // de este id enseña otro ejercicio, así que no se muestra ninguno.
-  it('el estiramiento de talones de pie no muestra la demostración equivocada', () => {
+  // El caso concreto que reportó JFD: el archivo de este id enseña otro
+  // ejercicio (un remo con mancuerna). Se muestra igual, marcado —él lo
+  // prefiere con aviso antes que sin nada— y la pantalla ofrece un equivalente.
+  it('el estiramiento de talones de pie queda marcado como dibujo dudoso', () => {
     const e = porId.get('1398')!;
     expect(e.nombre_es).toContain('talones');
-    expect(e.media).toBe('ninguna');
-    expect(tieneDemo(e)).toBe(false);
+    expect(e.demoDudosa).toBe(true);
+    expect(tieneDemo(e)).toBe(true);
   });
 });

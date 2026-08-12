@@ -7,7 +7,9 @@ import { CONFIG_DEFAULT } from './registro';
 import type { Config, Ejercicio, GrupoGuardado, Perfil, Rutina, Sesion } from './tipos';
 
 const PREFIJO = 'ge:';
-const CLAVES = ['perfil', 'rutina', 'sesiones', 'customs', 'config', 'grupos', 'papelera'] as const;
+// Lo que entra al respaldo. Una clave que falte acá NO se respalda ni se
+// restaura: se pierde al cambiar de teléfono, en silencio.
+const CLAVES = ['perfil', 'rutina', 'sesiones', 'customs', 'config', 'grupos', 'papelera', 'observaciones'] as const;
 
 /** Id estable de sesión. `randomUUID` no existe en contextos no seguros ni en browsers viejos. */
 function nuevoId(): string {
@@ -62,6 +64,24 @@ export const storage = {
 
   getCustoms: (): Ejercicio[] => leer<Ejercicio[]>('customs', []),
   setCustoms: (customs: Ejercicio[]): void => guardar('customs', customs),
+
+  /**
+   * Observaciones permanentes por ejercicio: `{ ejercicioId: texto }`.
+   *
+   * Distinto de la "Nota de hoy", que vive en el item de UNA sesión y se pierde
+   * de vista al día siguiente. Esto es lo que querés que te aparezca SIEMPRE que
+   * te toque ese ejercicio: "el dibujo no coincide", "bajar el asiento dos
+   * puntos", "esta rodilla no". JFD (12/08), sobre los dibujos cambiados: "si no
+   * coincide yo puedo decirte algo en el campo de observaciones".
+   */
+  getObservaciones: (): Record<string, string> => leer<Record<string, string>>('observaciones', {}),
+  setObservacion(ejercicioId: string, texto: string): void {
+    const todas = this.getObservaciones();
+    const limpio = texto.trim();
+    if (limpio) todas[ejercicioId] = limpio;
+    else delete todas[ejercicioId];
+    guardar('observaciones', todas);
+  },
 
   getGrupos: (): GrupoGuardado[] => leer<GrupoGuardado[]>('grupos', []),
   setGrupos: (grupos: GrupoGuardado[]): void => guardar('grupos', grupos),

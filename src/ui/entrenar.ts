@@ -476,9 +476,12 @@ export function montarEntrenar(deps: DepsEntrenar): void {
           .join('')}
       </div>
       <div class="carta">
-        <label style="margin-top:0">Nota de hoy <span class="eyebrow">(opcional)</span></label>
+        <label style="margin-top:0">Nota de hoy <span class="eyebrow">(solo esta sesión)</span></label>
         <textarea id="nota-ej" rows="2" maxlength="${TOPE_TEXTO}" placeholder="Ej: el hombro molestó en la última serie">${escapar(estado.nota ?? '')}</textarea>
         <p class="ayuda contador" id="contador-nota"></p>
+        <label>Observaciones <span class="eyebrow">(quedan siempre en este ejercicio)</span></label>
+        <textarea id="obs-ej" rows="2" maxlength="${TOPE_TEXTO}" placeholder="Ej: el dibujo no coincide · bajar el asiento dos puntos">${escapar(storage.getObservaciones()[estado.ejercicioId] ?? '')}</textarea>
+        <p class="ayuda contador" id="contador-obs"></p>
       </div>
       <div class="acciones-ej">
         <button id="btn-cambiar">Cambiar ejercicio ⇄</button>
@@ -571,6 +574,14 @@ export function montarEntrenar(deps: DepsEntrenar): void {
       estado.nota = notaEl.value;
       if (contadorNota) contadorNota.textContent = avisoRestante(notaEl.value.length) ?? '';
       guardarDraft();
+    });
+    // Observación permanente: se guarda pegada al EJERCICIO, no a la sesión, así
+    // sigue estando la próxima vez que le toque.
+    const obsEl = caja.querySelector('#obs-ej') as HTMLTextAreaElement | null;
+    const contadorObs = caja.querySelector('#contador-obs') as HTMLElement | null;
+    obsEl?.addEventListener('input', () => {
+      storage.setObservacion(estado.ejercicioId, obsEl.value);
+      if (contadorObs) contadorObs.textContent = avisoRestante(obsEl.value.length) ?? '';
     });
     caja.querySelector('#btn-cambiar')!.addEventListener('click', pintarCambiar);
     caja.querySelector('#btn-sumar')?.addEventListener('click', pintarAgregar);

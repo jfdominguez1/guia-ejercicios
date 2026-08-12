@@ -280,7 +280,9 @@ def aplicar_correcciones(catalogo: list[dict]) -> int:
         ejercicio = por_id.get(c["id"])
         if ejercicio is None:
             sys.exit(f"ERROR: corrección para un id que no está en el catálogo: {c['id']}")
-        for campo in ("pasos", "media"):
+        if c.get("demoDudosa"):
+            ejercicio.pop("media", None)
+        for campo in ("pasos", "media", "demoDudosa"):
             if campo in c:
                 ejercicio[campo] = c[campo]
         aplicadas += 1

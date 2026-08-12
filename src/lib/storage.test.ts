@@ -131,3 +131,37 @@ describe('storage', () => {
     expect(storage.restaurarHistorial('no es json')).toBeNull();
   });
 });
+
+// JFD (12/08), sobre los dibujos que vienen cambiados desde la fuente: "si no
+// coincide yo puedo decirte algo en el campo de observaciones". Es una nota que
+// tiene que seguir ahí la próxima vez que le toque ese ejercicio — no como la
+// "Nota de hoy", que vive en el item de una sesión y no se vuelve a ver.
+describe('observaciones por ejercicio', () => {
+  it('se guardan y se leen por id', () => {
+    storage.setObservacion('1398', '  el dibujo no coincide  ');
+    expect(storage.getObservaciones()['1398']).toBe('el dibujo no coincide');
+  });
+
+  it('vaciarla la borra en vez de dejar basura', () => {
+    storage.setObservacion('1398', 'algo');
+    storage.setObservacion('1398', '   ');
+    expect(storage.getObservaciones()['1398']).toBeUndefined();
+  });
+
+  it('no pisa las de otros ejercicios', () => {
+    storage.setObservacion('A', 'uno');
+    storage.setObservacion('B', 'dos');
+    expect(storage.getObservaciones()).toEqual({ A: 'uno', B: 'dos' });
+  });
+
+  // Si la clave no está en CLAVES no entra al respaldo y se pierde al cambiar
+  // de teléfono, sin aviso.
+  it('entran al respaldo y vuelven al restaurar', () => {
+    storage.setObservacion('1398', 'el dibujo no coincide');
+    const copia = storage.exportarBackup();
+    localStorage.clear();
+    expect(storage.getObservaciones()).toEqual({});
+    storage.restaurarBackup(copia);
+    expect(storage.getObservaciones()['1398']).toBe('el dibujo no coincide');
+  });
+});

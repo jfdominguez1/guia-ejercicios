@@ -12,8 +12,8 @@
     {
       "id": "1398",
       "nombre": "Estiramiento de talones de pie",
-      "motivo": "El archivo de media es de OTRO ejercicio: muestra a alguien inclinado sobre un banco con una mancuerna. Los pasos (pantorrilla contra la pared) sí son los correctos. No hay imagen buena para este id — mejor sin dibujo que con uno que enseña otra cosa. Con imagen correcta del mismo estiramiento están 1407 y 1377.",
-      "media": "ninguna"
+      "motivo": "El archivo de media es de OTRO ejercicio: muestra a alguien inclinado sobre un banco con una mancuerna. Los pasos (pantorrilla contra la pared) sí son los correctos. JFD (12/08) pidió verlo igual —'por ahora poné el que sacaste, si no coincide yo puedo decirte algo'—, así que se muestra CON un aviso de que el dibujo puede no corresponder, más el link a un equivalente que sí está bien (1407 y 1377).",
+      "demoDudosa": true
     },
     {
       "id": "1511",

@@ -3,7 +3,7 @@
 // "Cargando…" y, si el armado explota, ese texto se queda puesto: en un teléfono
 // no hay consola, así que "no carga" era todo lo que se podía saber.
 import { beforeEach, describe, expect, it } from 'vitest';
-import { arrancarPantalla, equivalenteConDemo, htmlEquivalenteConDemo } from './datos';
+import { arrancarPantalla, equivalenteConDemo, htmlEquivalenteConDemo, tieneDemo } from './datos';
 import type { Ejercicio } from '../lib/tipos';
 
 beforeEach(() => {
@@ -51,9 +51,15 @@ describe('ejercicio sin demostración', () => {
     zona: 'Piernas', musculo: 'Pantorrillas', secundarios: [], pasos: [], movimiento: 'elongacion-pantorrillas',
     basico: true, ...extra,
   });
-  const sinDemo = base('1398', 'Estiramiento de talones de pie', { media: 'ninguna' });
+  const sinDemo = base('1398', 'Estiramiento de talones de pie', { demoDudosa: true });
   const conDemo = base('1377', 'Estiramiento de talones con manos contra la pared');
   const otroMovimiento = base('9999', 'Estiramiento de cuello', { movimiento: 'elongacion-cuello' });
+
+  it('el dibujo dudoso se sigue mostrando, pero avisado', () => {
+    const html = htmlEquivalenteConDemo(sinDemo, [sinDemo, conDemo]);
+    expect(tieneDemo(sinDemo)).toBe(true); // el GIF se muestra igual
+    expect(html).toContain('puede no ser este ejercicio');
+  });
 
   it('propone el equivalente que sí tiene dibujo', () => {
     expect(equivalenteConDemo(sinDemo, [sinDemo, conDemo])?.id).toBe('1377');

@@ -78,7 +78,7 @@ export function htmlDemo(e: Ejercicio, alt = ''): string {
  * mismo, así que sirve igual para ver cómo se hace.
  */
 export function equivalenteConDemo(e: Ejercicio, catalogo: Ejercicio[]): Ejercicio | null {
-  if (tieneDemo(e)) return null;
+  if (tieneDemo(e) && !e.demoDudosa) return null;
   return (
     catalogo.find(
       (c) =>
@@ -91,13 +91,21 @@ export function equivalenteConDemo(e: Ejercicio, catalogo: Ejercicio[]): Ejercic
   );
 }
 
-/** Bloque "este no tiene dibujo, mirá este otro". '' si no hay a quién mandar. */
+/**
+ * Bloque "ojo con este dibujo, mirá este otro". '' si no hay a quién mandar.
+ *
+ * El dibujo se sigue mostrando: JFD lo prefiere con un aviso antes que sin
+ * nada — "por ahora poné el que sacaste, si no coincide yo puedo decirte algo".
+ */
 export function htmlEquivalenteConDemo(e: Ejercicio, catalogo: Ejercicio[]): string {
   const otro = equivalenteConDemo(e, catalogo);
   if (!otro) return '';
+  const dudoso = !!e.demoDudosa;
   return `<div class="carta sin-demo">
-    <span class="eyebrow">Sin demostración</span>
-    <p class="ayuda">El dibujo de este ejercicio no era el correcto y lo sacamos. Es el mismo movimiento que:</p>
+    <span class="eyebrow">${dudoso ? '⚠️ El dibujo puede no ser este ejercicio' : 'Sin demostración'}</span>
+    <p class="ayuda">${dudoso
+      ? 'Viene cambiado desde el banco de ejercicios. Los pasos de abajo sí son los correctos. El mismo movimiento, bien dibujado:'
+      : 'El dibujo de este ejercicio no era el correcto y lo sacamos. Es el mismo movimiento que:'}</p>
     <a class="boton boton-secundario" href="${rutaBase}/ejercicio/?id=${encodeURIComponent(otro.id)}">${escapar(otro.nombre_es)} ▸</a>
   </div>`;
 }

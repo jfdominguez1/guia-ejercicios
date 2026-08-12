@@ -1161,3 +1161,37 @@ describe('la dosis dicha en palabras', () => {
     expect(texto()).toContain('5-8 repeticiones lentas');
   });
 });
+
+// JFD (12/08): "si no coincide yo puedo decirte algo en el campo de
+// observaciones". La "Nota de hoy" no servía para eso: vive en el item de UNA
+// sesión y al día siguiente no se vuelve a ver.
+describe('observaciones permanentes del ejercicio', () => {
+  it('lo que escribís queda pegado al ejercicio, no a la sesión', () => {
+    montar();
+    const obs = $('#obs-ej') as HTMLTextAreaElement;
+    obs.value = 'el dibujo no coincide';
+    obs.dispatchEvent(new Event('input'));
+    expect(storage.getObservaciones()['F1']).toBe('el dibujo no coincide');
+  });
+
+  it('al volver al mismo ejercicio sigue estando', () => {
+    storage.setObservacion('F1', 'bajar el asiento dos puntos');
+    montar();
+    expect(($('#obs-ej') as HTMLTextAreaElement).value).toBe('bajar el asiento dos puntos');
+  });
+
+  it('cada ejercicio tiene la suya', () => {
+    storage.setObservacion('F1', 'la del press');
+    montar();
+    $('#btn-siguiente').click(); // pasa a Remo (F4)
+    expect(($('#obs-ej') as HTMLTextAreaElement).value).toBe('');
+  });
+
+  // Son cosas distintas y la pantalla tiene que decirlo: una es de hoy, la otra
+  // es del ejercicio para siempre.
+  it('no se confunde con la nota de hoy', () => {
+    montar();
+    expect(texto()).toContain('solo esta sesión');
+    expect(texto()).toContain('quedan siempre en este ejercicio');
+  });
+});

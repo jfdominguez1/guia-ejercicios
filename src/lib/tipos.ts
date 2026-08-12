@@ -29,6 +29,15 @@ export interface Ejercicio {
    * Default: GIF con fallback a imagen.
    */
   media?: 'img' | 'ninguna';
+  /**
+   * El dibujo puede no ser este ejercicio.
+   *
+   * Hay archivos que vienen cambiados desde la fuente (el peor: un
+   * "estiramiento de pantorrilla" que muestra un remo con mancuerna). Se
+   * muestran igual —JFD los prefiere con un aviso antes que sin nada— pero la
+   * pantalla avisa y ofrece un equivalente que sí está bien.
+   */
+  demoDudosa?: boolean;
   /** Elemento necesario además del grupo: silla, barra fija, ayuda/correa, etc. */
   elemento?: string;
   custom?: boolean;
