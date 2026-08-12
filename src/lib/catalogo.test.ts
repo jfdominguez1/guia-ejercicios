@@ -3,6 +3,8 @@
 import { describe, it, expect } from 'vitest';
 import catalogoSrc from '../data/ejercicios.json';
 import catalogoPublic from '../../public/data/ejercicios.json';
+import correccionesJson from '../../scripts/correcciones.json';
+import { tieneDemo } from '../ui/datos';
 import { alternativasDe } from './editor';
 import { dosisInicial } from './editor';
 import type { Ejercicio } from './tipos';
@@ -55,5 +57,38 @@ describe('modalidades de cardio', () => {
     // grupo 'cuerpo' = siempre disponible, aunque el perfil no tenga máquinas.
     const { equivalentes } = alternativasDe(CATALOGO, correr, []);
     expect(equivalentes.map((e) => e.id)).toContain('CARDIO-caminata-libre');
+  });
+});
+
+// Hay ejercicios que vienen mal DESDE LA FUENTE: el GIF no es lo que dicen los
+// pasos. El peor, reportado por JFD el 12/08: "estiramiento de talones de pie"
+// muestra a alguien haciendo remo con mancuerna sobre un banco.
+//
+// Las correcciones viven en scripts/correcciones.json y las aplica
+// preprocesar.py. Este test existe porque regenerar el catálogo sin aplicarlas
+// las borraría en silencio, y nadie se enteraría hasta volver a leerlo en el gym.
+describe('correcciones al catálogo de origen', () => {
+  const correcciones = correccionesJson.correcciones as Array<{
+    id: string; pasos?: string[]; media?: string;
+  }>;
+  const porId = new Map(CATALOGO.map((e) => [e.id, e]));
+
+  it('todas están aplicadas en el catálogo', () => {
+    expect(correcciones.length).toBeGreaterThan(0);
+    for (const c of correcciones) {
+      const e = porId.get(c.id);
+      expect(e, `falta el ejercicio ${c.id}`).toBeDefined();
+      if (c.pasos) expect(e!.pasos, `pasos de ${c.id}`).toEqual(c.pasos);
+      if (c.media) expect(e!.media, `media de ${c.id}`).toBe(c.media);
+    }
+  });
+
+  // El caso concreto que reportó JFD, escrito con nombre y apellido: el archivo
+  // de este id enseña otro ejercicio, así que no se muestra ninguno.
+  it('el estiramiento de talones de pie no muestra la demostración equivocada', () => {
+    const e = porId.get('1398')!;
+    expect(e.nombre_es).toContain('talones');
+    expect(e.media).toBe('ninguna');
+    expect(tieneDemo(e)).toBe(false);
   });
 });

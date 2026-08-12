@@ -1,0 +1,52 @@
+{
+  "_comentario": [
+    "Correcciones al catálogo que vienen mal DESDE LA FUENTE (exercises-dataset).",
+    "Detectadas mirando el GIF contra los pasos, ejercicio por ejercicio.",
+    "`preprocesar.py` las aplica al final, así regenerar el catálogo no las pierde,",
+    "y `catalogo.test.ts` verifica que estén puestas: si alguien regenera sin",
+    "aplicarlas, el CI lo atrapa.",
+    "Reportado por JFD el 12/08/2026: 'en estiramiento de talones del pie dice de",
+    "pie frente a una pared, las manos sobre la pared...' y el dibujo es otra cosa."
+  ],
+  "correcciones": [
+    {
+      "id": "1398",
+      "nombre": "Estiramiento de talones de pie",
+      "motivo": "El archivo de media es de OTRO ejercicio: muestra a alguien inclinado sobre un banco con una mancuerna. Los pasos (pantorrilla contra la pared) sí son los correctos. No hay imagen buena para este id — mejor sin dibujo que con uno que enseña otra cosa. Con imagen correcta del mismo estiramiento están 1407 y 1377.",
+      "media": "ninguna"
+    },
+    {
+      "id": "1511",
+      "nombre": "Estiramiento de isquiotibiales",
+      "motivo": "El GIF muestra la versión ACOSTADO boca arriba con una pierna elevada; los pasos describían la versión de pie inclinándose hacia el pie. Se reescriben los pasos para que digan lo que se ve.",
+      "pasos": [
+        "Acostate boca arriba con una pierna extendida apoyada en el piso.",
+        "Levantá la otra pierna lo más recta que puedas y sostenela por detrás del muslo o de la pantorrilla.",
+        "Acercá esa pierna al pecho hasta sentir el estiramiento detrás del muslo, sin trabar la rodilla.",
+        "Sostené la posición y cambiá de lado."
+      ]
+    },
+    {
+      "id": "1363",
+      "nombre": "Estiramiento de columna",
+      "motivo": "Los pasos decían 'manos en el suelo detrás de ti, inclínate hacia atrás' y el GIF va exactamente al revés: sentado, inclinándose hacia ADELANTE sobre las piernas extendidas.",
+      "pasos": [
+        "Sentate en el piso con las piernas extendidas al frente.",
+        "Alargá la columna hacia arriba y llevá los brazos hacia adelante.",
+        "Inclinate desde las caderas hacia los pies, dejando que la espalda se redondee de a poco.",
+        "Sostené la posición y volvé despacio a estar sentado erguido."
+      ]
+    },
+    {
+      "id": "1585",
+      "nombre": "Estiramiento de corredor",
+      "motivo": "Los pasos describían una zancada (paso adelante, rodilla flexionada) y el GIF muestra una flexión de pie: parado, bajando las manos hacia el piso.",
+      "pasos": [
+        "Parate con los pies juntos o a la altura de la cadera.",
+        "Inclinate hacia adelante desde las caderas, bajando las manos hacia el piso.",
+        "Dejá caer la cabeza y los brazos, con las rodillas apenas blandas — no trabadas.",
+        "Sostené la posición y subí despacio, desenrollando la espalda."
+      ]
+    }
+  ]
+}

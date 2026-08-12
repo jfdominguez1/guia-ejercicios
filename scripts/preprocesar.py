@@ -259,6 +259,34 @@ def copiar_media(catalogo: list[dict]) -> int:
     return copiados
 
 
+def aplicar_correcciones(catalogo: list[dict]) -> int:
+    """Arregla los ejercicios que vienen mal DESDE LA FUENTE.
+
+    El dataset tiene casos donde el GIF no es el ejercicio que describen los
+    pasos (el peor: "estiramiento de talones de pie" muestra a alguien
+    haciendo remo con mancuerna sobre un banco). El mapeo nuestro es correcto
+    —id, nombre, pasos y archivo coinciden con el origen— así que no hay nada
+    que arreglar en el pipeline: hay que corregir el dato.
+
+    Vive acá y no editado a mano en el JSON para que regenerar el catálogo no
+    se lleve puestas las correcciones. `catalogo.test.ts` verifica que estén.
+    """
+    ruta = RAIZ / "scripts" / "correcciones.json"
+    if not ruta.exists():
+        return 0
+    por_id = {e["id"]: e for e in catalogo}
+    aplicadas = 0
+    for c in json.loads(ruta.read_text())["correcciones"]:
+        ejercicio = por_id.get(c["id"])
+        if ejercicio is None:
+            sys.exit(f"ERROR: corrección para un id que no está en el catálogo: {c['id']}")
+        for campo in ("pasos", "media"):
+            if campo in c:
+                ejercicio[campo] = c[campo]
+        aplicadas += 1
+    return aplicadas
+
+
 def main() -> None:
     diccionario = json.loads(DICCIONARIO.read_text())
     zonas_es: dict[str, str] = diccionario["zonas"]
@@ -303,6 +331,8 @@ def main() -> None:
             sys.exit(f"ERROR: ids de extras chocan con el catálogo: {sorted(repetidos)}")
         catalogo.extend(extras)
 
+    aplicadas = aplicar_correcciones(catalogo)
+
     SALIDA_JSON.parent.mkdir(parents=True, exist_ok=True)
     SALIDA_JSON.write_text(json.dumps(catalogo, ensure_ascii=False, indent=1))
     # copia servible por la app (fetch en runtime, respetando BASE_URL)
@@ -317,7 +347,7 @@ def main() -> None:
     grupos = {g: sum(1 for e in catalogo if e["grupo"] == g) for g in grupos_todos}
     tipos = {t: sum(1 for e in catalogo if e["tipo"] == t) for t in ("fuerza", "elongacion", "cardio")}
     print(f"{len(catalogo)} ejercicios ({grupos}), tipos: {tipos}, "
-          f"media copiada: {copiados}, "
+          f"media copiada: {copiados}, correcciones: {aplicadas}, "
           f"básicos: {sum(1 for e in catalogo if e['basico'])}, "
           f"nombres pendientes: {len(pendientes)}")
 
