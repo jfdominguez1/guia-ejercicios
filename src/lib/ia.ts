@@ -3,6 +3,7 @@
 
 import { fcMaxEfectiva, zonasFc } from './fc';
 import { CONFIG_DEFAULT } from './registro';
+import type { Reporte } from './reporte';
 import { detectarPausas } from './retomar';
 import type {
   DiaRutina,
@@ -155,6 +156,7 @@ export function generarExport(
   pregunta?: string,
   hoyISO?: string,
   grupos: GrupoGuardado[] = [],
+  reportes: Reporte[] = [],
 ): string {
   const hoy = hoyISO ?? new Date().toISOString().slice(0, 10);
   const recientes = sesionesRecientes(sesiones, hoy);
@@ -231,7 +233,21 @@ número no es comparable con los de después — no lo uses para medir progreso.
 \`\`\`json
 ${JSON.stringify(recientes, null, 1)}
 \`\`\`
+${
+  reportes.length
+    ? `\n## Problemas reportados de la APP (para el desarrollador, NO es entrenamiento)
 
+Son reportes de bugs/problemas de la aplicación cargados desde "Reportar un
+problema". NO los uses para analizar el entrenamiento ni los mezcles con el
+registro: pasalos tal cual —con fecha, pantalla, versión y sesión activa— al
+próximo pedido de desarrollo.
+
+\`\`\`json
+${JSON.stringify(reportes, null, 1)}
+\`\`\`
+`
+    : ''
+}
 ## La pregunta
 
 ${pregunta ?? PREGUNTA_DEFAULT}

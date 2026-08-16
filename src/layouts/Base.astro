@@ -31,7 +31,14 @@ const tabs = [
   <body>
     <main>
       <slot />
+      <!-- Al pie de TODAS las pantallas: los bugs aparecen entrenando. Abre un
+           overlay, no navega: la sesión en curso queda intacta. -->
+      <button type="button" id="btn-reportar" class="boton-silencioso">⚑ ¿Algo no anda? Reportar un problema</button>
     </main>
+    <script>
+      import { montarReporte } from '../ui/reporte';
+      montarReporte();
+    </script>
     <script is:inline define:vars={{ base }}>
       if ('serviceWorker' in navigator) {
         // Al tocar "Actualizar" el SW nuevo toma el control y esto recarga una sola vez.
@@ -324,6 +331,29 @@ const tabs = [
     padding: 12px;
     margin-top: 8px;
   }
+
+  /* Reportar un problema: discreto al pie del contenido + overlay que no navega. */
+  #btn-reportar {
+    display: block;
+    margin: 28px auto 0;
+    font-size: 13px;
+  }
+  #overlay-reporte {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: rgb(0 0 0 / 45%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  #overlay-reporte .caja-reporte {
+    width: 100%;
+    max-width: 420px;
+    margin: 0;
+  }
+  #overlay-reporte textarea { margin-top: 8px; }
 
   /* Aviso de versión nueva: sobre las tabs, sin tapar contenido. */
   #aviso-version {

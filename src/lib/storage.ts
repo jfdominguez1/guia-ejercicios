@@ -4,12 +4,13 @@
 import { fusionarSesiones, leerSesionesDeBackup, type ResultadoFusion } from './backup';
 import { asegurarIds } from './historial';
 import { CONFIG_DEFAULT } from './registro';
+import type { Reporte } from './reporte';
 import type { Config, Ejercicio, GrupoGuardado, Perfil, Rutina, Sesion } from './tipos';
 
 const PREFIJO = 'ge:';
 // Lo que entra al respaldo. Una clave que falte acá NO se respalda ni se
 // restaura: se pierde al cambiar de teléfono, en silencio.
-const CLAVES = ['perfil', 'rutina', 'sesiones', 'customs', 'config', 'grupos', 'papelera', 'observaciones'] as const;
+const CLAVES = ['perfil', 'rutina', 'sesiones', 'customs', 'config', 'grupos', 'papelera', 'observaciones', 'reportes'] as const;
 
 /** Id estable de sesión. `randomUUID` no existe en contextos no seguros ni en browsers viejos. */
 function nuevoId(): string {
@@ -81,6 +82,17 @@ export const storage = {
     if (limpio) todas[ejercicioId] = limpio;
     else delete todas[ejercicioId];
     guardar('observaciones', todas);
+  },
+
+  /**
+   * Problemas de la APP reportados desde "Reportar un problema". No son datos
+   * de entrenamiento: viajan en el respaldo y en el export para que lleguen
+   * al desarrollador con fecha, pantalla y versión — antes viajaban dictados
+   * en el primer campo de texto libre a mano, mezclados con el registro.
+   */
+  getReportes: (): Reporte[] => leer<Reporte[]>('reportes', []),
+  agregarReporte(reporte: Omit<Reporte, 'id'>): void {
+    guardar('reportes', [...this.getReportes(), { ...reporte, id: nuevoId() }]);
   },
 
   getGrupos: (): GrupoGuardado[] => leer<GrupoGuardado[]>('grupos', []),

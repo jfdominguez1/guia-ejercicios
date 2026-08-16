@@ -165,3 +165,27 @@ describe('observaciones por ejercicio', () => {
     expect(storage.getObservaciones()['1398']).toBe('el dibujo no coincide');
   });
 });
+
+describe('reportes de problemas de la app', () => {
+  const REPORTE = { fecha: '2026-08-16 19:42', pantalla: '/entrenar/', texto: 'no anda X' };
+
+  it('se agregan con id propio y se acumulan sin pisar', () => {
+    storage.agregarReporte(REPORTE);
+    storage.agregarReporte({ ...REPORTE, texto: 'otro' });
+    const reportes = storage.getReportes();
+    expect(reportes.map((r) => r.texto)).toEqual(['no anda X', 'otro']);
+    expect(reportes[0]!.id).toBeTruthy();
+    expect(reportes[0]!.id).not.toBe(reportes[1]!.id);
+  });
+
+  // Una clave que falte en CLAVES se pierde al cambiar de teléfono, en
+  // silencio — y un reporte perdido es un bug que nunca llega al desarrollador.
+  it('entran al respaldo y vuelven al restaurar', () => {
+    storage.agregarReporte(REPORTE);
+    const copia = storage.exportarBackup();
+    localStorage.clear();
+    expect(storage.getReportes()).toEqual([]);
+    storage.restaurarBackup(copia);
+    expect(storage.getReportes()[0]!.texto).toBe('no anda X');
+  });
+});

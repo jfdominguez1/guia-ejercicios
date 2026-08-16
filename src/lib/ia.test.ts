@@ -83,6 +83,28 @@ describe('generarExport', () => {
     expect(otro).not.toMatch(/EVOLUCIONAR/);
   });
 
+  // Los reportes de la app viajan en el export para llegarle al desarrollador
+  // vía la IA — antes viajaban dictados en campos de entrenamiento y la IA los
+  // leía como datos de una sesión.
+  it('los reportes de problemas entran, marcados como NO-entrenamiento', () => {
+    const reporte = {
+      id: 'r1',
+      fecha: '2026-08-16 19:42',
+      pantalla: '/entrenar/',
+      version: 'ge-abc123',
+      texto: 'los gráficos se ven congelados',
+    };
+    const conReporte = generarExport(PERFIL, RUTINA, SESIONES, CAT, [], undefined, '2026-07-12', [], [reporte]);
+    expect(conReporte).toContain('Problemas reportados de la APP');
+    expect(conReporte).toContain('NO es entrenamiento');
+    expect(conReporte).toContain('los gráficos se ven congelados');
+    expect(conReporte).toContain('ge-abc123');
+  });
+
+  it('sin reportes la sección no aparece', () => {
+    expect(texto).not.toContain('Problemas reportados');
+  });
+
   it('los customs entran al banco', () => {
     const custom = ej('CUSTOM-mi-ejercicio', 'empuje-pectorales', { custom: true });
     const conCustom = generarExport(PERFIL, RUTINA, [], CAT, [custom], undefined, '2026-07-12');
