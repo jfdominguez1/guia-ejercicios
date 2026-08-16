@@ -150,9 +150,14 @@ export function alternativasDe(
       // Nunca se propone algo que necesita que otro te sostenga la pierna.
       !necesitaOtraPersona(c),
   );
+  // Los clásicos curados (basico) van primero. Sin esto el corte en `limite`
+  // decide por posición en el catálogo, y un ejercicio agregado al final (los
+  // EXTRA-*, como la prensa horizontal) no aparecía nunca entre las opciones.
+  // El sort es estable: dentro de cada mitad se conserva el orden del catálogo.
+  const rankeados = [...candidatos].sort((a, b) => Number(b.basico) - Number(a.basico));
   return {
-    equivalentes: candidatos.filter((c) => c.movimiento === actual.movimiento).slice(0, limite),
-    mismoMusculo: candidatos
+    equivalentes: rankeados.filter((c) => c.movimiento === actual.movimiento).slice(0, limite),
+    mismoMusculo: rankeados
       .filter((c) => c.movimiento !== actual.movimiento && c.musculo === actual.musculo)
       .slice(0, limite),
   };

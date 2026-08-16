@@ -33391,5 +33391,29 @@
   ],
   "movimiento": "elongacion-isquiotibiales",
   "basico": false
+ },
+ {
+  "id": "EXTRA-prensa-horizontal",
+  "nombre_es": "Prensa de piernas horizontal (sentado)",
+  "nombre_en": "seated horizontal leg press",
+  "tipo": "fuerza",
+  "grupo": "maquina",
+  "equipment": "leverage machine",
+  "zona": "Piernas",
+  "musculo": "Glúteos",
+  "secundarios": [
+   "Cuádriceps",
+   "Isquiotibiales",
+   "Pantorrillas"
+  ],
+  "pasos": [
+   "Sentate en la máquina con la espalda y la cabeza apoyadas en el respaldo.",
+   "Apoyá los pies enteros en la plataforma, separados al ancho de hombros.",
+   "Empujá la plataforma extendiendo las piernas, sin bloquear las rodillas al final.",
+   "Volvé controlado hasta que las rodillas queden cerca de los 90 grados.",
+   "Repetí el número de repeticiones deseado."
+  ],
+  "movimiento": "piernas-empuje-gluteos",
+  "basico": true
  }
 ]

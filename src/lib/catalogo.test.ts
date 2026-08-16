@@ -94,3 +94,24 @@ describe('correcciones al catálogo de origen', () => {
     expect(tieneDemo(e)).toBe(true);
   });
 });
+
+// JFD (16/08, observación en el 0739): "la que estoy haciendo es la prensa
+// pero no 45 grados". La fuente no trae prensa horizontal a dos piernas, así
+// que se agregó como extra (scripts/extras/extras.json) con la media de la
+// máquina horizontal. Su registro histórico sigue en el 0739 — cambiarse o no
+// es decisión de él y de su IA para la v11.
+describe('prensa de piernas horizontal (extra)', () => {
+  const prensa = CATALOGO.find((e) => e.id === 'EXTRA-prensa-horizontal');
+
+  it('existe, es de máquina y tiene demostración', () => {
+    expect(prensa).toBeDefined();
+    expect(prensa!.grupo).toBe('maquina');
+    expect(tieneDemo(prensa!)).toBe(true);
+  });
+
+  it('"Cambiar ejercicio ⇄" la ofrece desde la prensa de 45°', () => {
+    const sled45 = CATALOGO.find((e) => e.id === '0739')!;
+    const { equivalentes } = alternativasDe(CATALOGO, sled45, ['maquina']);
+    expect(equivalentes.map((e) => e.id)).toContain('EXTRA-prensa-horizontal');
+  });
+});
