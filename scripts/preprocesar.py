@@ -243,20 +243,55 @@ def clasificar(ejercicio: dict, musculos_es: dict[str, str]) -> dict | None:
     }
 
 
-def copiar_media(catalogo: list[dict]) -> int:
+# Extensión NETSCAPE 2.0 con contador 0 = repetir para siempre.
+LOOP_INFINITO = b"\x21\xff\x0bNETSCAPE2.0\x03\x01\x00\x00\x00"
+
+
+def asegurar_loop_infinito(datos: bytes) -> bytes:
+    """Un GIF animado SIN extensión NETSCAPE se reproduce UNA sola vez.
+
+    21 GIFs de la fuente (todos de 18 frames, los ejercicios de varios pasos)
+    vienen sin la extensión: en el navegador la animación corre una vez y queda
+    congelada en el último frame — que encima es un fundido entre el final y el
+    principio, así que se ve una superposición "cortada" de dos poses. Es el
+    bug que JFD reportó el 16/08 ("algunos gráficos tienen más de 1 paso y
+    aparece cortado"). Se inserta la extensión después de la Global Color
+    Table; el resto del archivo queda byte a byte igual.
+    """
+    if b"NETSCAPE2.0" in datos or b"ANIMEXTS1.0" in datos:
+        return datos
+    if len(datos) < 13 or not datos.startswith((b"GIF89a", b"GIF87a")):
+        return datos
+    flags = datos[10]
+    fin_cabecera = 13
+    if flags & 0x80:  # hay Global Color Table: 3 bytes × 2^(bits+1) colores
+        fin_cabecera += 3 * (2 ** ((flags & 0x07) + 1))
+    return datos[:fin_cabecera] + LOOP_INFINITO + datos[fin_cabecera:]
+
+
+def copiar_media(catalogo: list[dict]) -> tuple[int, int]:
     MEDIA_GIF.mkdir(parents=True, exist_ok=True)
     MEDIA_IMG.mkdir(parents=True, exist_ok=True)
     copiados = 0
+    reparados = 0
     for e in catalogo:
         origen_gif = DATASET / e["_gif"]
         origen_img = DATASET / e["_img"]
         if not origen_gif.exists() or not origen_img.exists():
             print(f"  AVISO: media faltante para {e['id']} ({e['nombre_en']})", file=sys.stderr)
             continue
-        shutil.copyfile(origen_gif, MEDIA_GIF / f"{e['id']}.gif")
+        datos = origen_gif.read_bytes()
+        arreglado = asegurar_loop_infinito(datos)
+        (MEDIA_GIF / f"{e['id']}.gif").write_bytes(arreglado)
+        if arreglado is not datos:
+            # El archivo cambió con la misma URL y el service worker sirve la
+            # media cache-first para siempre: sin subir la versión, un teléfono
+            # que ya lo tenga cacheado no vería nunca el arreglo.
+            e["mediaV"] = 2
+            reparados += 1
         shutil.copyfile(origen_img, MEDIA_IMG / f"{e['id']}.jpg")
         copiados += 1
-    return copiados
+    return copiados, reparados
 
 
 def aplicar_correcciones(catalogo: list[dict]) -> int:
@@ -319,7 +354,7 @@ def main() -> None:
         elongacion_simple = e["tipo"] == "elongacion" and e["grupo"] in ("cuerpo", "banda")
         e["basico"] = e["id"] in BASICOS_IDS or elongacion_simple
 
-    copiados = copiar_media(catalogo)
+    copiados, reparados = copiar_media(catalogo)
     for e in catalogo:
         del e["_gif"], e["_img"]
 
@@ -349,7 +384,8 @@ def main() -> None:
     grupos = {g: sum(1 for e in catalogo if e["grupo"] == g) for g in grupos_todos}
     tipos = {t: sum(1 for e in catalogo if e["tipo"] == t) for t in ("fuerza", "elongacion", "cardio")}
     print(f"{len(catalogo)} ejercicios ({grupos}), tipos: {tipos}, "
-          f"media copiada: {copiados}, correcciones: {aplicadas}, "
+          f"media copiada: {copiados}, gifs con loop reparado: {reparados}, "
+          f"correcciones: {aplicadas}, "
           f"básicos: {sum(1 for e in catalogo if e['basico'])}, "
           f"nombres pendientes: {len(pendientes)}")
 

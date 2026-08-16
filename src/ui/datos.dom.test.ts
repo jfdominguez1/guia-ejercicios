@@ -3,7 +3,7 @@
 // "Cargando…" y, si el armado explota, ese texto se queda puesto: en un teléfono
 // no hay consola, así que "no carga" era todo lo que se podía saber.
 import { beforeEach, describe, expect, it } from 'vitest';
-import { arrancarPantalla, equivalenteConDemo, htmlEquivalenteConDemo, tieneDemo } from './datos';
+import { arrancarPantalla, equivalenteConDemo, htmlEquivalenteConDemo, tieneDemo, urlGif, urlImg } from './datos';
 import type { Ejercicio } from '../lib/tipos';
 
 beforeEach(() => {
@@ -74,5 +74,21 @@ describe('ejercicio sin demostración', () => {
 
   it('el que sí tiene dibujo no necesita que le propongan otro', () => {
     expect(equivalenteConDemo(conDemo, [sinDemo, conDemo])).toBeNull();
+  });
+});
+
+// La media se sirve cache-first (inmutable) desde el service worker: un archivo
+// corregido con la misma URL nunca reemplaza al que el teléfono ya cacheó.
+// mediaV cambia la URL (query) y fuerza la re-descarga — así llegan los 21 GIFs
+// con el loop reparado a un teléfono que los tenía congelados.
+describe('URLs de media versionadas', () => {
+  it('sin mediaV la URL queda limpia, como siempre', () => {
+    expect(urlGif({ id: '0001' })).toMatch(/\/media\/gif\/0001\.gif$/);
+    expect(urlImg({ id: '0001' })).toMatch(/\/media\/img\/0001\.jpg$/);
+  });
+
+  it('con mediaV la URL lleva la versión y el cache viejo no la matchea', () => {
+    expect(urlGif({ id: '1604', mediaV: 2 })).toMatch(/\/media\/gif\/1604\.gif\?v=2$/);
+    expect(urlImg({ id: '1604', mediaV: 2 })).toMatch(/\/media\/img\/1604\.jpg\?v=2$/);
   });
 });

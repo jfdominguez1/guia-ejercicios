@@ -47,8 +47,15 @@ export async function cargarCatalogoCompleto(): Promise<Ejercicio[]> {
   return [...(await cargarCatalogo()), ...storage.getCustoms()];
 }
 
-export const urlGif = (id: string) => `${rutaBase}/media/gif/${id}.gif`;
-export const urlImg = (id: string) => `${rutaBase}/media/img/${id}.jpg`;
+/**
+ * La media se sirve cache-first (inmutable) desde el service worker, así que
+ * un archivo corregido con la misma URL nunca reemplaza al cacheado. `mediaV`
+ * versiona la URL: query nueva = re-descarga. Sin versión, URL limpia de siempre.
+ */
+type ConMedia = Pick<Ejercicio, 'id' | 'mediaV'>;
+const version = (e: ConMedia) => (e.mediaV ? `?v=${e.mediaV}` : '');
+export const urlGif = (e: ConMedia) => `${rutaBase}/media/gif/${e.id}.gif${version(e)}`;
+export const urlImg = (e: ConMedia) => `${rutaBase}/media/img/${e.id}.jpg${version(e)}`;
 
 /** ¿Este ejercicio tiene archivo de demostración en /media? */
 export function tieneDemo(e: Ejercicio): boolean {
@@ -65,8 +72,8 @@ export function tieneDemo(e: Ejercicio): boolean {
 export function htmlDemo(e: Ejercicio, alt = ''): string {
   if (!tieneDemo(e)) return '';
   const texto = escapar(alt);
-  if (e.media === 'img') return `<img class="gif" src="${urlImg(e.id)}" alt="${texto}" />`;
-  return `<img class="gif" src="${urlGif(e.id)}" alt="${texto}" onerror="this.onerror=null;this.src='${urlImg(e.id)}'" />`;
+  if (e.media === 'img') return `<img class="gif" src="${urlImg(e)}" alt="${texto}" />`;
+  return `<img class="gif" src="${urlGif(e)}" alt="${texto}" onerror="this.onerror=null;this.src='${urlImg(e)}'" />`;
 }
 
 /**
@@ -113,7 +120,7 @@ export function htmlEquivalenteConDemo(e: Ejercicio, catalogo: Ejercicio[]): str
 /** URLs de media a precachear para "Descargar todas las demostraciones". */
 export function urlsDeMedia(catalogo: Ejercicio[]): string[] {
   return catalogo.filter(tieneDemo).flatMap((e) =>
-    e.media === 'img' ? [urlImg(e.id)] : [urlGif(e.id), urlImg(e.id)],
+    e.media === 'img' ? [urlImg(e)] : [urlGif(e), urlImg(e)],
   );
 }
 

@@ -30,6 +30,14 @@ export interface Ejercicio {
    */
   media?: 'img' | 'ninguna';
   /**
+   * Versión del archivo de media. El service worker sirve /media/ cache-first
+   * para siempre; cuando un archivo se corrige con la misma URL (los 21 GIFs
+   * a los que preprocesar.py les repara el loop), un teléfono que ya lo tenía
+   * cacheado no vería nunca el arreglo. La versión entra a la URL como query
+   * y fuerza la re-descarga. Ausente = versión original, URL sin query.
+   */
+  mediaV?: number;
+  /**
    * El dibujo puede no ser este ejercicio.
    *
    * Hay archivos que vienen cambiados desde la fuente (el peor: un
